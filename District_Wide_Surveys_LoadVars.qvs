@@ -1,0 +1,226 @@
+/**
+*	Loading Variables: District Wide Surveys
+*	Jonathan Vitale
+*	Changes:
+*
+*	Version 1.0.2:
+*		- begin
+*
+*	Reminders:
+*	- All the let statements will be strings, if you want an actual single quote in the string, use '& chr(39) &'
+*	- Alternatively, you can use double-quotes in set analyses, but these enable search and wildcards, so be careful.
+*   - A $(somevar) tells click to substitute whatever is somevar immediately. If you want to prevent this expansion replace $ with '& chr(36) &'
+*   - Similarly $(=$(somevar)) tells Qlik to evaluate the somevar expression, if you do not want this done in the load script replace both $ with chr(36)
+**/
+
+set vVersionNumber = 1.0.2_0;
+
+// What is the latest year?
+let vMaxYearEnd = 'Max(YearEnd)';
+
+// what is the minimum number of Students any calculation needs?
+let vMinStudents = 25; 
+
+
+////////////////////// STUDENTS //////////////////////////////
+
+/// Master Measure: vMMPercMP_Student_Climate_Current: The percent most positive for Student Climate questions in the current year.
+
+  // How many Students have Climate scores in the current year?
+  let vCount_Student_Climate_Current = 'Count({$<
+                                              questionconstruct={'&chr(39)&'School Climate'&chr(39)&'}, 
+                                              surveyTypeForDisplay = {'&chr(39)&'Student'&chr(39)&'}, 
+                                              YearEnd = {'& chr(36) &'(=' & chr(36) & '(vMaxYearEnd))}
+                                     >} constructscore)';
+
+  // What is the average Student Climate %MP in the current year?
+  let vPercMP_Student_Climate_Current = 'Avg({$<
+                                              questionconstruct={'&chr(39)&'School Climate'&chr(39)&'}, 
+                                              surveyTypeForDisplay = {'&chr(39)&'Student'&chr(39)&'}, 
+                                              YearEnd = {'& chr(36) &'(=' & chr(36) & '(vMaxYearEnd))}
+                                     >} constructscore)';
+
+  // What is the average Student Climate %MP in the current year for selections with > 25 Students?
+  let vMMPercMP_Student_Climate_Current = 'If('& chr(36) &'(vMinStudents) <= '& chr(36) &'(vCount_Student_Climate_Current),
+												'& chr(36) &'(vPercMP_Student_Climate_Current),
+                                                Null())';
+
+  // How many Students have Instruction scores in the current year?
+  let vCount_Student_Instruction_Current = 'Count({$<
+                                              questionconstruct={'&chr(39)&'Instruction'&chr(39)&'}, 
+                                              surveyTypeForDisplay = {'&chr(39)&'Student'&chr(39)&'}, 
+                                              YearEnd = {'& chr(36) &'(=' & chr(36) & '(vMaxYearEnd))}
+                                     >} constructscore)';
+
+  // What is the average Student Instruction %MP in the current year?
+  let vPercMP_Student_Instruction_Current = 'Avg({$<
+                                              questionconstruct={'&chr(39)&'Instruction'&chr(39)&'}, 
+                                              surveyTypeForDisplay = {'&chr(39)&'Student'&chr(39)&'}, 
+                                              YearEnd = {'& chr(36) &'(=' & chr(36) & '(vMaxYearEnd))}
+                                     >} constructscore)';
+
+  // What is the average Student Instruction %MP in the current year for selections with > 25 Students?
+  let vMMPercMP_Student_Instruction_Current = 'If('& chr(36) &'(vMinStudents) <= '& chr(36) &'(vCount_Student_Instruction_Current),
+                        '& chr(36) &'(vPercMP_Student_Instruction_Current),
+                                                Null())';
+
+
+/// Master Measure: vMMPercMP_Student_Climate_Bullying_Current: The percent most positive for Student Climate questions in the current year.
+
+  // How many Students have Climate-Bullying scores in the current year?
+  let vCount_Student_Climate_Bullying_Current = 'Count({$<
+                                              questionconstruct={'&chr(39)&'School Climate'&chr(39)&'}, 
+                                              subConstructForDisplay={'&chr(39)&'Bullying'&chr(39)&'}, 
+                                              surveyTypeForDisplay = {'&chr(39)&'Student'&chr(39)&'}, 
+                                              YearEnd = {'& chr(36) &'(=' & chr(36) & '(vMaxYearEnd))}
+                                     >} subconstructscore)';
+
+  // What is the average Student Climate-Bullying %MP in the current year?
+  let vPercMP_Student_Climate_Bullying_Current = 'Avg({$<
+                                              questionconstruct={'&chr(39)&'School Climate'&chr(39)&'}, 
+                                              subConstructForDisplay={'&chr(39)&'Bullying'&chr(39)&'}, 
+                                              surveyTypeForDisplay = {'&chr(39)&'Student'&chr(39)&'}, 
+                                              YearEnd = {'& chr(36) &'(=' & chr(36) & '(vMaxYearEnd))}
+                                     >} subconstructscore)';
+
+  // What is the average Student Climate-Bullying %MP in the current year for selections with > 25 Students?
+  let vMMPercMP_Student_Climate_Bullying_Current = 'If('& chr(36) &'(vMinStudents) <= '& chr(36) &'(vCount_Student_Climate_Bullying_Current),
+												'& chr(36) &'(vPercMP_Student_Climate_Bullying_Current),
+                                                Null())';
+
+/// Master Measure: vMMPercMP_Student_Climate_Belonging_Current: The percent most positive for Student Climate questions in the current year.
+
+  // How many Students have Climate-belonging scores in the current year?
+  let vCount_Student_Climate_Belonging_Current = 'Count({$<
+                                              questionconstruct={'&chr(39)&'School Climate'&chr(39)&'}, 
+                                              subConstructForDisplay={'&chr(39)&'Belonging'&chr(39)&'}, 
+                                              surveyTypeForDisplay = {'&chr(39)&'Student'&chr(39)&'}, 
+                                              YearEnd = {'& chr(36) &'(=' & chr(36) & '(vMaxYearEnd))}
+                                     >} subconstructscore)';
+
+  // What is the average Student Climate-belonging %MP in the current year?
+  let vPercMP_Student_Climate_Belonging_Current = 'Avg({$<
+                                              questionconstruct={'&chr(39)&'School Climate'&chr(39)&'}, 
+                                              subConstructForDisplay={'&chr(39)&'Belonging'&chr(39)&'}, 
+                                              surveyTypeForDisplay = {'&chr(39)&'Student'&chr(39)&'}, 
+                                              YearEnd = {'& chr(36) &'(=' & chr(36) & '(vMaxYearEnd))}
+                                     >} subconstructscore)';
+
+  // What is the average Student Climate-belonging %MP in the current year for selections with > 25 Students?
+  let vMMPercMP_Student_Climate_Belonging_Current = 'If('& chr(36) &'(vMinStudents) <= '& chr(36) &'(vCount_Student_Climate_Belonging_Current),
+                        '& chr(36) &'(vPercMP_Student_Climate_Belonging_Current),
+                                                Null())';
+
+/// Master Measure: vMMPercMP_Student_Climate_Safety_Current: The percent most positive for Student Climate questions in the current year.
+
+  // How many Students have Climate-Safety scores in the current year?
+  let vCount_Student_Climate_Safety_Current = 'Count({$<
+                                              questionconstruct={'&chr(39)&'School Climate'&chr(39)&'}, 
+                                              subConstructForDisplay={'&chr(39)&'Safety/Building Condition'&chr(39)&'}, 
+                                              surveyTypeForDisplay = {'&chr(39)&'Student'&chr(39)&'}, 
+                                              YearEnd = {'& chr(36) &'(=' & chr(36) & '(vMaxYearEnd))}
+                                     >} subconstructscore)';
+
+  // What is the average Student Climate-Safety %MP in the current year?
+  let vPercMP_Student_Climate_Safety_Current = 'Avg({$<
+                                              questionconstruct={'&chr(39)&'School Climate'&chr(39)&'}, 
+                                              subConstructForDisplay={'&chr(39)&'Safety/Building Condition'&chr(39)&'}, 
+                                              surveyTypeForDisplay = {'&chr(39)&'Student'&chr(39)&'}, 
+                                              YearEnd = {'& chr(36) &'(=' & chr(36) & '(vMaxYearEnd))}
+                                     >} subconstructscore)';
+
+  // What is the average Student Climate-Safety %MP in the current year for selections with > 25 Students?
+  let vMMPercMP_Student_Climate_Safety_Current = 'If('& chr(36) &'(vMinStudents) <= '& chr(36) &'(vCount_Student_Climate_Safety_Current),
+                        '& chr(36) &'(vPercMP_Student_Climate_Safety_Current),
+                                                Null())';
+
+
+
+////////////////////// PARENTS //////////////////////////////
+/// Master Measure: vMMPercMP_Parent_Climate_Current: The percent most positive for Parent Climate questions in the current year.
+
+  // How many Parents have Climate scores in the current year?
+  let vCount_Parent_Climate_Current = 'Count({$<
+                                              questionconstruct={'&chr(39)&'School Climate'&chr(39)&'}, 
+                                              surveyTypeForDisplay = {'&chr(39)&'Parent'&chr(39)&'}, 
+                                              YearEnd = {'& chr(36) &'(=' & chr(36) & '(vMaxYearEnd))}
+                                     >} constructscore)';
+
+  // What is the average Parent Climate %MP in the current year?
+  let vPercMP_Parent_Climate_Current = 'Avg({$<
+                                              questionconstruct={'&chr(39)&'School Climate'&chr(39)&'}, 
+                                              surveyTypeForDisplay = {'&chr(39)&'Parent'&chr(39)&'}, 
+                                              YearEnd = {'& chr(36) &'(=' & chr(36) & '(vMaxYearEnd))}
+                                     >} constructscore)';
+
+  // What is the average Parent Climate %MP in the current year for selections with > 25 Parents?
+  let vMMPercMP_Parent_Climate_Current = 'If('& chr(36) &'(vMinParents) <= '& chr(36) &'(vCount_Parent_Climate_Current),
+                        '& chr(36) &'(vPercMP_Parent_Climate_Current),
+                                                Null())';
+
+  // How many Parents have Instruction scores in the current year?
+  let vCount_Parent_Instruction_Current = 'Count({$<
+                                              questionconstruct={'&chr(39)&'Instruction'&chr(39)&'}, 
+                                              surveyTypeForDisplay = {'&chr(39)&'Parent'&chr(39)&'}, 
+                                              YearEnd = {'& chr(36) &'(=' & chr(36) & '(vMaxYearEnd))}
+                                     >} constructscore)';
+
+  // What is the average Parent Instruction %MP in the current year?
+  let vPercMP_Parent_Instruction_Current = 'Avg({$<
+                                              questionconstruct={'&chr(39)&'Instruction'&chr(39)&'}, 
+                                              surveyTypeForDisplay = {'&chr(39)&'Parent'&chr(39)&'}, 
+                                              YearEnd = {'& chr(36) &'(=' & chr(36) & '(vMaxYearEnd))}
+                                     >} constructscore)';
+
+  // What is the average Parent Instruction %MP in the current year for selections with > 25 Parents?
+  let vMMPercMP_Parent_Instruction_Current = 'If('& chr(36) &'(vMinParents) <= '& chr(36) &'(vCount_Parent_Instruction_Current),
+                        '& chr(36) &'(vPercMP_Parent_Instruction_Current),
+                                                Null())';
+
+
+/// Master Measure: vMMPercMP_Parent_Climate_Bullying_Current: The percent most positive for Parent Climate questions in the current year.
+
+  // How many Parents have Climate-Bullying scores in the current year?
+  let vCount_Parent_Climate_Bullying_Current = 'Count({$<
+                                              questionconstruct={'&chr(39)&'School Climate'&chr(39)&'}, 
+                                              subConstructForDisplay={'&chr(39)&'Bullying'&chr(39)&'}, 
+                                              surveyTypeForDisplay = {'&chr(39)&'Parent'&chr(39)&'}, 
+                                              YearEnd = {'& chr(36) &'(=' & chr(36) & '(vMaxYearEnd))}
+                                     >} subconstructscore)';
+
+  // What is the average Parent Climate-Bullying %MP in the current year?
+  let vPercMP_Parent_Climate_Bullying_Current = 'Avg({$<
+                                              questionconstruct={'&chr(39)&'School Climate'&chr(39)&'}, 
+                                              subConstructForDisplay={'&chr(39)&'Bullying'&chr(39)&'}, 
+                                              surveyTypeForDisplay = {'&chr(39)&'Parent'&chr(39)&'}, 
+                                              YearEnd = {'& chr(36) &'(=' & chr(36) & '(vMaxYearEnd))}
+                                     >} subconstructscore)';
+
+  // What is the average Parent Climate-Bullying %MP in the current year for selections with > 25 Parents?
+  let vMMPercMP_Parent_Climate_Bullying_Current = 'If('& chr(36) &'(vMinParents) <= '& chr(36) &'(vCount_Parent_Climate_Bullying_Current),
+                        '& chr(36) &'(vPercMP_Parent_Climate_Bullying_Current),
+                                                Null())';
+
+/// Master Measure: vMMPercMP_Parent_Climate_Safety_Current: The percent most positive for Parent Climate questions in the current year.
+
+  // How many Parents have Climate-Safety scores in the current year?
+  let vCount_Parent_Climate_Safety_Current = 'Count({$<
+                                              questionconstruct={'&chr(39)&'School Climate'&chr(39)&'}, 
+                                              subConstructForDisplay={'&chr(39)&'Safety/Building Condition'&chr(39)&'}, 
+                                              surveyTypeForDisplay = {'&chr(39)&'Parent'&chr(39)&'}, 
+                                              YearEnd = {'& chr(36) &'(=' & chr(36) & '(vMaxYearEnd))}
+                                     >} subconstructscore)';
+
+  // What is the average Parent Climate-Safety %MP in the current year?
+  let vPercMP_Parent_Climate_Safety_Current = 'Avg({$<
+                                              questionconstruct={'&chr(39)&'School Climate'&chr(39)&'}, 
+                                              subConstructForDisplay={'&chr(39)&'Safety/Building Condition'&chr(39)&'}, 
+                                              surveyTypeForDisplay = {'&chr(39)&'Parent'&chr(39)&'}, 
+                                              YearEnd = {'& chr(36) &'(=' & chr(36) & '(vMaxYearEnd))}
+                                     >} subconstructscore)';
+
+  // What is the average Parent Climate-Safety %MP in the current year for selections with > 25 Parents?
+  let vMMPercMP_Parent_Climate_Safety_Current = 'If('& chr(36) &'(vMinParents) <= '& chr(36) &'(vCount_Parent_Climate_Safety_Current),
+                        '& chr(36) &'(vPercMP_Parent_Climate_Safety_Current),
+                                                Null())';
+
