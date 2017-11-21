@@ -1,729 +1,16 @@
-/**
-*	Loading Variables: District Wide Surveys
-*	Jonathan Vitale
-*	Changes:
-*
-*	Version 1.0.4:
-*		- begin
-*
-*	Reminders:
-*	- All the let statements will be strings, if you want an actual single quote in the string, use '&chr(39)&'
-*	- Alternatively, you can use double-quotes in set analyses, but these enable search and wildcards, so be careful.
-*   - A $(somevar) tells click to substitute whatever is somevar immediately. If you want to prevent this expansion replace $ with '&chr(36)&'
-*   - Similarly $(=$(somevar)) tells Qlik to evaluate the somevar expression, if you do not want this done in the load script replace both $ with chr(36)
-**/
-
-set vVersionNumber = '1.0.4.1';
-
-///// What is the latest year?
-  let vMaxYearEnd = 'Max(YearEnd)';
-  let vLastYearEnd = '(Max(YearEnd)-1)';
-  let vLastLastYearEnd = '(Max(YearEnd)-2)';
-  let vMaxYear = '(max(left(year,4))) & ' &chr(39)& chr(45) &chr(39)& ' & (max(right(year,4)))';
-  let vLastYear = '(max(left(year,4))-1) & ' &chr(39)& chr(45) &chr(39)& ' & (max(right(year,4))-1)';
-  let vLastLastYear = '(max(left(year,4))-2) & ' &chr(39)& chr(45) &chr(39)& ' & (max(right(year,4))-2)';
-
-///// what is the minimum number of individuals and percent of respondents for an analysis
-  let vMinStudents = 25; 
-  let vMinParents = 25;
-  let vMinTeachers = 5;
-  let vMinPrincipals = 5;
-  
-  /// for now we are not using the following
-  let vMinStudentsPerc = 0; 
-  let vMinParentsPerc = 0;
-  let vMinTeachersPerc = 0;
-  let vMinPrincipalsPerc = 0;
-  
-///// Response Rate
-  //// Master Measure vmmCount_Responded_Student_Current: Count of Students in current year - for use in sizing points in the scatter plot
-    let vmmCount_Responded_Student_Current = 'Count({$<surveyTypeForDisplay = {"Student"}, responded={1}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}
-      >} responded)';
-
-  //// Text for subtitle in Response Rate KPIs
-    let vSubTitle_RespondedKPI_Student = chr(36)&'(=vMaxYear) & '&chr(39)&', # of Student Responses: '&chr(39)&' &
-        Num(Count(distinct {$<YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, surveyTypeForDisplay={"Student"}, responded={1}>} respondentid),
-        '&chr(39)&'#,##0'&chr(39)&')';
-    let vSubTitle_RespondedKPI_Parent = chr(36)&'(=vMaxYear) & '&chr(39)&', # of Parent Responses: '&chr(39)&' &
-        Num(Count(distinct {$<YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, surveyTypeForDisplay={"Parent"}, responded={1}>} respondentid),
-        '&chr(39)&'#,##0'&chr(39)&')';
-    let vSubTitle_RespondedKPI_Teacher = chr(36)&'(=vMaxYear) & '&chr(39)&', # of Teacher Responses: '&chr(39)&' &
-        Num(Count(distinct {$<YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, surveyTypeForDisplay={"Teacher"}, responded={1}>} respondentid),
-        '&chr(39)&'#,##0'&chr(39)&')';
-    let vSubTitle_RespondedKPI_Principal = chr(36)&'(=vMaxYear) & '&chr(39)&', # of Principal Responses: '&chr(39)&' &
-        Num(Count(distinct {$<YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, surveyTypeForDisplay={"Principal"}, responded={1}>} [School Name (ULCS)]),
-        '&chr(39)&'#,##0'&chr(39)&')';
-
-
-  //// Numerator - count of respondents
-    /// Master Measure: vmmCount_Responded_Student: How many students (or other) responded to the survey?
-      // Note, these don't take sample size into account, but if they do here is a sample of how:
-      // If( $(vMinParents) <= count({$<surveyTypeForDisplay = {'Parent'} , year=, responded={'1'}>} responded) and $(vMinParentsPerc) <= count({$<surveyTypeForDisplay = {'Parent'} , year=, responded={'1'}>} responded) / count({$<surveyTypeForDisplay = {'Parent'} , year= , inEnrollmentCounter={1}>} responded)
-      let vmmCount_Responded_Student = 'Num(Sum({$<surveyTypeForDisplay = {"Student"}, year= >} responded), '&chr(39)&'#0.#'&chr(39)&')';
-      let vmmCount_Responded_Parent = 'Num(Sum({$<surveyTypeForDisplay = {"Parent"}, year= >} responded), '&chr(39)&'#0.#'&chr(39)&')';
-      let vmmCount_Responded_Teacher = 'Num(Sum({$<surveyTypeForDisplay = {"Teacher"}, year= >} responded),'&chr(39)&'#0.#'&chr(39)&')';
-      // Principal is a little different because we are counting distinct schools
-      let vmmCount_Responded_Principal = 'Num(Count(distinct {$<surveyTypeForDisplay = {"Principal"}, year=, responded={1} >} [School Name (ULCS)]), '&chr(39)&'#0.#'&chr(39)&')';
-
-  //// Denominator - total # in respective groups
-    /// Master Measure: vmmCount_Student - the number of students in grades 3 - 12
-      let vmmCount_Student = 'Num(Count({$<surveyTypeForDisplay = {"Student"}, year=, inEnrollmentCounter={1}, 
-        grade -= {"00", "01", "02"}>} responded), '&chr(39)&'#0.#'&chr(39)&')';
-      let vmmCount_Parent = 'Num(Count({$<surveyTypeForDisplay = {"Parent"}, year=, inEnrollmentCounter={1}>} responded), '&chr(39)&'#0.#'&chr(39)&')';
-      let vmmCount_Teacher = 'Num(Count({$<surveyTypeForDisplay = {"Teacher"}, year= >} responded), '&chr(39)&'#0.#'&chr(39)&')';
-      // Principal is a little different because we are counting distinct schools
-      let vmmCount_Principal = 'Num(Count(distinct {$<year= >} [School Name (ULCS)]), '&chr(39)&'#0.#'&chr(39)&')';
-
-  //// Rate - Numerator / Denominator for current year
-      let vmmRatio_Responded_by_Total_Student_Current = 'Num(Sum({$<surveyTypeForDisplay = {"Student"},
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))} >} responded) /
-        Count({$<surveyTypeForDisplay = {"Student"}, inEnrollmentCounter={1}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))},
-          grade -= {"00", "01", "02"}
-          >} responded), '&chr(39)&'#.#%'&chr(39)&')';
-      let vmmRatio_Responded_by_Total_Parent_Current = 'Num(Sum({$<surveyTypeForDisplay = {"Parent"},
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))} >} responded) /
-        Count({$<surveyTypeForDisplay = {"Parent"}, inEnrollmentCounter={1}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} responded), '&chr(39)&'#.#%'&chr(39)&')';
-      let vmmRatio_Responded_by_Total_Teacher_Current = 'Num(Sum({$<surveyTypeForDisplay = {"Teacher"},
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))} >} responded) /
-        Count({$<surveyTypeForDisplay = {"Teacher"},
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} responded), '&chr(39)&'#.#%'&chr(39)&')';
-      let vmmRatio_Responded_by_Total_Principal_Current = 'Num(Sum(distinct {$<surveyTypeForDisplay = {"Principal"}, responded={1},
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))} >} [School Name (ULCS)]) /
-        Count(distinct {$<YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} [School Name (ULCS)]), '&chr(39)&'#.#%'&chr(39)&')';
-
-  //// Year over year
-      let vmmRatio_Responded_by_Total_Student_YOY = 'Num(
-        Sum({$<surveyTypeForDisplay = {"Student"},
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))} >} responded) /
-        Count({$<surveyTypeForDisplay = {"Student"}, inEnrollmentCounter={1}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))},
-          grade -= {"00", "01", "02"}
-          >} responded)
-        -
-        Sum({$<surveyTypeForDisplay = {"Student"},
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))} >} responded) /
-        Count({$<surveyTypeForDisplay = {"Student"}, inEnrollmentCounter={1}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))},
-          grade -= {"00", "01", "02"}
-          >} responded), '&chr(39)&'#.#%'&chr(39)&')';
-      let vmmRatio_Responded_by_Total_Parent_YOY = 'Num(
-        Sum({$<surveyTypeForDisplay = {"Parent"},
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))} >} responded) /
-        Count({$<surveyTypeForDisplay = {"Parent"}, inEnrollmentCounter={1}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}
-          >} responded)
-        -
-        Sum({$<surveyTypeForDisplay = {"Parent"},
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))} >} responded) /
-        Count({$<surveyTypeForDisplay = {"Parent"}, inEnrollmentCounter={1}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}
-          >} responded), '&chr(39)&'#.#%'&chr(39)&')';
-      let vmmRatio_Responded_by_Total_Teacher_YOY = 'Num(
-        Sum({$<surveyTypeForDisplay = {"Teacher"},
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))} >} responded) /
-        Count({$<surveyTypeForDisplay = {"Teacher"}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}
-          >} responded)
-        -
-        Sum({$<surveyTypeForDisplay = {"Teacher"}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))} >} responded) /
-        Count({$<surveyTypeForDisplay = {"Teacher"},
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}
-          >} responded), '&chr(39)&'#.#%'&chr(39)&')';
-      let vmmRatio_Responded_by_Total_Principal_YOY = 'Num(
-        Count(distinct {$<surveyTypeForDisplay = {"Principal"},  responded={1}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))} >} [School Name (ULCS)]) /
-        Count(distinct {$<YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} [School Name (ULCS)])
-        -
-        Count(distinct {$<surveyTypeForDisplay = {"Principal"},  responded={1},
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))} >} [School Name (ULCS)]) /
-        Count(distinct {$<YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} [School Name (ULCS)]), '&chr(39)&'#.#%'&chr(39)&')';
-
-
-///// Survey Focus Questions - Percent Most Positive
-  //// Question codes
-    let vStudentQuestionCode1 = chr(39)& 'STUDENT|Q3f' & chr(39);
-    let vStudentQuestionCode2 = chr(39)& 'STUDENT|Q1b' & chr(39);
-    let vStudentQuestionCode3 = chr(39)& 'STUDENT|Q3k' & chr(39);
-    let vStudentQuestionCode4 = chr(39)& 'STUDENT|Q3a' & chr(39);
-
-    let vParentQuestionCode1 = chr(39)& 'PARENT|Q7f' & chr(39);
-    let vParentQuestionCode2 = chr(39)& 'PARENT|Q7a' & chr(39);
-    let vParentQuestionCode3 = chr(39)& 'PARENT|Q7d' & chr(39);
-    let vParentQuestionCode4 = chr(39)& 'PARENT|Q3g' & chr(39);
-
-    let vTeacherQuestionCode1 = chr(39)& 'TEACHER|Q5a' & chr(39);
-    let vTeacherQuestionCode2 = chr(39)& 'TEACHER|Q3e' & chr(39);
-    let vTeacherQuestionCode3 = chr(39)& 'TEACHER|Q3i' & chr(39);
-    let vTeacherQuestionCode4 = chr(39)& 'TEACHER|Q4e' & chr(39);
-
-  //// Question text (originally I was figuring this out by code, but this will make it faster)
-    let vStudentQuestion1 = 'I enjoy being in school.';
-    let vStudentQuestion2 = 'My teachers have high expectations for me in school.';
-    let vStudentQuestion3 = 'My school is clean.';
-    let vStudentQuestion4 = 'I am bullied at school.';
-    
-    let vParentQuestion1 = 'I am pleased with the quality of education my child'&chr(39)&'s school is providing for my child.';
-    let vParentQuestion2 = 'My child'&chr(39)&'s school has high expectations for my child'&chr(39)&'s learning.';
-    let vParentQuestion3 = 'Teachers at my child'&chr(39)&'s school encourage my child to work hard.';
-    let vParentQuestion4 = 'My child feels safe at school.';
-    
-    let vTeacherQuestion1 = 'The principal communicates a clear mission for our school.';
-    let vTeacherQuestion2 = 'My students are motivated to learn.';
-    let vTeacherQuestion3 = 'My students influence decisions regarding learning activities.';
-    let vTeacherQuestion4 = 'My students are more focused on grades than learning.';
-
-  //// Question abbreviation
-    let vStudentQuestion1Abbr = 'I enjoy being in school';
-    let vStudentQuestion2Abbr = 'My teachers have high expectations';
-    let vStudentQuestion3Abbr = 'My school is clean';
-    let vStudentQuestion4Abbr = 'I am bullied';
-    
-    let vParentQuestion1Abbr = 'Pleased with quality of education';
-    let vParentQuestion2Abbr = 'Teachers have high expectations';
-    let vParentQuestion3Abbr = 'Teachers encourage hard work';    
-    let vParentQuestion4Abbr = 'My child feels safe';
-
-    let vTeacherQuestion1Abbr = 'Clear mission by principal';
-    let vTeacherQuestion2Abbr = 'My students are motivated';
-    let vTeacherQuestion3Abbr = 'Students influence decisions';
-    let vTeacherQuestion4Abbr = 'Students focus on grades over learning';
-
-  //// Question best "most positive" responses
-    let vStudentQuestion1MostPositive = 'Most or all the time';
-    let vStudentQuestion2MostPositive = 'Most or all the time';
-    let vStudentQuestion3MostPositive = 'Most or all the time';
-    let vStudentQuestion4MostPositive = 'Never';
-    
-    let vParentQuestion1MostPositive = 'Strongly Agree';
-    let vParentQuestion2MostPositive = 'Strongly Agree';
-    let vParentQuestion3MostPositive = 'Strongly Agree';    
-    let vParentQuestion4MostPositive = 'Most or all the time';
-
-    let vTeacherQuestion1MostPositive = 'Strongly Agree';
-    let vTeacherQuestion2MostPositive = 'Most or all the time';
-    let vTeacherQuestion3MostPositive = 'Most or all the time';
-    let vTeacherQuestion4MostPositive = 'Never';
-
-  //// Current Count
-    let vCount_Student_Q1_Current = 'Count({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode1))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCount_Student_Q2_Current = 'Count({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode2))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCount_Student_Q3_Current = 'Count({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode3))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCount_Student_Q4_Current = 'Count({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode4))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCount_Parent_Q1_Current = 'Count({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode1))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCount_Parent_Q2_Current = 'Count({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode2))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCount_Parent_Q3_Current = 'Count({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode3))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCount_Parent_Q4_Current = 'Count({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode4))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCount_Teacher_Q1_Current = 'Count({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode1))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCount_Teacher_Q2_Current = 'Count({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode2))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCount_Teacher_Q3_Current = 'Count({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode3))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCount_Teacher_Q4_Current = 'Count({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode4))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} scoreForDisplay)';
-  //// Previous Year Count
-    let vCount_Student_Q1_Previous = 'Count({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode1))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCount_Student_Q2_Previous = 'Count({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode2))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCount_Student_Q3_Previous = 'Count({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode3))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCount_Student_Q4_Previous = 'Count({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode4))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCount_Parent_Q1_Previous = 'Count({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode1))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCount_Parent_Q2_Previous = 'Count({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode2))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCount_Parent_Q3_Previous = 'Count({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode3))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCount_Parent_Q4_Previous = 'Count({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode4))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCount_Teacher_Q1_Previous = 'Count({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode1))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCount_Teacher_Q2_Previous = 'Count({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode2))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCount_Teacher_Q3_Previous = 'Count({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode3))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCount_Teacher_Q4_Previous = 'Count({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode4))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} scoreForDisplay)';
-
-  //// Current Count (Total)
-    let vCountTotal_Student_Q1_Current = 'Count(Total {$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode1))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCountTotal_Student_Q2_Current = 'Count(Total {$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode2))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCountTotal_Student_Q3_Current = 'Count(Total {$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode3))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCountTotal_Student_Q4_Current = 'Count(Total {$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode4))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCountTotal_Parent_Q1_Current = 'Count(Total {$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode1))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCountTotal_Parent_Q2_Current = 'Count(Total {$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode2))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCountTotal_Parent_Q3_Current = 'Count(Total {$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode3))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCountTotal_Parent_Q4_Current = 'Count(Total {$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode4))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCountTotal_Teacher_Q1_Current = 'Count(Total {$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode1))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCountTotal_Teacher_Q2_Current = 'Count(Total {$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode2))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCountTotal_Teacher_Q3_Current = 'Count(Total {$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode3))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCountTotal_Teacher_Q4_Current = 'Count(Total {$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode4))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} scoreForDisplay)';
-
-  //// Previous Year Count (Total)
-    let vCountTotal_Student_Q1_Previous = 'Count(Total {$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode1))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCountTotal_Student_Q2_Previous = 'Count(Total {$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode2))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCountTotal_Student_Q3_Previous = 'Count(Total {$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode3))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCountTotal_Student_Q4_Previous = 'Count(Total {$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode4))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCountTotal_Parent_Q1_Previous = 'Count(Total {$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode1))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCountTotal_Parent_Q2_Previous = 'Count(Total {$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode2))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCountTotal_Parent_Q3_Previous = 'Count(Total {$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode3))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCountTotal_Parent_Q4_Previous = 'Count(Total {$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode4))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCountTotal_Teacher_Q1_Previous = 'Count(Total {$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode1))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCountTotal_Teacher_Q2_Previous = 'Count(Total {$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode2))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCountTotal_Teacher_Q3_Previous = 'Count(Total {$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode3))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} scoreForDisplay)';
-    let vCountTotal_Teacher_Q4_Previous = 'Count(Total {$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode4))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} scoreForDisplay)';      
-
-  //// Current Percent Most Positive
-    let vPercMP_Student_Q1_Current = 'Sum({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode1))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} highest)
-      / '&chr(36)&'(vCount_Student_Q1_Current)';
-    let vPercMP_Student_Q2_Current = 'Sum({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode2))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} highest)
-      / '&chr(36)&'(vCount_Student_Q2_Current)';
-    let vPercMP_Student_Q3_Current = 'Sum({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode3))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} highest)
-      / '&chr(36)&'(vCount_Student_Q3_Current)';
-    let vPercMP_Student_Q4_Current = 'Sum({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode4))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} highest)
-      / '&chr(36)&'(vCount_Student_Q4_Current)';
-    let vPercMP_Parent_Q1_Current = 'Sum({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode1))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} highest)
-      / '&chr(36)&'(vCount_Parent_Q1_Current)';
-    let vPercMP_Parent_Q2_Current = 'Sum({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode2))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} highest)
-      / '&chr(36)&'(vCount_Parent_Q2_Current)';
-    let vPercMP_Parent_Q3_Current = 'Sum({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode3))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} highest)
-      / '&chr(36)&'(vCount_Parent_Q3_Current)';
-    let vPercMP_Parent_Q4_Current = 'Sum({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode4))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} highest)
-      / '&chr(36)&'(vCount_Parent_Q4_Current)';
-    let vPercMP_Teacher_Q1_Current = 'Sum({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode1))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} highest)
-      / '&chr(36)&'(vCount_Teacher_Q1_Current)';
-    let vPercMP_Teacher_Q2_Current = 'Sum({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode2))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} highest)
-      / '&chr(36)&'(vCount_Teacher_Q2_Current)';
-    let vPercMP_Teacher_Q3_Current = 'Sum({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode3))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} highest)
-      / '&chr(36)&'(vCount_Teacher_Q3_Current)';
-    let vPercMP_Teacher_Q4_Current = 'Sum({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode4))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}, responded={1}>} highest)
-      / '&chr(36)&'(vCount_Teacher_Q4_Current)';
-
-  //// Previous Percent Most Positive
-    let vPercMP_Student_Q1_Previous = 'Sum({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode1))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} highest)
-      / '&chr(36)&'(vCount_Student_Q1_Previous)';
-    let vPercMP_Student_Q2_Previous = 'Sum({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode2))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} highest)
-      / '&chr(36)&'(vCount_Student_Q2_Previous)';
-    let vPercMP_Student_Q3_Previous = 'Sum({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode3))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} highest)
-      / '&chr(36)&'(vCount_Student_Q3_Previous)';
-    let vPercMP_Student_Q4_Previous = 'Sum({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode4))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} highest)
-      / '&chr(36)&'(vCount_Student_Q4_Previous)';
-    let vPercMP_Parent_Q1_Previous = 'Sum({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode1))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} highest)
-      / '&chr(36)&'(vCount_Parent_Q1_Previous)';
-    let vPercMP_Parent_Q2_Previous = 'Sum({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode2))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} highest)
-      / '&chr(36)&'(vCount_Parent_Q2_Previous)';
-    let vPercMP_Parent_Q3_Previous = 'Sum({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode3))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} highest)
-      / '&chr(36)&'(vCount_Parent_Q3_Previous)';
-    let vPercMP_Parent_Q4_Previous = 'Sum({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode4))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} highest)
-      / '&chr(36)&'(vCount_Parent_Q4_Previous)';
-    let vPercMP_Teacher_Q1_Previous = 'Sum({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode1))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} highest)
-      / '&chr(36)&'(vCount_Teacher_Q1_Previous)';
-    let vPercMP_Teacher_Q2_Previous = 'Sum({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode2))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} highest)
-      / '&chr(36)&'(vCount_Teacher_Q2_Previous)';
-    let vPercMP_Teacher_Q3_Previous = 'Sum({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode3))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} highest)
-      / '&chr(36)&'(vCount_Teacher_Q3_Previous)';
-    let vPercMP_Teacher_Q4_Previous = 'Sum({$<
-      surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode4))'&chr(39)&'}, 
-      YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}, responded={1}>} highest)
-      / '&chr(36)&'(vCount_Teacher_Q4_Previous)';
-
-  //// Text for subtitle in % Most Positive KPIs
-    let vSubTitle_PercMPKPI_Student_Q1 = chr(36)&'(=vMaxYear) & '&chr(39)&', # of Student Responses: '&chr(39)&' &
-        Num('&chr(36)&'(vCount_Student_Q1_Current),
-        '&chr(39)&'#,##0'&chr(39)&')';
-    let vSubTitle_PercMPKPI_Student_Q2 = chr(36)&'(=vMaxYear) & '&chr(39)&', # of Student Responses: '&chr(39)&' &
-        Num('&chr(36)&'(vCount_Student_Q2_Current),
-        '&chr(39)&'#,##0'&chr(39)&')';
-    let vSubTitle_PercMPKPI_Student_Q3 = chr(36)&'(=vMaxYear) & '&chr(39)&', # of Student Responses: '&chr(39)&' &
-        Num('&chr(36)&'(vCount_Student_Q3_Current),
-        '&chr(39)&'#,##0'&chr(39)&')';
-    let vSubTitle_PercMPKPI_Student_Q4 = chr(36)&'(=vMaxYear) & '&chr(39)&', # of Student Responses: '&chr(39)&' &
-        Num('&chr(36)&'(vCount_Student_Q4_Current),
-        '&chr(39)&'#,##0'&chr(39)&')';
-
-    let vSubTitle_PercMPKPI_Parent_Q1 = chr(36)&'(=vMaxYear) & '&chr(39)&', # of Parent Responses: '&chr(39)&' &
-        Num('&chr(36)&'(vCount_Parent_Q1_Current),
-        '&chr(39)&'#,##0'&chr(39)&')';
-    let vSubTitle_PercMPKPI_Parent_Q2 = chr(36)&'(=vMaxYear) & '&chr(39)&', # of Parent Responses: '&chr(39)&' &
-        Num('&chr(36)&'(vCount_Parent_Q2_Current),
-        '&chr(39)&'#,##0'&chr(39)&')';
-    let vSubTitle_PercMPKPI_Parent_Q3 = chr(36)&'(=vMaxYear) & '&chr(39)&', # of Parent Responses: '&chr(39)&' &
-        Num('&chr(36)&'(vCount_Parent_Q3_Current),
-        '&chr(39)&'#,##0'&chr(39)&')';
-    let vSubTitle_PercMPKPI_Parent_Q4 = chr(36)&'(=vMaxYear) & '&chr(39)&', # of Parent Responses: '&chr(39)&' &
-        Num('&chr(36)&'(vCount_Parent_Q4_Current),
-        '&chr(39)&'#,##0'&chr(39)&')';
-
-    let vSubTitle_PercMPKPI_Teacher_Q1 = chr(36)&'(=vMaxYear) & '&chr(39)&', # of Teacher Responses: '&chr(39)&' &
-        Num('&chr(36)&'(vCount_Teacher_Q1_Current),
-        '&chr(39)&'#,##0'&chr(39)&')';
-    let vSubTitle_PercMPKPI_Teacher_Q2 = chr(36)&'(=vMaxYear) & '&chr(39)&', # of Teacher Responses: '&chr(39)&' &
-        Num('&chr(36)&'(vCount_Teacher_Q2_Current),
-        '&chr(39)&'#,##0'&chr(39)&')';
-    let vSubTitle_PercMPKPI_Teacher_Q3 = chr(36)&'(=vMaxYear) & '&chr(39)&', # of Teacher Responses: '&chr(39)&' &
-        Num('&chr(36)&'(vCount_Teacher_Q3_Current),
-        '&chr(39)&'#,##0'&chr(39)&')';
-    let vSubTitle_PercMPKPI_Teacher_Q4 = chr(36)&'(=vMaxYear) & '&chr(39)&', # of Teacher Responses: '&chr(39)&' &
-        Num('&chr(36)&'(vCount_Teacher_Q4_Current),
-        '&chr(39)&'#,##0'&chr(39)&')';
-
-    
-  //// Master Measures for KPIs - Current Year
-    let vmmPercMP_Student_Q1_Current = 'Num(If('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCount_Student_Q1_Current),
-                            '&chr(36)&'(vPercMP_Student_Q1_Current), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Student_Q2_Current = 'Num(If('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCount_Student_Q2_Current),
-                            '&chr(36)&'(vPercMP_Student_Q2_Current), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Student_Q3_Current = 'Num(If('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCount_Student_Q3_Current),
-                            '&chr(36)&'(vPercMP_Student_Q3_Current), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Student_Q4_Current = 'Num(If('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCount_Student_Q4_Current),
-                            '&chr(36)&'(vPercMP_Student_Q4_Current), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Parent_Q1_Current = 'Num(If('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Q1_Current),
-                            '&chr(36)&'(vPercMP_Parent_Q1_Current), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Parent_Q2_Current = 'Num(If('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Q2_Current),
-                            '&chr(36)&'(vPercMP_Parent_Q2_Current), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Parent_Q3_Current = 'Num(If('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Q3_Current),
-                            '&chr(36)&'(vPercMP_Parent_Q3_Current), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Parent_Q4_Current = 'Num(If('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Q4_Current),
-                            '&chr(36)&'(vPercMP_Parent_Q4_Current), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Teacher_Q1_Current = 'Num(If('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Q1_Current),
-                            '&chr(36)&'(vPercMP_Teacher_Q1_Current), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Teacher_Q2_Current = 'Num(If('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Q2_Current),
-                            '&chr(36)&'(vPercMP_Teacher_Q2_Current), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Teacher_Q3_Current = 'Num(If('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Q3_Current),
-                            '&chr(36)&'(vPercMP_Teacher_Q3_Current), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Teacher_Q4_Current = 'Num(If('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Q4_Current),
-                            '&chr(36)&'(vPercMP_Teacher_Q4_Current), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-  
-  //// Master Measures for KPIs - YOY
-    let vmmPercMP_Student_Q1_YOY = 'Num(If('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCount_Student_Q1_Current) and 
-        '&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCount_Student_Q1_Previous),
-        '&chr(36)&'(vPercMP_Student_Q1_Current) -' &chr(36)&'(vPercMP_Student_Q1_Previous), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Student_Q2_YOY = 'Num(If('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCount_Student_Q2_Current) and 
-        '&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCount_Student_Q2_Previous),
-        '&chr(36)&'(vPercMP_Student_Q2_Current) -' &chr(36)&'(vPercMP_Student_Q2_Previous), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Student_Q3_YOY = 'Num(If('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCount_Student_Q3_Current) and 
-        '&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCount_Student_Q3_Previous),
-        '&chr(36)&'(vPercMP_Student_Q3_Current) -' &chr(36)&'(vPercMP_Student_Q3_Previous), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Student_Q4_YOY = 'Num(If('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCount_Student_Q4_Current) and 
-        '&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCount_Student_Q4_Previous),
-        '&chr(36)&'(vPercMP_Student_Q4_Current) -' &chr(36)&'(vPercMP_Student_Q4_Previous), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Parent_Q1_YOY = 'Num(If('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Q1_Current) and 
-        '&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Q1_Previous),
-        '&chr(36)&'(vPercMP_Parent_Q1_Current) -' &chr(36)&'(vPercMP_Parent_Q1_Previous), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Parent_Q2_YOY = 'Num(If('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Q2_Current) and 
-        '&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Q2_Previous),
-        '&chr(36)&'(vPercMP_Parent_Q2_Current) -' &chr(36)&'(vPercMP_Parent_Q2_Previous), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Parent_Q3_YOY = 'Num(If('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Q3_Current) and 
-        '&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Q3_Previous),
-        '&chr(36)&'(vPercMP_Parent_Q3_Current) -' &chr(36)&'(vPercMP_Parent_Q3_Previous), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Parent_Q4_YOY = 'Num(If('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Q4_Current) and 
-        '&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Q4_Previous),
-        '&chr(36)&'(vPercMP_Parent_Q4_Current) -' &chr(36)&'(vPercMP_Parent_Q4_Previous), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Teacher_Q1_YOY = 'Num(If('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Q1_Current) and 
-        '&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Q1_Previous),
-        '&chr(36)&'(vPercMP_Teacher_Q1_Current) -' &chr(36)&'(vPercMP_Teacher_Q1_Previous), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Teacher_Q2_YOY = 'Num(If('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Q2_Current) and 
-        '&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Q2_Previous),
-        '&chr(36)&'(vPercMP_Teacher_Q2_Current) -' &chr(36)&'(vPercMP_Teacher_Q2_Previous), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Teacher_Q3_YOY = 'Num(If('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Q3_Current) and 
-        '&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Q3_Previous),
-        '&chr(36)&'(vPercMP_Teacher_Q3_Current) -' &chr(36)&'(vPercMP_Teacher_Q3_Previous), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Teacher_Q4_YOY = 'Num(If('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Q4_Current) and 
-        '&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Q4_Previous),
-        '&chr(36)&'(vPercMP_Teacher_Q4_Current) -' &chr(36)&'(vPercMP_Teacher_Q4_Previous), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-
-    //// Master Measures for Bar Charts - Current Year Note: the extra multiplier of 0 is for showing all dimensions in the bar chart)
-    let vmmRatio_Student_Q1_Current_Zero = 'Num(If('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCountTotal_Student_Q1_Current),
-        '&chr(36)& '(vCount_Student_Q1_Current) / ' &chr(36)&'(vCountTotal_Student_Q1_Current) 
-          + 0.0001 * Max({1<ScoreChoice=P(ScoreChoice), 
-          surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode1))'&chr(39)&'}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))} >} responded)
-        , 0), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmRatio_Student_Q2_Current_Zero = 'Num(If('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCountTotal_Student_Q2_Current),
-        '&chr(36)& '(vCount_Student_Q2_Current) / ' &chr(36)&'(vCountTotal_Student_Q2_Current) 
-          + 0.0001 * Max({1<ScoreChoice=P(ScoreChoice), 
-          surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode2))'&chr(39)&'}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))} >} responded)
-        , 0), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmRatio_Student_Q3_Current_Zero = 'Num(If('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCountTotal_Student_Q3_Current),
-        '&chr(36)& '(vCount_Student_Q3_Current) / ' &chr(36)&'(vCountTotal_Student_Q3_Current) 
-          + 0.0001 * Max({1<ScoreChoice=P(ScoreChoice), 
-          surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode3))'&chr(39)&'}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))} >} responded)
-        , 0), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmRatio_Student_Q4_Current_Zero = 'Num(If('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCountTotal_Student_Q4_Current),
-        '&chr(36)& '(vCount_Student_Q4_Current) / ' &chr(36)&'(vCountTotal_Student_Q4_Current) 
-          + 0.0001 * Max({1<ScoreChoice=P(ScoreChoice), 
-          surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode4))'&chr(39)&'}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))} >} responded)
-        , 0), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmRatio_Parent_Q1_Current_Zero = 'Num(If('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCountTotal_Parent_Q1_Current),
-        '&chr(36)& '(vCount_Parent_Q1_Current) / ' &chr(36)&'(vCountTotal_Parent_Q1_Current) 
-          + 0.0001 * Max({1<ScoreChoice=P(ScoreChoice), 
-          surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode1))'&chr(39)&'}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))} >} responded)
-        , 0), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmRatio_Parent_Q2_Current_Zero = 'Num(If('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCountTotal_Parent_Q2_Current),
-        '&chr(36)& '(vCount_Parent_Q2_Current) / ' &chr(36)&'(vCountTotal_Parent_Q2_Current) 
-          + 0.0001 * Max({1<ScoreChoice=P(ScoreChoice), 
-          surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode2))'&chr(39)&'}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))} >} responded)
-        , 0), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmRatio_Parent_Q3_Current_Zero = 'Num(If('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCountTotal_Parent_Q3_Current),
-        '&chr(36)& '(vCount_Parent_Q3_Current) / ' &chr(36)&'(vCountTotal_Parent_Q3_Current) 
-          + 0.0001 * Max({1<ScoreChoice=P(ScoreChoice), 
-          surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode3))'&chr(39)&'}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))} >} responded)
-        , 0), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmRatio_Parent_Q4_Current_Zero = 'Num(If('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCountTotal_Parent_Q4_Current),
-        '&chr(36)& '(vCount_Parent_Q4_Current) / ' &chr(36)&'(vCountTotal_Parent_Q4_Current) 
-          + 0.0001 * Max({1<ScoreChoice=P(ScoreChoice), 
-          surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode4))'&chr(39)&'}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))} >} responded)
-        , 0), '&chr(39)&'#.#%'&chr(39)&')'; 
-    let vmmRatio_Teacher_Q1_Current_Zero = 'Num(If('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCountTotal_Teacher_Q1_Current),
-        '&chr(36)& '(vCount_Teacher_Q1_Current) / ' &chr(36)&'(vCountTotal_Teacher_Q1_Current) 
-          + 0.0001 * Max({1<ScoreChoice=P(ScoreChoice), 
-          surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode1))'&chr(39)&'}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))} >} responded)
-        , 0), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmRatio_Teacher_Q2_Current_Zero = 'Num(If('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCountTotal_Teacher_Q2_Current),
-        '&chr(36)& '(vCount_Teacher_Q2_Current) / ' &chr(36)&'(vCountTotal_Teacher_Q2_Current) 
-          + 0.0001 * Max({1<ScoreChoice=P(ScoreChoice), 
-          surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode2))'&chr(39)&'}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))} >} responded)
-        , 0), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmRatio_Teacher_Q3_Current_Zero = 'Num(If('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCountTotal_Teacher_Q3_Current),
-        '&chr(36)&'(vCount_Teacher_Q3_Current) / ' &chr(36)&'(vCountTotal_Teacher_Q3_Current) 
-          + 0.0001 * Max({1<ScoreChoice=P(ScoreChoice), 
-          surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode3))'&chr(39)&'}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))} >} responded)
-        , 0), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmRatio_Teacher_Q4_Current_Zero = 'Num(If('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCountTotal_Teacher_Q4_Current),
-        '&chr(36)& '(vCount_Teacher_Q4_Current) / ' &chr(36)&'(vCountTotal_Teacher_Q4_Current) 
-          + 0.0001 * Max({1<ScoreChoice=P(ScoreChoice), 
-          surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode4))'&chr(39)&'}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))} >} responded)
-        , 0), '&chr(39)&'#.#%'&chr(39)&')'; 
-
-  //// Master Measures for Bar Charts - Previous Year
-    let vmmRatio_Student_Q1_Previous_Zero = 'Num(If('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCountTotal_Student_Q1_Previous),
-        '&chr(36)& '(vCount_Student_Q1_Previous) / ' &chr(36)&'(vCountTotal_Student_Q1_Previous) 
-          + -0.0001 * Max({1<ScoreChoice=P(ScoreChoice), 
-          surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode1))'&chr(39)&'}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))} >} responded)
-        , 0), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmRatio_Student_Q2_Previous_Zero = 'Num(If('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCountTotal_Student_Q2_Previous),
-        '&chr(36)& '(vCount_Student_Q2_Previous) / ' &chr(36)&'(vCountTotal_Student_Q2_Previous) 
-          + -0.0001 * Max({1<ScoreChoice=P(ScoreChoice), 
-          surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode2))'&chr(39)&'}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))} >} responded)
-        , 0), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmRatio_Student_Q3_Previous_Zero = 'Num(If('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCountTotal_Student_Q3_Previous),
-        '&chr(36)& '(vCount_Student_Q3_Previous) / ' &chr(36)&'(vCountTotal_Student_Q3_Previous) 
-          + -0.0001 * Max({1<ScoreChoice=P(ScoreChoice), 
-          surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode3))'&chr(39)&'}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))} >} responded)
-        , 0), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmRatio_Student_Q4_Previous_Zero = 'Num(If('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCountTotal_Student_Q4_Previous),
-        '&chr(36)& '(vCount_Student_Q4_Previous) / ' &chr(36)&'(vCountTotal_Student_Q4_Previous) 
-          + -0.0001 * Max({1<ScoreChoice=P(ScoreChoice), 
-          surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vStudentQuestionCode4))'&chr(39)&'}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))} >} responded)
-        , 0), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmRatio_Parent_Q1_Previous_Zero = 'Num(If('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCountTotal_Parent_Q1_Previous),
-        '&chr(36)& '(vCount_Parent_Q1_Previous) / ' &chr(36)&'(vCountTotal_Parent_Q1_Previous) 
-          + -0.0001 * Max({1<ScoreChoice=P(ScoreChoice), 
-          surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode1))'&chr(39)&'}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))} >} responded)
-        , 0), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmRatio_Parent_Q2_Previous_Zero = 'Num(If('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCountTotal_Parent_Q2_Previous),
-        '&chr(36)& '(vCount_Parent_Q2_Previous) / ' &chr(36)&'(vCountTotal_Parent_Q2_Previous) 
-          + -0.0001 * Max({1<ScoreChoice=P(ScoreChoice), 
-          surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode2))'&chr(39)&'}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))} >} responded)
-        , 0), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmRatio_Parent_Q3_Previous_Zero = 'Num(If('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCountTotal_Parent_Q3_Previous),
-        '&chr(36)& '(vCount_Parent_Q3_Previous) / ' &chr(36)&'(vCountTotal_Parent_Q3_Previous) 
-          + -0.0001 * Max({1<ScoreChoice=P(ScoreChoice), 
-          surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode3))'&chr(39)&'}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))} >} responded)
-        , 0), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmRatio_Parent_Q4_Previous_Zero = 'Num(If('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCountTotal_Parent_Q4_Previous),
-        '&chr(36)& '(vCount_Parent_Q4_Previous) / ' &chr(36)&'(vCountTotal_Parent_Q4_Previous) 
-          + -0.0001 * Max({1<ScoreChoice=P(ScoreChoice), 
-          surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vParentQuestionCode4))'&chr(39)&'}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))} >} responded)
-        , 0), '&chr(39)&'#.#%'&chr(39)&')'; 
-    let vmmRatio_Teacher_Q1_Previous_Zero = 'Num(If('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCountTotal_Teacher_Q1_Previous),
-        '&chr(36)& '(vCount_Teacher_Q1_Previous) / ' &chr(36)&'(vCountTotal_Teacher_Q1_Previous) 
-          + -0.0001 * Max({1<ScoreChoice=P(ScoreChoice), 
-          surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode1))'&chr(39)&'}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))} >} responded)
-        , 0), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmRatio_Teacher_Q2_Previous_Zero = 'Num(If('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCountTotal_Teacher_Q2_Previous),
-        '&chr(36)& '(vCount_Teacher_Q2_Previous) / ' &chr(36)&'(vCountTotal_Teacher_Q2_Previous) 
-          + -0.0001 * Max({1<ScoreChoice=P(ScoreChoice), 
-          surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode2))'&chr(39)&'}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))} >} responded)
-        , 0), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmRatio_Teacher_Q3_Previous_Zero = 'Num(If('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCountTotal_Teacher_Q3_Previous),
-        '&chr(36)&'(vCount_Teacher_Q3_Previous) / ' &chr(36)&'(vCountTotal_Teacher_Q3_Previous) 
-          + -0.0001 * Max({1<ScoreChoice=P(ScoreChoice), 
-          surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode3))'&chr(39)&'}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))} >} responded)
-        , 0), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmRatio_Teacher_Q4_Previous_Zero = 'Num(If('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCountTotal_Teacher_Q4_Previous),
-        '&chr(36)& '(vCount_Teacher_Q4_Previous) / ' &chr(36)&'(vCountTotal_Teacher_Q4_Previous) 
-          + -0.0001 * Max({1<ScoreChoice=P(ScoreChoice), 
-          surveyquestnum={'&chr(39)&chr(36)&'(='&chr(36)&'(vTeacherQuestionCode4))'&chr(39)&'}, 
-          YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))} >} responded)
-        , 0), '&chr(39)&'#.#%'&chr(39)&')'; 
-
 ///// Survey Constructs and Subconstruct - Percent Most Positive (down and across method)
-  //  Converted from hard coding divider to RangeAvg with regexp
-  //  Find:  
-  //      '\('(.*?) \+ (.*?)\) / 2'
-  //      '\('(.*?) \+ (.*?) \+ (.*?)\) / 3'
-  //      '\('(.*?) \+ (.*?) \+ (.*?) \+ (.*?)\) / 4'
-  //      '\('(.*?) \+ (.*?) \+ (.*?) \+ (.*?) \+ (.*?) \+ (.*?)\) / 6'
-  //  Replace: 
-  //      'RangeAvg('\1, \2)'
-  //      'RangeAvg('\1, \2, \3)'
-  //      'RangeAvg('\1, \2, \3, \4)'
-  //      'RangeAvg('\1, \2, \3, \4, \5, \6)'
+  // Note: to display at the school and network level we need to create the virtual AGGR table with School Name as a dimension
+  //  This means that for each school we'll get an average for each question.
+  //  This will display correctly if we analyze at the school level, because the average is just that school's questions
+  //  This will not display correctly at the district level, because it will be the average of all schools x all questions
+  /// regular expression to insert Alt:
+  // find: \+ '&chr\(36\)&'\(vPercMP(.*?)\)
+  // replace: + Alt('&chr\(36\)&'(vPercMP\1),0)\2
+  // '\('&chr\(36\)&'\(vPercMP(.*?)\)
+  //  '(Alt('&chr\(36\)&'(vPercMP\1),0)\2
+  /// The regular expression to change fixed denominators to flexible denominators is
+  // find: \(Alt\(.*?vPercMP_(.*?)\).*?vPercMP_(.*?)\).*?vPercMP_(.*?)\).*?3
+  // replace: (Alt('&chr(36)&'(vPercMP_\1),0) + Alt('&chr(36)&'(vPercMP_\2),0) + Alt('&chr(36)&'(vPercMP_\3),0)) / (IF(Sum()))
 
   //// Student Climate subconstructs (Belonging, Bullying, Safety/Building Condition)
     let vCount_Student_Climate_Belonging_Current = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Student"}, questionconstruct={"School Climate"}, subConstructForDisplay={"Belonging"}, YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} respondentid)';
@@ -746,9 +33,9 @@ set vVersionNumber = '1.0.4.1';
     
      // divide by 3 subconstructs
     let vCount_Student_Climate_Current = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Student"}, questionconstruct={"School Climate"}, YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} respondentid)';
-    let vPercMP_Student_Climate_Current = 'RangeAvg('&chr(36)&'(vPercMP_Student_Climate_Belonging_Current), '&chr(36)&'(vPercMP_Student_Climate_Bullying_Current), '&chr(36)&'(vPercMP_Student_Climate_Safety_Current))';
+    let vPercMP_Student_Climate_Current = '(Alt('&chr(36)&'(vPercMP_Student_Climate_Belonging_Current),0) + Alt('&chr(36)&'(vPercMP_Student_Climate_Bullying_Current),0) + Alt('&chr(36)&'(vPercMP_Student_Climate_Safety_Current),0)) / 3';
     let vmmPercMP_Student_Climate_Current = 'Num(IF('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCount_Student_Climate_Current), '&chr(36)&'(vPercMP_Student_Climate_Current), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Student_Climate_Current = 'RangeAvg('&chr(36)&'(vAvgScore_Student_Climate_Belonging_Current), '&chr(36)&'(vAvgScore_Student_Climate_Bullying_Current), '&chr(36)&'(vAvgScore_Student_Climate_Safety_Current))';
+    let vAvgScore_Student_Climate_Current = '(Alt('&chr(36)&'(vAvgScore_Student_Climate_Belonging_Current),0) + Alt('&chr(36)&'(vAvgScore_Student_Climate_Bullying_Current),0) + Alt('&chr(36)&'(vAvgScore_Student_Climate_Safety_Current),0)) / 3';
     let vmmAvgScore_Student_Climate_Current = 'Num(IF('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCount_Student_Climate_Current), 3*'&chr(36)&'(vAvgScore_Student_Climate_Current), Null()),'&chr(39)&'#0.#'&chr(39)&')';
     
   //// Student Instruction (no subconstructs)
@@ -773,9 +60,9 @@ set vVersionNumber = '1.0.4.1';
     
     // divide by 3 constructs
     let vCount_Parent_Climate_Current = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Parent"}, questionconstruct={"School Climate"}, YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} respondentid)';
-    let vPercMP_Parent_Climate_Current = 'RangeAvg('&chr(36)&'(vPercMP_Parent_Climate_Bullying_Current), '&chr(36)&'(vPercMP_Parent_Climate_Safety_Current))';
+    let vPercMP_Parent_Climate_Current = '(Alt('&chr(36)&'(vPercMP_Parent_Climate_Bullying_Current),0) + Alt('&chr(36)&'(vPercMP_Parent_Climate_Safety_Current),0)) / 2';
     let vmmPercMP_Parent_Climate_Current = 'Num(IF('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Climate_Current), '&chr(36)&'(vPercMP_Parent_Climate_Current), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Parent_Climate_Current = 'RangeAvg('&chr(36)&'(vAvgScore_Parent_Climate_Bullying_Current), '&chr(36)&'(vAvgScore_Parent_Climate_Safety_Current))';
+    let vAvgScore_Parent_Climate_Current = '(Alt('&chr(36)&'(vAvgScore_Parent_Climate_Bullying_Current),0) + Alt('&chr(36)&'(vAvgScore_Parent_Climate_Safety_Current),0)) / 2';
     let vmmAvgScore_Parent_Climate_Current = 'Num(IF('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Climate_Current), 3*'&chr(36)&'(vAvgScore_Parent_Climate_Current), Null()),'&chr(39)&'#0.#'&chr(39)&')';
    
     
@@ -794,9 +81,9 @@ set vVersionNumber = '1.0.4.1';
     
     // divide by 2 subconstructs 
     let vCount_Parent_Instruction_Current = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Parent"}, questionconstruct={"Instruction"}, YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} respondentid)';
-    let vPercMP_Parent_Instruction_Current = 'RangeAvg('&chr(36)&'(vPercMP_Parent_Instruction_Extracurricular_Current), '&chr(36)&'(vPercMP_Parent_Instruction_Teaching_Current))';
+    let vPercMP_Parent_Instruction_Current = '(Alt('&chr(36)&'(vPercMP_Parent_Instruction_Extracurricular_Current),0) + Alt('&chr(36)&'(vPercMP_Parent_Instruction_Teaching_Current),0)) / 2';
     let vmmPercMP_Parent_Instruction_Current = 'Num(IF('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Instruction_Current), '&chr(36)&'(vPercMP_Parent_Instruction_Current), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Parent_Instruction_Current = 'RangeAvg('&chr(36)&'(vAvgScore_Parent_Instruction_Extracurricular_Current), '&chr(36)&'(vAvgScore_Parent_Instruction_Teaching_Current))';
+    let vAvgScore_Parent_Instruction_Current = '(Alt('&chr(36)&'(vAvgScore_Parent_Instruction_Extracurricular_Current),0) + Alt('&chr(36)&'(vAvgScore_Parent_Instruction_Teaching_Current),0)) / 2';
     let vmmAvgScore_Parent_Instruction_Current = 'Num(IF('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Instruction_Current), 3*'&chr(36)&'(vAvgScore_Parent_Instruction_Current), Null()),'&chr(39)&'#0.#'&chr(39)&')';
     
    //// Parent Parent/Guardian-Community Ties (Communication Frequency, Communication Quality, Community Services, Parent/Guardian-School Networks, Parent/Guardian Involvement, School Relationship)
@@ -838,9 +125,9 @@ set vVersionNumber = '1.0.4.1';
     
     // divide by 6 subconstructs 
     let vCount_Parent_CommunityTies_Current = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Parent"}, questionconstruct={"School Relationships"}, YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} respondentid)';
-    let vPercMP_Parent_CommunityTies_Current = 'RangeAvg('&chr(36)&'(vPercMP_Parent_CommunityTies_CommunicationFrequency_Current), '&chr(36)&'(vPercMP_Parent_CommunityTies_CommunicationQuality_Current), '&chr(36)&'(vPercMP_Parent_CommunityTies_CommunityServices_Current), '&chr(36)&'(vPercMP_Parent_CommunityTies_SchoolNetworks_Current), '&chr(36)&'(vPercMP_Parent_CommunityTies_Involvement_Current), '&chr(36)&'(vPercMP_Parent_CommunityTies_SchoolRelationship_Current))';
+    let vPercMP_Parent_CommunityTies_Current = '(Alt('&chr(36)&'(vPercMP_Parent_CommunityTies_CommunicationFrequency_Current),0) + Alt('&chr(36)&'(vPercMP_Parent_CommunityTies_CommunicationQuality_Current),0) + Alt('&chr(36)&'(vPercMP_Parent_CommunityTies_CommunityServices_Current),0) + Alt('&chr(36)&'(vPercMP_Parent_CommunityTies_SchoolNetworks_Current),0) + Alt('&chr(36)&'(vPercMP_Parent_CommunityTies_Involvement_Current),0) + Alt('&chr(36)&'(vPercMP_Parent_CommunityTies_SchoolRelationship_Current),0)) / 6';
     let vmmPercMP_Parent_CommunityTies_Current = 'Num(IF('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_CommunityTies_Current), '&chr(36)&'(vPercMP_Parent_CommunityTies_Current), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Parent_CommunityTies_Current = 'RangeAvg('&chr(36)&'(vAvgScore_Parent_CommunityTies_CommunicationFrequency_Current), '&chr(36)&'(vAvgScore_Parent_CommunityTies_CommunicationQuality_Current), '&chr(36)&'(vAvgScore_Parent_CommunityTies_CommunityServices_Current), '&chr(36)&'(vAvgScore_Parent_CommunityTies_SchoolNetworks_Current), '&chr(36)&'(vAvgScore_Parent_CommunityTies_Involvement_Current), '&chr(36)&'(vAvgScore_Parent_CommunityTies_SchoolRelationship_Current))';
+    let vAvgScore_Parent_CommunityTies_Current = '(Alt('&chr(36)&'(vAvgScore_Parent_CommunityTies_CommunicationFrequency_Current),0) + Alt('&chr(36)&'(vAvgScore_Parent_CommunityTies_CommunicationQuality_Current),0) + Alt('&chr(36)&'(vAvgScore_Parent_CommunityTies_CommunityServices_Current),0) + Alt('&chr(36)&'(vAvgScore_Parent_CommunityTies_SchoolNetworks_Current),0) + Alt('&chr(36)&'(vAvgScore_Parent_CommunityTies_Involvement_Current),0) + Alt('&chr(36)&'(vAvgScore_Parent_CommunityTies_SchoolRelationship_Current),0)) / 6';
     let vmmAvgScore_Parent_CommunityTies_Current = 'Num(IF('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_CommunityTies_Current), 3*'&chr(36)&'(vAvgScore_Parent_CommunityTies_Current), Null()),'&chr(39)&'#0.#'&chr(39)&')';
   
    //// Teacher Climate 4 subconstructs (Attendance, Classroom Level Challenges to Student Learning, External Challenges to Student Learning, School Level Challenges to Student Learning)
@@ -870,9 +157,9 @@ set vVersionNumber = '1.0.4.1';
 
     // divide by 4 subconstructs 
     let vCount_Teacher_Climate_Current = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Teacher"}, questionconstruct={"School Climate"}, YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} respondentid)';
-    let vPercMP_Teacher_Climate_Current = 'RangeAvg('&chr(36)&'(vPercMP_Teacher_Climate_Attendance_Current), '&chr(36)&'(vPercMP_Teacher_Climate_ClassroomChallenges_Current), '&chr(36)&'(vPercMP_Teacher_Climate_ExternalChallenges_Current), '&chr(36)&'(vPercMP_Teacher_Climate_SchoolChallenges_Current))';
+    let vPercMP_Teacher_Climate_Current = '(Alt('&chr(36)&'(vPercMP_Teacher_Climate_Attendance_Current),0) + Alt('&chr(36)&'(vPercMP_Teacher_Climate_ClassroomChallenges_Current),0) + Alt('&chr(36)&'(vPercMP_Teacher_Climate_ExternalChallenges_Current),0) + Alt('&chr(36)&'(vPercMP_Teacher_Climate_SchoolChallenges_Current),0)) / 4';
     let vmmPercMP_Teacher_Climate_Current = 'Num(IF('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Climate_Current), '&chr(36)&'(vPercMP_Teacher_Climate_Current), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Teacher_Climate_Current = 'RangeAvg('&chr(36)&'(vAvgScore_Teacher_Climate_Attendance_Current), '&chr(36)&'(vAvgScore_Teacher_Climate_ClassroomChallenges_Current), '&chr(36)&'(vAvgScore_Teacher_Climate_ExternalChallenges_Current), '&chr(36)&'(vAvgScore_Teacher_Climate_SchoolChallenges_Current))';
+    let vAvgScore_Teacher_Climate_Current = '(Alt('&chr(36)&'(vAvgScore_Teacher_Climate_Attendance_Current),0) + Alt('&chr(36)&'(vAvgScore_Teacher_Climate_ClassroomChallenges_Current),0) + Alt('&chr(36)&'(vAvgScore_Teacher_Climate_ExternalChallenges_Current),0) + Alt('&chr(36)&'(vAvgScore_Teacher_Climate_SchoolChallenges_Current),0)) / 4';
     let vmmAvgScore_Teacher_Climate_Current = 'Num(IF('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Climate_Current), 3*'&chr(36)&'(vAvgScore_Teacher_Climate_Current), Null()),'&chr(39)&'#0.#'&chr(39)&')';
     
     //// Teacher Instruction 2 subconstructs (General Instructional Strategies, Student Engagement)
@@ -890,9 +177,9 @@ set vVersionNumber = '1.0.4.1';
 
     // divide by 2 subconstructs 
     let vCount_Teacher_Instruction_Current = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Teacher"}, questionconstruct={"Instruction"}, YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} respondentid)';
-    let vPercMP_Teacher_Instruction_Current = 'RangeAvg('&chr(36)&'(vPercMP_Teacher_Instruction_InstructionalStrategies_Current), '&chr(36)&'(vPercMP_Teacher_Instruction_StudentEngagement_Current))';
+    let vPercMP_Teacher_Instruction_Current = '(Alt('&chr(36)&'(vPercMP_Teacher_Instruction_InstructionalStrategies_Current),0) + Alt('&chr(36)&'(vPercMP_Teacher_Instruction_StudentEngagement_Current),0)) / 2';
     let vmmPercMP_Teacher_Instruction_Current = 'Num(IF('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Instruction_Current), '&chr(36)&'(vPercMP_Teacher_Instruction_Current), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Teacher_Instruction_Current = 'RangeAvg('&chr(36)&'(vAvgScore_Teacher_Instruction_InstructionalStrategies_Current), '&chr(36)&'(vAvgScore_Teacher_Instruction_StudentEngagement_Current))';
+    let vAvgScore_Teacher_Instruction_Current = '(Alt('&chr(36)&'(vAvgScore_Teacher_Instruction_InstructionalStrategies_Current),0) + Alt('&chr(36)&'(vAvgScore_Teacher_Instruction_StudentEngagement_Current),0)) / 2';
     let vmmAvgScore_Teacher_Instruction_Current = 'Num(IF('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Instruction_Current), 3*'&chr(36)&'(vAvgScore_Teacher_Instruction_Current), Null()),'&chr(39)&'#0.#'&chr(39)&')';
     
     let vCount_Teacher_CommunityTies_Current = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Teacher"}, questionconstruct={"Parent/Guardian-Community Ties"}, YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} respondentid)';
@@ -940,9 +227,9 @@ set vVersionNumber = '1.0.4.1';
 
     // divide by 6 subconstructs
     let vCount_Teacher_ProfessionalCapacity_Current = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Teacher"}, questionconstruct={"School ProfessionalCapacity"}, YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} respondentid)';
-    let vPercMP_Teacher_ProfessionalCapacity_Current = 'RangeAvg('&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_Innovation_Current), '&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PeerCollaboration_Current), '&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PeerCollaborationFocus_Current), '&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PDConsistency_Current), '&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PDContent_Current), '&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PDDelivery_Current))';
+    let vPercMP_Teacher_ProfessionalCapacity_Current = '(Alt('&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_Innovation_Current),0) + Alt('&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PeerCollaboration_Current),0) + Alt('&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PeerCollaborationFocus_Current),0) + Alt('&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PDConsistency_Current),0) + Alt('&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PDContent_Current),0) + Alt('&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PDDelivery_Current),0)) / 6';
     let vmmPercMP_Teacher_ProfessionalCapacity_Current = 'Num(IF('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_ProfessionalCapacity_Current), '&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_Current), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Teacher_ProfessionalCapacity_Current = 'RangeAvg('&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_Innovation_Current), '&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PeerCollaboration_Current), '&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PeerCollaborationFocus_Current), '&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PDConsistency_Current), '&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PDContent_Current), '&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PDDelivery_Current))';
+    let vAvgScore_Teacher_ProfessionalCapacity_Current = '(Alt('&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_Innovation_Current),0) + Alt('&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PeerCollaboration_Current),0) + Alt('&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PeerCollaborationFocus_Current),0) + Alt('&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PDConsistency_Current),0) + Alt('&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PDContent_Current),0) + Alt('&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PDDelivery_Current),0)) / 64';
     let vmmAvgScore_Teacher_ProfessionalCapacity_Current = 'Num(IF('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_ProfessionalCapacity_Current), 3*'&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_Current), Null()),'&chr(39)&'#0.#'&chr(39)&')';
     
      //// Teacher School Leadership 3 subconstructs (Classroom Level Decision Making, Expectations & Feedback, Inclusive Leadership)
@@ -966,9 +253,9 @@ set vVersionNumber = '1.0.4.1';
 
     // divide by 3 subconstructs 
     let vCount_Teacher_SchoolLeadership_Current = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Teacher"}, questionconstruct={"School Leadership"}, YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} respondentid)';
-    let vPercMP_Teacher_SchoolLeadership_Current = 'RangeAvg('&chr(36)&'(vPercMP_Teacher_SchoolLeadership_ClassroomDecisionMaking_Current), '&chr(36)&'(vPercMP_Teacher_SchoolLeadership_ExpectationsFeedback_Current), '&chr(36)&'(vPercMP_Teacher_SchoolLeadership_InclusiveLeadership_Current))';
+    let vPercMP_Teacher_SchoolLeadership_Current = '(Alt('&chr(36)&'(vPercMP_Teacher_SchoolLeadership_ClassroomDecisionMaking_Current),0) + Alt('&chr(36)&'(vPercMP_Teacher_SchoolLeadership_ExpectationsFeedback_Current),0) + Alt('&chr(36)&'(vPercMP_Teacher_SchoolLeadership_InclusiveLeadership_Current),0)) / 3';
     let vmmPercMP_Teacher_SchoolLeadership_Current = 'Num(IF('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_SchoolLeadership_Current), '&chr(36)&'(vPercMP_Teacher_SchoolLeadership_Current), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Teacher_SchoolLeadership_Current = 'RangeAvg('&chr(36)&'(vAvgScore_Teacher_SchoolLeadership_ClassroomDecisionMaking_Current), '&chr(36)&'(vAvgScore_Teacher_SchoolLeadership_ExpectationsFeedback_Current), '&chr(36)&'(vAvgScore_Teacher_SchoolLeadership_InclusiveLeadership_Current))';
+    let vAvgScore_Teacher_SchoolLeadership_Current = '(Alt('&chr(36)&'(vAvgScore_Teacher_SchoolLeadership_ClassroomDecisionMaking_Current),0) + Alt('&chr(36)&'(vAvgScore_Teacher_SchoolLeadership_ExpectationsFeedback_Current),0) + Alt('&chr(36)&'(vAvgScore_Teacher_SchoolLeadership_InclusiveLeadership_Current),0)) / 3';
     let vmmAvgScore_Teacher_SchoolLeadership_Current = 'Num(IF('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_SchoolLeadership_Current), 3*'&chr(36)&'(vAvgScore_Teacher_SchoolLeadership_Current), Null()),'&chr(39)&'#0.#'&chr(39)&')';
   
     //// Principal Climate 3 subconstructs (Attendance, External Challenges to Student Learning, School Level Challenges to Student Learning)
@@ -992,9 +279,9 @@ set vVersionNumber = '1.0.4.1';
 
     // divide by 3 subconstructs 
     let vCount_Principal_Climate_Current = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Principal"}, questionconstruct={"School Climate"}, YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} respondentid)';
-    let vPercMP_Principal_Climate_Current = 'RangeAvg('&chr(36)&'(vPercMP_Principal_Climate_Attendance_Current), '&chr(36)&'(vPercMP_Principal_Climate_ExternalChallenges_Current), '&chr(36)&'(vPercMP_Principal_Climate_SchoolChallenges_Current))';
+    let vPercMP_Principal_Climate_Current = '(Alt('&chr(36)&'(vPercMP_Principal_Climate_Attendance_Current),0) + Alt('&chr(36)&'(vPercMP_Principal_Climate_ExternalChallenges_Current),0) + Alt('&chr(36)&'(vPercMP_Principal_Climate_SchoolChallenges_Current),0)) / 3';
     let vmmPercMP_Principal_Climate_Current = 'Num(IF('&chr(36)&'(vMinPrincipals) <= '&chr(36)&'(vCount_Principal_Climate_Current), '&chr(36)&'(vPercMP_Principal_Climate_Current), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Principal_Climate_Current = 'RangeAvg('&chr(36)&'(vAvgScore_Principal_Climate_Attendance_Current), '&chr(36)&'(vAvgScore_Principal_Climate_ExternalChallenges_Current), '&chr(36)&'(vAvgScore_Principal_Climate_SchoolChallenges_Current))';
+    let vAvgScore_Principal_Climate_Current = '(Alt('&chr(36)&'(vAvgScore_Principal_Climate_Attendance_Current),0) '&chr(36)&'(vAvgScore_Principal_Climate_ExternalChallenges_Current) + Alt('&chr(36)&'(vAvgScore_Principal_Climate_SchoolChallenges_Current),0)) / 3';
     let vmmAvgScore_Principal_Climate_Current = 'Num(IF('&chr(36)&'(vMinPrincipals) <= '&chr(36)&'(vCount_Principal_Climate_Current), 3*'&chr(36)&'(vAvgScore_Principal_Climate_Current), Null()),'&chr(39)&'#0.#'&chr(39)&')';
     
     //// Principal Instruction 2 subconstructs (Data Use, External Supports)
@@ -1012,9 +299,9 @@ set vVersionNumber = '1.0.4.1';
 
     // divide by 2 subconstructs 
     let vCount_Principal_Instruction_Current = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Principal"}, questionconstruct={"Instruction"}, YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} respondentid)';
-    let vPercMP_Principal_Instruction_Current = 'RangeAvg('&chr(36)&'(vPercMP_Principal_Instruction_DataUse_Current), '&chr(36)&'(vPercMP_Principal_Instruction_ExternalSupports_Current))';
+    let vPercMP_Principal_Instruction_Current = '(Alt('&chr(36)&'(vPercMP_Principal_Instruction_DataUse_Current),0) + Alt('&chr(36)&'(vPercMP_Principal_Instruction_ExternalSupports_Current),0)) / 2';
     let vmmPercMP_Principal_Instruction_Current = 'Num(IF('&chr(36)&'(vMinPrincipals) <= '&chr(36)&'(vCount_Principal_Instruction_Current), '&chr(36)&'(vPercMP_Principal_Instruction_Current), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Principal_Instruction_Current = 'RangeAvg('&chr(36)&'(vAvgScore_Principal_Instruction_DataUse_Current), '&chr(36)&'(vAvgScore_Principal_Instruction_ExternalSupports_Current))';
+    let vAvgScore_Principal_Instruction_Current = '(Alt('&chr(36)&'(vAvgScore_Principal_Instruction_DataUse_Current),0) + Alt('&chr(36)&'(vAvgScore_Principal_Instruction_ExternalSupports_Current),0)) / 2';
     let vmmAvgScore_Principal_Instruction_Current = 'Num(IF('&chr(36)&'(vMinPrincipals) <= '&chr(36)&'(vCount_Principal_Instruction_Current), 3*'&chr(36)&'(vAvgScore_Principal_Instruction_Current), Null()),'&chr(39)&'#0.#'&chr(39)&')';
 
     //// Principal Parent/Guardian-Community Ties 0 subconstructs 
@@ -1065,9 +352,9 @@ set vVersionNumber = '1.0.4.1';
 
     // divide by 4 subconstructs 
     let vCount_Principal_SchoolLeadership_Current = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Principal"}, questionconstruct={"School Leadership"}, YearEnd = {'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} respondentid)';
-    let vPercMP_Principal_SchoolLeadership_Current = 'RangeAvg('&chr(36)&'(vPercMP_Principal_SchoolLeadership_InstructionalLeadership_Current), '&chr(36)&'(vPercMP_Principal_SchoolLeadership_ManagementTime_Current), '&chr(36)&'(vPercMP_Principal_SchoolLeadership_SchoolDecisionMaking_Current), '&chr(36)&'(vPercMP_Principal_SchoolLeadership_SchoolFocus_Current))';
+    let vPercMP_Principal_SchoolLeadership_Current = '(Alt('&chr(36)&'(vPercMP_Principal_SchoolLeadership_InstructionalLeadership_Current),0) + Alt('&chr(36)&'(vPercMP_Principal_SchoolLeadership_ManagementTime_Current),0) + Alt('&chr(36)&'(vPercMP_Principal_SchoolLeadership_SchoolDecisionMaking_Current),0) + Alt('&chr(36)&'(vPercMP_Principal_SchoolLeadership_SchoolFocus_Current),0)) / 4';
     let vmmPercMP_Principal_SchoolLeadership_Current = 'Num(IF('&chr(36)&'(vMinPrincipals) <= '&chr(36)&'(vCount_Principal_SchoolLeadership_Current), '&chr(36)&'(vPercMP_Principal_SchoolLeadership_Current), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Principal_SchoolLeadership_Current = 'RangeAvg('&chr(36)&'(vAvgScore_Principal_SchoolLeadership_InstructionalLeadership_Current), '&chr(36)&'(vAvgScore_Principal_SchoolLeadership_ManagementTime_Current), '&chr(36)&'(vAvgScore_Principal_SchoolLeadership_SchoolDecisionMaking_Current), '&chr(36)&'(vAvgScore_Principal_SchoolLeadership_SchoolFocus_Current))';
+    let vAvgScore_Principal_SchoolLeadership_Current = '(Alt('&chr(36)&'(vAvgScore_Principal_SchoolLeadership_InstructionalLeadership_Current),0) + Alt('&chr(36)&'(vAvgScore_Principal_SchoolLeadership_ManagementTime_Current),0) + Alt('&chr(36)&'(vAvgScore_Principal_SchoolLeadership_SchoolDecisionMaking_Current),0) + Alt('&chr(36)&'(vAvgScore_Principal_SchoolLeadership_SchoolFocus_Current),0)) / 4';
     let vmmAvgScore_Principal_SchoolLeadership_Current = 'Num(IF('&chr(36)&'(vMinPrincipals) <= '&chr(36)&'(vCount_Principal_SchoolLeadership_Current), 3*'&chr(36)&'(vAvgScore_Principal_SchoolLeadership_Current), Null()),'&chr(39)&'#0.#'&chr(39)&')';
   
   ///// Previous Year
@@ -1092,9 +379,9 @@ set vVersionNumber = '1.0.4.1';
     
      // divide by 3 subconstructs
     let vCount_Student_Climate_Previous = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Student"}, questionconstruct={"School Climate"}, YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} respondentid)';
-    let vPercMP_Student_Climate_Previous = 'RangeAvg('&chr(36)&'(vPercMP_Student_Climate_Belonging_Previous), '&chr(36)&'(vPercMP_Student_Climate_Bullying_Previous), '&chr(36)&'(vPercMP_Student_Climate_Safety_Previous))';
+    let vPercMP_Student_Climate_Previous = '(Alt('&chr(36)&'(vPercMP_Student_Climate_Belonging_Previous),0) + Alt('&chr(36)&'(vPercMP_Student_Climate_Bullying_Previous),0) + Alt('&chr(36)&'(vPercMP_Student_Climate_Safety_Previous),0)) / 3';
     let vmmPercMP_Student_Climate_Previous = 'Num(IF('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCount_Student_Climate_Previous), '&chr(36)&'(vPercMP_Student_Climate_Previous), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Student_Climate_Previous = 'RangeAvg('&chr(36)&'(vAvgScore_Student_Climate_Belonging_Previous), '&chr(36)&'(vAvgScore_Student_Climate_Bullying_Previous), '&chr(36)&'(vAvgScore_Student_Climate_Safety_Previous))';
+    let vAvgScore_Student_Climate_Previous = '(Alt('&chr(36)&'(vAvgScore_Student_Climate_Belonging_Previous),0) + Alt('&chr(36)&'(vAvgScore_Student_Climate_Bullying_Previous),0) + Alt('&chr(36)&'(vAvgScore_Student_Climate_Safety_Previous),0)) / 3';
     let vmmAvgScore_Student_Climate_Previous = 'Num(IF('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCount_Student_Climate_Previous), 3*'&chr(36)&'(vAvgScore_Student_Climate_Previous), Null()),'&chr(39)&'#0.#'&chr(39)&')';
     
   //// Student Instruction (no subconstructs)
@@ -1119,9 +406,9 @@ set vVersionNumber = '1.0.4.1';
     
     // divide by 3 constructs
     let vCount_Parent_Climate_Previous = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Parent"}, questionconstruct={"School Climate"}, YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} respondentid)';
-    let vPercMP_Parent_Climate_Previous = 'RangeAvg('&chr(36)&'(vPercMP_Parent_Climate_Bullying_Previous), '&chr(36)&'(vPercMP_Parent_Climate_Safety_Previous))';
+    let vPercMP_Parent_Climate_Previous = '(Alt('&chr(36)&'(vPercMP_Parent_Climate_Bullying_Previous),0) + Alt('&chr(36)&'(vPercMP_Parent_Climate_Safety_Previous),0)) / 2';
     let vmmPercMP_Parent_Climate_Previous = 'Num(IF('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Climate_Previous), '&chr(36)&'(vPercMP_Parent_Climate_Previous), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Parent_Climate_Previous = 'RangeAvg('&chr(36)&'(vAvgScore_Parent_Climate_Bullying_Previous), '&chr(36)&'(vAvgScore_Parent_Climate_Safety_Previous))';
+    let vAvgScore_Parent_Climate_Previous = '(Alt('&chr(36)&'(vAvgScore_Parent_Climate_Bullying_Previous),0) + Alt('&chr(36)&'(vAvgScore_Parent_Climate_Safety_Previous),0)) / 2';
     let vmmAvgScore_Parent_Climate_Previous = 'Num(IF('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Climate_Previous), 3*'&chr(36)&'(vAvgScore_Parent_Climate_Previous), Null()),'&chr(39)&'#0.#'&chr(39)&')';
    
     
@@ -1140,9 +427,9 @@ set vVersionNumber = '1.0.4.1';
     
     // divide by 2 subconstructs 
     let vCount_Parent_Instruction_Previous = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Parent"}, questionconstruct={"Instruction"}, YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} respondentid)';
-    let vPercMP_Parent_Instruction_Previous = 'RangeAvg('&chr(36)&'(vPercMP_Parent_Instruction_Extracurricular_Previous), '&chr(36)&'(vPercMP_Parent_Instruction_Teaching_Previous))';
+    let vPercMP_Parent_Instruction_Previous = '(Alt('&chr(36)&'(vPercMP_Parent_Instruction_Extracurricular_Previous),0) + Alt('&chr(36)&'(vPercMP_Parent_Instruction_Teaching_Previous),0)) / 2';
     let vmmPercMP_Parent_Instruction_Previous = 'Num(IF('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Instruction_Previous), '&chr(36)&'(vPercMP_Parent_Instruction_Previous), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Parent_Instruction_Previous = 'RangeAvg('&chr(36)&'(vAvgScore_Parent_Instruction_Extracurricular_Previous), '&chr(36)&'(vAvgScore_Parent_Instruction_Teaching_Previous))';
+    let vAvgScore_Parent_Instruction_Previous = '(Alt('&chr(36)&'(vAvgScore_Parent_Instruction_Extracurricular_Previous),0) + Alt('&chr(36)&'(vAvgScore_Parent_Instruction_Teaching_Previous),0)) / 2';
     let vmmAvgScore_Parent_Instruction_Previous = 'Num(IF('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Instruction_Previous), 3*'&chr(36)&'(vAvgScore_Parent_Instruction_Previous), Null()),'&chr(39)&'#0.#'&chr(39)&')';
     
    //// Parent Parent/Guardian-Community Ties (Communication Frequency, Communication Quality, Community Services, Parent/Guardian-School Networks, Parent/Guardian Involvement, School Relationship)
@@ -1184,9 +471,9 @@ set vVersionNumber = '1.0.4.1';
     
     // divide by 6 subconstructs 
     let vCount_Parent_CommunityTies_Previous = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Parent"}, questionconstruct={"School Relationships"}, YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} respondentid)';
-    let vPercMP_Parent_CommunityTies_Previous = 'RangeAvg('&chr(36)&'(vPercMP_Parent_CommunityTies_CommunicationFrequency_Previous), '&chr(36)&'(vPercMP_Parent_CommunityTies_CommunicationQuality_Previous), '&chr(36)&'(vPercMP_Parent_CommunityTies_CommunityServices_Previous), '&chr(36)&'(vPercMP_Parent_CommunityTies_SchoolNetworks_Previous), '&chr(36)&'(vPercMP_Parent_CommunityTies_Involvement_Previous), '&chr(36)&'(vPercMP_Parent_CommunityTies_SchoolRelationship_Previous))';
+    let vPercMP_Parent_CommunityTies_Previous = '(Alt('&chr(36)&'(vPercMP_Parent_CommunityTies_CommunicationFrequency_Previous),0) + Alt('&chr(36)&'(vPercMP_Parent_CommunityTies_CommunicationQuality_Previous),0) + Alt('&chr(36)&'(vPercMP_Parent_CommunityTies_CommunityServices_Previous),0) + Alt('&chr(36)&'(vPercMP_Parent_CommunityTies_SchoolNetworks_Previous),0) + Alt('&chr(36)&'(vPercMP_Parent_CommunityTies_Involvement_Previous),0) + Alt('&chr(36)&'(vPercMP_Parent_CommunityTies_SchoolRelationship_Previous),0)) / 6';
     let vmmPercMP_Parent_CommunityTies_Previous = 'Num(IF('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_CommunityTies_Previous), '&chr(36)&'(vPercMP_Parent_CommunityTies_Previous), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Parent_CommunityTies_Previous = 'RangeAvg('&chr(36)&'(vAvgScore_Parent_CommunityTies_CommunicationFrequency_Previous), '&chr(36)&'(vAvgScore_Parent_CommunityTies_CommunicationQuality_Previous), '&chr(36)&'(vAvgScore_Parent_CommunityTies_CommunityServices_Previous), '&chr(36)&'(vAvgScore_Parent_CommunityTies_SchoolNetworks_Previous), '&chr(36)&'(vAvgScore_Parent_CommunityTies_Involvement_Previous), '&chr(36)&'(vAvgScore_Parent_CommunityTies_SchoolRelationship_Previous))';
+    let vAvgScore_Parent_CommunityTies_Previous = '(Alt('&chr(36)&'(vAvgScore_Parent_CommunityTies_CommunicationFrequency_Previous),0) + Alt('&chr(36)&'(vAvgScore_Parent_CommunityTies_CommunicationQuality_Previous),0) + Alt('&chr(36)&'(vAvgScore_Parent_CommunityTies_CommunityServices_Previous),0) + Alt('&chr(36)&'(vAvgScore_Parent_CommunityTies_SchoolNetworks_Previous),0) + Alt('&chr(36)&'(vAvgScore_Parent_CommunityTies_Involvement_Previous),0) + Alt('&chr(36)&'(vAvgScore_Parent_CommunityTies_SchoolRelationship_Previous),0)) / 6';
     let vmmAvgScore_Parent_CommunityTies_Previous = 'Num(IF('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_CommunityTies_Previous), 3*'&chr(36)&'(vAvgScore_Parent_CommunityTies_Previous), Null()),'&chr(39)&'#0.#'&chr(39)&')';
   
    //// Teacher Climate 4 subconstructs (Attendance, Classroom Level Challenges to Student Learning, External Challenges to Student Learning, School Level Challenges to Student Learning)
@@ -1216,9 +503,9 @@ set vVersionNumber = '1.0.4.1';
 
     // divide by 4 subconstructs 
     let vCount_Teacher_Climate_Previous = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Teacher"}, questionconstruct={"School Climate"}, YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} respondentid)';
-    let vPercMP_Teacher_Climate_Previous = 'RangeAvg('&chr(36)&'(vPercMP_Teacher_Climate_Attendance_Previous), '&chr(36)&'(vPercMP_Teacher_Climate_ClassroomChallenges_Previous), '&chr(36)&'(vPercMP_Teacher_Climate_ExternalChallenges_Previous), '&chr(36)&'(vPercMP_Teacher_Climate_SchoolChallenges_Previous))';
+    let vPercMP_Teacher_Climate_Previous = '(Alt('&chr(36)&'(vPercMP_Teacher_Climate_Attendance_Previous),0) + Alt('&chr(36)&'(vPercMP_Teacher_Climate_ClassroomChallenges_Previous),0) + Alt('&chr(36)&'(vPercMP_Teacher_Climate_ExternalChallenges_Previous),0) + Alt('&chr(36)&'(vPercMP_Teacher_Climate_SchoolChallenges_Previous),0)) / 4';
     let vmmPercMP_Teacher_Climate_Previous = 'Num(IF('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Climate_Previous), '&chr(36)&'(vPercMP_Teacher_Climate_Previous), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Teacher_Climate_Previous = 'RangeAvg('&chr(36)&'(vAvgScore_Teacher_Climate_Attendance_Previous), '&chr(36)&'(vAvgScore_Teacher_Climate_ClassroomChallenges_Previous), '&chr(36)&'(vAvgScore_Teacher_Climate_ExternalChallenges_Previous), '&chr(36)&'(vAvgScore_Teacher_Climate_SchoolChallenges_Previous))';
+    let vAvgScore_Teacher_Climate_Previous = '(Alt('&chr(36)&'(vAvgScore_Teacher_Climate_Attendance_Previous),0) + Alt('&chr(36)&'(vAvgScore_Teacher_Climate_ClassroomChallenges_Previous),0) + Alt('&chr(36)&'(vAvgScore_Teacher_Climate_ExternalChallenges_Previous),0) + Alt('&chr(36)&'(vAvgScore_Teacher_Climate_SchoolChallenges_Previous),0)) / 4';
     let vmmAvgScore_Teacher_Climate_Previous = 'Num(IF('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Climate_Previous), 3*'&chr(36)&'(vAvgScore_Teacher_Climate_Previous), Null()),'&chr(39)&'#0.#'&chr(39)&')';
     
     //// Teacher Instruction 2 subconstructs (General Instructional Strategies, Student Engagement)
@@ -1236,9 +523,9 @@ set vVersionNumber = '1.0.4.1';
 
     // divide by 2 subconstructs 
     let vCount_Teacher_Instruction_Previous = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Teacher"}, questionconstruct={"Instruction"}, YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} respondentid)';
-    let vPercMP_Teacher_Instruction_Previous = 'RangeAvg('&chr(36)&'(vPercMP_Teacher_Instruction_InstructionalStrategies_Previous), '&chr(36)&'(vPercMP_Teacher_Instruction_StudentEngagement_Previous))';
+    let vPercMP_Teacher_Instruction_Previous = '(Alt('&chr(36)&'(vPercMP_Teacher_Instruction_InstructionalStrategies_Previous),0) + Alt('&chr(36)&'(vPercMP_Teacher_Instruction_StudentEngagement_Previous),0)) / 2';
     let vmmPercMP_Teacher_Instruction_Previous = 'Num(IF('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Instruction_Previous), '&chr(36)&'(vPercMP_Teacher_Instruction_Previous), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Teacher_Instruction_Previous = 'RangeAvg('&chr(36)&'(vAvgScore_Teacher_Instruction_InstructionalStrategies_Previous), '&chr(36)&'(vAvgScore_Teacher_Instruction_StudentEngagement_Previous))';
+    let vAvgScore_Teacher_Instruction_Previous = '(Alt('&chr(36)&'(vAvgScore_Teacher_Instruction_InstructionalStrategies_Previous),0) + Alt('&chr(36)&'(vAvgScore_Teacher_Instruction_StudentEngagement_Previous),0)) / 2';
     let vmmAvgScore_Teacher_Instruction_Previous = 'Num(IF('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Instruction_Previous), 3*'&chr(36)&'(vAvgScore_Teacher_Instruction_Previous), Null()),'&chr(39)&'#0.#'&chr(39)&')';
     
     let vCount_Teacher_CommunityTies_Previous = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Teacher"}, questionconstruct={"Parent/Guardian-Community Ties"}, YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} respondentid)';
@@ -1286,9 +573,9 @@ set vVersionNumber = '1.0.4.1';
 
     // divide by 6 subconstructs
     let vCount_Teacher_ProfessionalCapacity_Previous = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Teacher"}, questionconstruct={"School ProfessionalCapacity"}, YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} respondentid)';
-    let vPercMP_Teacher_ProfessionalCapacity_Previous = 'RangeAvg('&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_Innovation_Previous), '&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PeerCollaboration_Previous), '&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PeerCollaborationFocus_Previous), '&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PDConsistency_Previous), '&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PDContent_Previous), '&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PDDelivery_Previous))';
+    let vPercMP_Teacher_ProfessionalCapacity_Previous = '(Alt('&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_Innovation_Previous),0) + Alt('&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PeerCollaboration_Previous),0) + Alt('&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PeerCollaborationFocus_Previous),0) + Alt('&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PDConsistency_Previous),0) + Alt('&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PDContent_Previous),0) + Alt('&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PDDelivery_Previous),0)) / 6';
     let vmmPercMP_Teacher_ProfessionalCapacity_Previous = 'Num(IF('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_ProfessionalCapacity_Previous), '&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_Previous), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Teacher_ProfessionalCapacity_Previous = 'RangeAvg('&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_Innovation_Previous), '&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PeerCollaboration_Previous), '&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PeerCollaborationFocus_Previous), '&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PDConsistency_Previous), '&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PDContent_Previous), '&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PDDelivery_Previous))';
+    let vAvgScore_Teacher_ProfessionalCapacity_Previous = '(Alt('&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_Innovation_Previous),0) + Alt('&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PeerCollaboration_Previous),0) + Alt('&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PeerCollaborationFocus_Previous),0) + Alt('&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PDConsistency_Previous),0) + Alt('&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PDContent_Previous),0) + Alt('&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PDDelivery_Previous),0)) / 64';
     let vmmAvgScore_Teacher_ProfessionalCapacity_Previous = 'Num(IF('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_ProfessionalCapacity_Previous), 3*'&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_Previous), Null()),'&chr(39)&'#0.#'&chr(39)&')';
     
      //// Teacher School Leadership 3 subconstructs (Classroom Level Decision Making, Expectations & Feedback, Inclusive Leadership)
@@ -1312,9 +599,9 @@ set vVersionNumber = '1.0.4.1';
 
     // divide by 3 subconstructs 
     let vCount_Teacher_SchoolLeadership_Previous = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Teacher"}, questionconstruct={"School Leadership"}, YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} respondentid)';
-    let vPercMP_Teacher_SchoolLeadership_Previous = 'RangeAvg('&chr(36)&'(vPercMP_Teacher_SchoolLeadership_ClassroomDecisionMaking_Previous), '&chr(36)&'(vPercMP_Teacher_SchoolLeadership_ExpectationsFeedback_Previous), '&chr(36)&'(vPercMP_Teacher_SchoolLeadership_InclusiveLeadership_Previous))';
+    let vPercMP_Teacher_SchoolLeadership_Previous = '(Alt('&chr(36)&'(vPercMP_Teacher_SchoolLeadership_ClassroomDecisionMaking_Previous),0) + Alt('&chr(36)&'(vPercMP_Teacher_SchoolLeadership_ExpectationsFeedback_Previous),0) + Alt('&chr(36)&'(vPercMP_Teacher_SchoolLeadership_InclusiveLeadership_Previous),0)) / 3';
     let vmmPercMP_Teacher_SchoolLeadership_Previous = 'Num(IF('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_SchoolLeadership_Previous), '&chr(36)&'(vPercMP_Teacher_SchoolLeadership_Previous), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Teacher_SchoolLeadership_Previous = 'RangeAvg('&chr(36)&'(vAvgScore_Teacher_SchoolLeadership_ClassroomDecisionMaking_Previous), '&chr(36)&'(vAvgScore_Teacher_SchoolLeadership_ExpectationsFeedback_Previous), '&chr(36)&'(vAvgScore_Teacher_SchoolLeadership_InclusiveLeadership_Previous))';
+    let vAvgScore_Teacher_SchoolLeadership_Previous = '(Alt('&chr(36)&'(vAvgScore_Teacher_SchoolLeadership_ClassroomDecisionMaking_Previous),0) + Alt('&chr(36)&'(vAvgScore_Teacher_SchoolLeadership_ExpectationsFeedback_Previous),0) + Alt('&chr(36)&'(vAvgScore_Teacher_SchoolLeadership_InclusiveLeadership_Previous),0)) / 3';
     let vmmAvgScore_Teacher_SchoolLeadership_Previous = 'Num(IF('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_SchoolLeadership_Previous), 3*'&chr(36)&'(vAvgScore_Teacher_SchoolLeadership_Previous), Null()),'&chr(39)&'#0.#'&chr(39)&')';
   
     //// Principal Climate 3 subconstructs (Attendance, External Challenges to Student Learning, School Level Challenges to Student Learning)
@@ -1338,9 +625,9 @@ set vVersionNumber = '1.0.4.1';
 
     // divide by 3 subconstructs 
     let vCount_Principal_Climate_Previous = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Principal"}, questionconstruct={"School Climate"}, YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} respondentid)';
-    let vPercMP_Principal_Climate_Previous = 'RangeAvg('&chr(36)&'(vPercMP_Principal_Climate_Attendance_Previous), '&chr(36)&'(vPercMP_Principal_Climate_ExternalChallenges_Previous), '&chr(36)&'(vPercMP_Principal_Climate_SchoolChallenges_Previous))';
+    let vPercMP_Principal_Climate_Previous = '(Alt('&chr(36)&'(vPercMP_Principal_Climate_Attendance_Previous),0) + Alt('&chr(36)&'(vPercMP_Principal_Climate_ExternalChallenges_Previous),0) + Alt('&chr(36)&'(vPercMP_Principal_Climate_SchoolChallenges_Previous),0)) / 3';
     let vmmPercMP_Principal_Climate_Previous = 'Num(IF('&chr(36)&'(vMinPrincipals) <= '&chr(36)&'(vCount_Principal_Climate_Previous), '&chr(36)&'(vPercMP_Principal_Climate_Previous), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Principal_Climate_Previous = 'RangeAvg('&chr(36)&'(vAvgScore_Principal_Climate_Attendance_Previous), '&chr(36)&'(vAvgScore_Principal_Climate_ExternalChallenges_Previous), '&chr(36)&'(vAvgScore_Principal_Climate_SchoolChallenges_Previous))';
+    let vAvgScore_Principal_Climate_Previous = '(Alt('&chr(36)&'(vAvgScore_Principal_Climate_Attendance_Previous),0) '&chr(36)&'(vAvgScore_Principal_Climate_ExternalChallenges_Previous) + Alt('&chr(36)&'(vAvgScore_Principal_Climate_SchoolChallenges_Previous),0)) / 3';
     let vmmAvgScore_Principal_Climate_Previous = 'Num(IF('&chr(36)&'(vMinPrincipals) <= '&chr(36)&'(vCount_Principal_Climate_Previous), 3*'&chr(36)&'(vAvgScore_Principal_Climate_Previous), Null()),'&chr(39)&'#0.#'&chr(39)&')';
     
     //// Principal Instruction 2 subconstructs (Data Use, External Supports)
@@ -1358,9 +645,9 @@ set vVersionNumber = '1.0.4.1';
 
     // divide by 2 subconstructs 
     let vCount_Principal_Instruction_Previous = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Principal"}, questionconstruct={"Instruction"}, YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} respondentid)';
-    let vPercMP_Principal_Instruction_Previous = 'RangeAvg('&chr(36)&'(vPercMP_Principal_Instruction_DataUse_Previous), '&chr(36)&'(vPercMP_Principal_Instruction_ExternalSupports_Previous))';
+    let vPercMP_Principal_Instruction_Previous = '(Alt('&chr(36)&'(vPercMP_Principal_Instruction_DataUse_Previous),0) + Alt('&chr(36)&'(vPercMP_Principal_Instruction_ExternalSupports_Previous),0)) / 2';
     let vmmPercMP_Principal_Instruction_Previous = 'Num(IF('&chr(36)&'(vMinPrincipals) <= '&chr(36)&'(vCount_Principal_Instruction_Previous), '&chr(36)&'(vPercMP_Principal_Instruction_Previous), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Principal_Instruction_Previous = 'RangeAvg('&chr(36)&'(vAvgScore_Principal_Instruction_DataUse_Previous), '&chr(36)&'(vAvgScore_Principal_Instruction_ExternalSupports_Previous))';
+    let vAvgScore_Principal_Instruction_Previous = '(Alt('&chr(36)&'(vAvgScore_Principal_Instruction_DataUse_Previous),0) + Alt('&chr(36)&'(vAvgScore_Principal_Instruction_ExternalSupports_Previous),0)) / 2';
     let vmmAvgScore_Principal_Instruction_Previous = 'Num(IF('&chr(36)&'(vMinPrincipals) <= '&chr(36)&'(vCount_Principal_Instruction_Previous), 3*'&chr(36)&'(vAvgScore_Principal_Instruction_Previous), Null()),'&chr(39)&'#0.#'&chr(39)&')';
 
     //// Principal Parent/Guardian-Community Ties 0 subconstructs 
@@ -1411,9 +698,9 @@ set vVersionNumber = '1.0.4.1';
 
     // divide by 4 subconstructs 
     let vCount_Principal_SchoolLeadership_Previous = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Principal"}, questionconstruct={"School Leadership"}, YearEnd = {'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} respondentid)';
-    let vPercMP_Principal_SchoolLeadership_Previous = 'RangeAvg('&chr(36)&'(vPercMP_Principal_SchoolLeadership_InstructionalLeadership_Previous), '&chr(36)&'(vPercMP_Principal_SchoolLeadership_ManagementTime_Previous), '&chr(36)&'(vPercMP_Principal_SchoolLeadership_SchoolDecisionMaking_Previous), '&chr(36)&'(vPercMP_Principal_SchoolLeadership_SchoolFocus_Previous))';
+    let vPercMP_Principal_SchoolLeadership_Previous = '(Alt('&chr(36)&'(vPercMP_Principal_SchoolLeadership_InstructionalLeadership_Previous),0) + Alt('&chr(36)&'(vPercMP_Principal_SchoolLeadership_ManagementTime_Previous),0) + Alt('&chr(36)&'(vPercMP_Principal_SchoolLeadership_SchoolDecisionMaking_Previous),0) + Alt('&chr(36)&'(vPercMP_Principal_SchoolLeadership_SchoolFocus_Previous),0)) / 4';
     let vmmPercMP_Principal_SchoolLeadership_Previous = 'Num(IF('&chr(36)&'(vMinPrincipals) <= '&chr(36)&'(vCount_Principal_SchoolLeadership_Previous), '&chr(36)&'(vPercMP_Principal_SchoolLeadership_Previous), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Principal_SchoolLeadership_Previous = 'RangeAvg('&chr(36)&'(vAvgScore_Principal_SchoolLeadership_InstructionalLeadership_Previous), '&chr(36)&'(vAvgScore_Principal_SchoolLeadership_ManagementTime_Previous), '&chr(36)&'(vAvgScore_Principal_SchoolLeadership_SchoolDecisionMaking_Previous), '&chr(36)&'(vAvgScore_Principal_SchoolLeadership_SchoolFocus_Previous))';
+    let vAvgScore_Principal_SchoolLeadership_Previous = '(Alt('&chr(36)&'(vAvgScore_Principal_SchoolLeadership_InstructionalLeadership_Previous),0) + Alt('&chr(36)&'(vAvgScore_Principal_SchoolLeadership_ManagementTime_Previous),0) + Alt('&chr(36)&'(vAvgScore_Principal_SchoolLeadership_SchoolDecisionMaking_Previous),0) + Alt('&chr(36)&'(vAvgScore_Principal_SchoolLeadership_SchoolFocus_Previous),0)) / 4';
     let vmmAvgScore_Principal_SchoolLeadership_Previous = 'Num(IF('&chr(36)&'(vMinPrincipals) <= '&chr(36)&'(vCount_Principal_SchoolLeadership_Previous), 3*'&chr(36)&'(vAvgScore_Principal_SchoolLeadership_Previous), Null()),'&chr(39)&'#0.#'&chr(39)&')';
   
    ///// All Years
@@ -1437,9 +724,9 @@ set vVersionNumber = '1.0.4.1';
     
      // divide by 3 subconstructs
     let vCount_Student_Climate_AllYears = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Student"}, questionconstruct={"School Climate"}, YearEnd = >} respondentid)';
-    let vPercMP_Student_Climate_AllYears = 'RangeAvg('&chr(36)&'(vPercMP_Student_Climate_Belonging_AllYears), '&chr(36)&'(vPercMP_Student_Climate_Bullying_AllYears), '&chr(36)&'(vPercMP_Student_Climate_Safety_AllYears))';
+    let vPercMP_Student_Climate_AllYears = '(Alt('&chr(36)&'(vPercMP_Student_Climate_Belonging_AllYears),0) + Alt('&chr(36)&'(vPercMP_Student_Climate_Bullying_AllYears),0) + Alt('&chr(36)&'(vPercMP_Student_Climate_Safety_AllYears),0)) / 3';
     let vmmPercMP_Student_Climate_AllYears = 'Num(IF('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCount_Student_Climate_AllYears), '&chr(36)&'(vPercMP_Student_Climate_AllYears), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Student_Climate_AllYears = 'RangeAvg('&chr(36)&'(vAvgScore_Student_Climate_Belonging_AllYears), '&chr(36)&'(vAvgScore_Student_Climate_Bullying_AllYears), '&chr(36)&'(vAvgScore_Student_Climate_Safety_AllYears))';
+    let vAvgScore_Student_Climate_AllYears = '(Alt('&chr(36)&'(vAvgScore_Student_Climate_Belonging_AllYears),0) + Alt('&chr(36)&'(vAvgScore_Student_Climate_Bullying_AllYears),0) + Alt('&chr(36)&'(vAvgScore_Student_Climate_Safety_AllYears),0)) / 3';
     let vmmAvgScore_Student_Climate_AllYears = 'Num(IF('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCount_Student_Climate_AllYears), 3*'&chr(36)&'(vAvgScore_Student_Climate_AllYears), Null()),'&chr(39)&'#0.#'&chr(39)&')';
     
   //// Student Instruction (no subconstructs)
@@ -1464,9 +751,9 @@ set vVersionNumber = '1.0.4.1';
     
     // divide by 3 constructs
     let vCount_Parent_Climate_AllYears = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Parent"}, questionconstruct={"School Climate"}, YearEnd = >} respondentid)';
-    let vPercMP_Parent_Climate_AllYears = 'RangeAvg('&chr(36)&'(vPercMP_Parent_Climate_Bullying_AllYears), '&chr(36)&'(vPercMP_Parent_Climate_Safety_AllYears))';
+    let vPercMP_Parent_Climate_AllYears = '(Alt('&chr(36)&'(vPercMP_Parent_Climate_Bullying_AllYears),0) + Alt('&chr(36)&'(vPercMP_Parent_Climate_Safety_AllYears),0)) / 2';
     let vmmPercMP_Parent_Climate_AllYears = 'Num(IF('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Climate_AllYears), '&chr(36)&'(vPercMP_Parent_Climate_AllYears), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Parent_Climate_AllYears = 'RangeAvg('&chr(36)&'(vAvgScore_Parent_Climate_Bullying_AllYears), '&chr(36)&'(vAvgScore_Parent_Climate_Safety_AllYears))';
+    let vAvgScore_Parent_Climate_AllYears = '(Alt('&chr(36)&'(vAvgScore_Parent_Climate_Bullying_AllYears),0) + Alt('&chr(36)&'(vAvgScore_Parent_Climate_Safety_AllYears),0)) / 2';
     let vmmAvgScore_Parent_Climate_AllYears = 'Num(IF('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Climate_AllYears), 3*'&chr(36)&'(vAvgScore_Parent_Climate_AllYears), Null()),'&chr(39)&'#0.#'&chr(39)&')';
    
     
@@ -1485,9 +772,9 @@ set vVersionNumber = '1.0.4.1';
     
     // divide by 2 subconstructs 
     let vCount_Parent_Instruction_AllYears = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Parent"}, questionconstruct={"Instruction"}, YearEnd = >} respondentid)';
-    let vPercMP_Parent_Instruction_AllYears = 'RangeAvg('&chr(36)&'(vPercMP_Parent_Instruction_Extracurricular_AllYears), '&chr(36)&'(vPercMP_Parent_Instruction_Teaching_AllYears))';
+    let vPercMP_Parent_Instruction_AllYears = '(Alt('&chr(36)&'(vPercMP_Parent_Instruction_Extracurricular_AllYears),0) + Alt('&chr(36)&'(vPercMP_Parent_Instruction_Teaching_AllYears),0)) / 2';
     let vmmPercMP_Parent_Instruction_AllYears = 'Num(IF('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Instruction_AllYears), '&chr(36)&'(vPercMP_Parent_Instruction_AllYears), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Parent_Instruction_AllYears = 'RangeAvg('&chr(36)&'(vAvgScore_Parent_Instruction_Extracurricular_AllYears), '&chr(36)&'(vAvgScore_Parent_Instruction_Teaching_AllYears))';
+    let vAvgScore_Parent_Instruction_AllYears = '(Alt('&chr(36)&'(vAvgScore_Parent_Instruction_Extracurricular_AllYears),0) + Alt('&chr(36)&'(vAvgScore_Parent_Instruction_Teaching_AllYears),0)) / 2';
     let vmmAvgScore_Parent_Instruction_AllYears = 'Num(IF('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Instruction_AllYears), 3*'&chr(36)&'(vAvgScore_Parent_Instruction_AllYears), Null()),'&chr(39)&'#0.#'&chr(39)&')';
     
    //// Parent Parent/Guardian-Community Ties (Communication Frequency, Communication Quality, Community Services, Parent/Guardian-School Networks, Parent/Guardian Involvement, School Relationship)
@@ -1529,9 +816,9 @@ set vVersionNumber = '1.0.4.1';
     
     // divide by 6 subconstructs 
     let vCount_Parent_CommunityTies_AllYears = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Parent"}, questionconstruct={"School Relationships"}, YearEnd = >} respondentid)';
-    let vPercMP_Parent_CommunityTies_AllYears = 'RangeAvg('&chr(36)&'(vPercMP_Parent_CommunityTies_CommunicationFrequency_AllYears), '&chr(36)&'(vPercMP_Parent_CommunityTies_CommunicationQuality_AllYears), '&chr(36)&'(vPercMP_Parent_CommunityTies_CommunityServices_AllYears), '&chr(36)&'(vPercMP_Parent_CommunityTies_SchoolNetworks_AllYears), '&chr(36)&'(vPercMP_Parent_CommunityTies_Involvement_AllYears), '&chr(36)&'(vPercMP_Parent_CommunityTies_SchoolRelationship_AllYears))';
+    let vPercMP_Parent_CommunityTies_AllYears = '(Alt('&chr(36)&'(vPercMP_Parent_CommunityTies_CommunicationFrequency_AllYears),0) + Alt('&chr(36)&'(vPercMP_Parent_CommunityTies_CommunicationQuality_AllYears),0) + Alt('&chr(36)&'(vPercMP_Parent_CommunityTies_CommunityServices_AllYears),0) + Alt('&chr(36)&'(vPercMP_Parent_CommunityTies_SchoolNetworks_AllYears),0) + Alt('&chr(36)&'(vPercMP_Parent_CommunityTies_Involvement_AllYears),0) + Alt('&chr(36)&'(vPercMP_Parent_CommunityTies_SchoolRelationship_AllYears),0)) / 6';
     let vmmPercMP_Parent_CommunityTies_AllYears = 'Num(IF('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_CommunityTies_AllYears), '&chr(36)&'(vPercMP_Parent_CommunityTies_AllYears), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Parent_CommunityTies_AllYears = 'RangeAvg('&chr(36)&'(vAvgScore_Parent_CommunityTies_CommunicationFrequency_AllYears), '&chr(36)&'(vAvgScore_Parent_CommunityTies_CommunicationQuality_AllYears), '&chr(36)&'(vAvgScore_Parent_CommunityTies_CommunityServices_AllYears), '&chr(36)&'(vAvgScore_Parent_CommunityTies_SchoolNetworks_AllYears), '&chr(36)&'(vAvgScore_Parent_CommunityTies_Involvement_AllYears), '&chr(36)&'(vAvgScore_Parent_CommunityTies_SchoolRelationship_AllYears))';
+    let vAvgScore_Parent_CommunityTies_AllYears = '(Alt('&chr(36)&'(vAvgScore_Parent_CommunityTies_CommunicationFrequency_AllYears),0) + Alt('&chr(36)&'(vAvgScore_Parent_CommunityTies_CommunicationQuality_AllYears),0) + Alt('&chr(36)&'(vAvgScore_Parent_CommunityTies_CommunityServices_AllYears),0) + Alt('&chr(36)&'(vAvgScore_Parent_CommunityTies_SchoolNetworks_AllYears),0) + Alt('&chr(36)&'(vAvgScore_Parent_CommunityTies_Involvement_AllYears),0) + Alt('&chr(36)&'(vAvgScore_Parent_CommunityTies_SchoolRelationship_AllYears),0)) / 6';
     let vmmAvgScore_Parent_CommunityTies_AllYears = 'Num(IF('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_CommunityTies_AllYears), 3*'&chr(36)&'(vAvgScore_Parent_CommunityTies_AllYears), Null()),'&chr(39)&'#0.#'&chr(39)&')';
   
    //// Teacher Climate 4 subconstructs (Attendance, Classroom Level Challenges to Student Learning, External Challenges to Student Learning, School Level Challenges to Student Learning)
@@ -1561,9 +848,9 @@ set vVersionNumber = '1.0.4.1';
 
     // divide by 4 subconstructs 
     let vCount_Teacher_Climate_AllYears = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Teacher"}, questionconstruct={"School Climate"}, YearEnd = >} respondentid)';
-    let vPercMP_Teacher_Climate_AllYears = 'RangeAvg('&chr(36)&'(vPercMP_Teacher_Climate_Attendance_AllYears), '&chr(36)&'(vPercMP_Teacher_Climate_ClassroomChallenges_AllYears), '&chr(36)&'(vPercMP_Teacher_Climate_ExternalChallenges_AllYears), '&chr(36)&'(vPercMP_Teacher_Climate_SchoolChallenges_AllYears))';
+    let vPercMP_Teacher_Climate_AllYears = '(Alt('&chr(36)&'(vPercMP_Teacher_Climate_Attendance_AllYears),0) + Alt('&chr(36)&'(vPercMP_Teacher_Climate_ClassroomChallenges_AllYears),0) + Alt('&chr(36)&'(vPercMP_Teacher_Climate_ExternalChallenges_AllYears),0) + Alt('&chr(36)&'(vPercMP_Teacher_Climate_SchoolChallenges_AllYears),0)) / 4';
     let vmmPercMP_Teacher_Climate_AllYears = 'Num(IF('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Climate_AllYears), '&chr(36)&'(vPercMP_Teacher_Climate_AllYears), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Teacher_Climate_AllYears = 'RangeAvg('&chr(36)&'(vAvgScore_Teacher_Climate_Attendance_AllYears), '&chr(36)&'(vAvgScore_Teacher_Climate_ClassroomChallenges_AllYears), '&chr(36)&'(vAvgScore_Teacher_Climate_ExternalChallenges_AllYears), '&chr(36)&'(vAvgScore_Teacher_Climate_SchoolChallenges_AllYears))';
+    let vAvgScore_Teacher_Climate_AllYears = '(Alt('&chr(36)&'(vAvgScore_Teacher_Climate_Attendance_AllYears),0) + Alt('&chr(36)&'(vAvgScore_Teacher_Climate_ClassroomChallenges_AllYears),0) + Alt('&chr(36)&'(vAvgScore_Teacher_Climate_ExternalChallenges_AllYears),0) + Alt('&chr(36)&'(vAvgScore_Teacher_Climate_SchoolChallenges_AllYears),0)) / 4';
     let vmmAvgScore_Teacher_Climate_AllYears = 'Num(IF('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Climate_AllYears), 3*'&chr(36)&'(vAvgScore_Teacher_Climate_AllYears), Null()),'&chr(39)&'#0.#'&chr(39)&')';
     
     //// Teacher Instruction 2 subconstructs (General Instructional Strategies, Student Engagement)
@@ -1581,9 +868,9 @@ set vVersionNumber = '1.0.4.1';
 
     // divide by 2 subconstructs 
     let vCount_Teacher_Instruction_AllYears = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Teacher"}, questionconstruct={"Instruction"}, YearEnd = >} respondentid)';
-    let vPercMP_Teacher_Instruction_AllYears = 'RangeAvg('&chr(36)&'(vPercMP_Teacher_Instruction_InstructionalStrategies_AllYears), '&chr(36)&'(vPercMP_Teacher_Instruction_StudentEngagement_AllYears))';
+    let vPercMP_Teacher_Instruction_AllYears = '(Alt('&chr(36)&'(vPercMP_Teacher_Instruction_InstructionalStrategies_AllYears),0) + Alt('&chr(36)&'(vPercMP_Teacher_Instruction_StudentEngagement_AllYears),0)) / 2';
     let vmmPercMP_Teacher_Instruction_AllYears = 'Num(IF('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Instruction_AllYears), '&chr(36)&'(vPercMP_Teacher_Instruction_AllYears), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Teacher_Instruction_AllYears = 'RangeAvg('&chr(36)&'(vAvgScore_Teacher_Instruction_InstructionalStrategies_AllYears), '&chr(36)&'(vAvgScore_Teacher_Instruction_StudentEngagement_AllYears))';
+    let vAvgScore_Teacher_Instruction_AllYears = '(Alt('&chr(36)&'(vAvgScore_Teacher_Instruction_InstructionalStrategies_AllYears),0) + Alt('&chr(36)&'(vAvgScore_Teacher_Instruction_StudentEngagement_AllYears),0)) / 2';
     let vmmAvgScore_Teacher_Instruction_AllYears = 'Num(IF('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Instruction_AllYears), 3*'&chr(36)&'(vAvgScore_Teacher_Instruction_AllYears), Null()),'&chr(39)&'#0.#'&chr(39)&')';
     
     let vCount_Teacher_CommunityTies_AllYears = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Teacher"}, questionconstruct={"Parent/Guardian-Community Ties"}, YearEnd = >} respondentid)';
@@ -1631,9 +918,9 @@ set vVersionNumber = '1.0.4.1';
 
     // divide by 6 subconstructs
     let vCount_Teacher_ProfessionalCapacity_AllYears = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Teacher"}, questionconstruct={"School ProfessionalCapacity"}, YearEnd = >} respondentid)';
-    let vPercMP_Teacher_ProfessionalCapacity_AllYears = 'RangeAvg('&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_Innovation_AllYears), '&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PeerCollaboration_AllYears), '&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PeerCollaborationFocus_AllYears), '&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PDConsistency_AllYears), '&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PDContent_AllYears), '&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PDDelivery_AllYears))';
+    let vPercMP_Teacher_ProfessionalCapacity_AllYears = '(Alt('&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_Innovation_AllYears),0) + Alt('&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PeerCollaboration_AllYears),0) + Alt('&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PeerCollaborationFocus_AllYears),0) + Alt('&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PDConsistency_AllYears),0) + Alt('&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PDContent_AllYears),0) + Alt('&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_PDDelivery_AllYears),0)) / 6';
     let vmmPercMP_Teacher_ProfessionalCapacity_AllYears = 'Num(IF('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_ProfessionalCapacity_AllYears), '&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_AllYears), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Teacher_ProfessionalCapacity_AllYears = 'RangeAvg('&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_Innovation_AllYears), '&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PeerCollaboration_AllYears), '&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PeerCollaborationFocus_AllYears), '&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PDConsistency_AllYears), '&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PDContent_AllYears), '&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PDDelivery_AllYears))';
+    let vAvgScore_Teacher_ProfessionalCapacity_AllYears = '(Alt('&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_Innovation_AllYears),0) + Alt('&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PeerCollaboration_AllYears),0) + Alt('&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PeerCollaborationFocus_AllYears),0) + Alt('&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PDConsistency_AllYears),0) + Alt('&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PDContent_AllYears),0) + Alt('&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_PDDelivery_AllYears),0)) / 64';
     let vmmAvgScore_Teacher_ProfessionalCapacity_AllYears = 'Num(IF('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_ProfessionalCapacity_AllYears), 3*'&chr(36)&'(vAvgScore_Teacher_ProfessionalCapacity_AllYears), Null()),'&chr(39)&'#0.#'&chr(39)&')';
     
      //// Teacher School Leadership 3 subconstructs (Classroom Level Decision Making, Expectations & Feedback, Inclusive Leadership)
@@ -1657,9 +944,9 @@ set vVersionNumber = '1.0.4.1';
 
     // divide by 3 subconstructs 
     let vCount_Teacher_SchoolLeadership_AllYears = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Teacher"}, questionconstruct={"School Leadership"}, YearEnd = >} respondentid)';
-    let vPercMP_Teacher_SchoolLeadership_AllYears = 'RangeAvg('&chr(36)&'(vPercMP_Teacher_SchoolLeadership_ClassroomDecisionMaking_AllYears), '&chr(36)&'(vPercMP_Teacher_SchoolLeadership_ExpectationsFeedback_AllYears), '&chr(36)&'(vPercMP_Teacher_SchoolLeadership_InclusiveLeadership_AllYears))';
+    let vPercMP_Teacher_SchoolLeadership_AllYears = '(Alt('&chr(36)&'(vPercMP_Teacher_SchoolLeadership_ClassroomDecisionMaking_AllYears),0) + Alt('&chr(36)&'(vPercMP_Teacher_SchoolLeadership_ExpectationsFeedback_AllYears),0) + Alt('&chr(36)&'(vPercMP_Teacher_SchoolLeadership_InclusiveLeadership_AllYears),0)) / 3';
     let vmmPercMP_Teacher_SchoolLeadership_AllYears = 'Num(IF('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_SchoolLeadership_AllYears), '&chr(36)&'(vPercMP_Teacher_SchoolLeadership_AllYears), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Teacher_SchoolLeadership_AllYears = 'RangeAvg('&chr(36)&'(vAvgScore_Teacher_SchoolLeadership_ClassroomDecisionMaking_AllYears), '&chr(36)&'(vAvgScore_Teacher_SchoolLeadership_ExpectationsFeedback_AllYears), '&chr(36)&'(vAvgScore_Teacher_SchoolLeadership_InclusiveLeadership_AllYears))';
+    let vAvgScore_Teacher_SchoolLeadership_AllYears = '(Alt('&chr(36)&'(vAvgScore_Teacher_SchoolLeadership_ClassroomDecisionMaking_AllYears),0) + Alt('&chr(36)&'(vAvgScore_Teacher_SchoolLeadership_ExpectationsFeedback_AllYears),0) + Alt('&chr(36)&'(vAvgScore_Teacher_SchoolLeadership_InclusiveLeadership_AllYears),0)) / 3';
     let vmmAvgScore_Teacher_SchoolLeadership_AllYears = 'Num(IF('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_SchoolLeadership_AllYears), 3*'&chr(36)&'(vAvgScore_Teacher_SchoolLeadership_AllYears), Null()),'&chr(39)&'#0.#'&chr(39)&')';
   
     //// Principal Climate 3 subconstructs (Attendance, External Challenges to Student Learning, School Level Challenges to Student Learning)
@@ -1683,9 +970,9 @@ set vVersionNumber = '1.0.4.1';
 
     // divide by 3 subconstructs 
     let vCount_Principal_Climate_AllYears = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Principal"}, questionconstruct={"School Climate"}, YearEnd = >} respondentid)';
-    let vPercMP_Principal_Climate_AllYears = 'RangeAvg('&chr(36)&'(vPercMP_Principal_Climate_Attendance_AllYears), '&chr(36)&'(vPercMP_Principal_Climate_ExternalChallenges_AllYears), '&chr(36)&'(vPercMP_Principal_Climate_SchoolChallenges_AllYears))';
+    let vPercMP_Principal_Climate_AllYears = '(Alt('&chr(36)&'(vPercMP_Principal_Climate_Attendance_AllYears),0) + Alt('&chr(36)&'(vPercMP_Principal_Climate_ExternalChallenges_AllYears),0) + Alt('&chr(36)&'(vPercMP_Principal_Climate_SchoolChallenges_AllYears),0)) / 3';
     let vmmPercMP_Principal_Climate_AllYears = 'Num(IF('&chr(36)&'(vMinPrincipals) <= '&chr(36)&'(vCount_Principal_Climate_AllYears), '&chr(36)&'(vPercMP_Principal_Climate_AllYears), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Principal_Climate_AllYears = 'RangeAvg('&chr(36)&'(vAvgScore_Principal_Climate_Attendance_AllYears), '&chr(36)&'(vAvgScore_Principal_Climate_ExternalChallenges_AllYears), '&chr(36)&'(vAvgScore_Principal_Climate_SchoolChallenges_AllYears))';
+    let vAvgScore_Principal_Climate_AllYears = '(Alt('&chr(36)&'(vAvgScore_Principal_Climate_Attendance_AllYears),0) '&chr(36)&'(vAvgScore_Principal_Climate_ExternalChallenges_AllYears) + Alt('&chr(36)&'(vAvgScore_Principal_Climate_SchoolChallenges_AllYears),0)) / 3';
     let vmmAvgScore_Principal_Climate_AllYears = 'Num(IF('&chr(36)&'(vMinPrincipals) <= '&chr(36)&'(vCount_Principal_Climate_AllYears), 3*'&chr(36)&'(vAvgScore_Principal_Climate_AllYears), Null()),'&chr(39)&'#0.#'&chr(39)&')';
     
     //// Principal Instruction 2 subconstructs (Data Use, External Supports)
@@ -1703,9 +990,9 @@ set vVersionNumber = '1.0.4.1';
 
     // divide by 2 subconstructs 
     let vCount_Principal_Instruction_AllYears = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Principal"}, questionconstruct={"Instruction"}, YearEnd = >} respondentid)';
-    let vPercMP_Principal_Instruction_AllYears = 'RangeAvg('&chr(36)&'(vPercMP_Principal_Instruction_DataUse_AllYears), '&chr(36)&'(vPercMP_Principal_Instruction_ExternalSupports_AllYears))';
+    let vPercMP_Principal_Instruction_AllYears = '(Alt('&chr(36)&'(vPercMP_Principal_Instruction_DataUse_AllYears),0) + Alt('&chr(36)&'(vPercMP_Principal_Instruction_ExternalSupports_AllYears),0)) / 2';
     let vmmPercMP_Principal_Instruction_AllYears = 'Num(IF('&chr(36)&'(vMinPrincipals) <= '&chr(36)&'(vCount_Principal_Instruction_AllYears), '&chr(36)&'(vPercMP_Principal_Instruction_AllYears), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Principal_Instruction_AllYears = 'RangeAvg('&chr(36)&'(vAvgScore_Principal_Instruction_DataUse_AllYears), '&chr(36)&'(vAvgScore_Principal_Instruction_ExternalSupports_AllYears))';
+    let vAvgScore_Principal_Instruction_AllYears = '(Alt('&chr(36)&'(vAvgScore_Principal_Instruction_DataUse_AllYears),0) + Alt('&chr(36)&'(vAvgScore_Principal_Instruction_ExternalSupports_AllYears),0)) / 2';
     let vmmAvgScore_Principal_Instruction_AllYears = 'Num(IF('&chr(36)&'(vMinPrincipals) <= '&chr(36)&'(vCount_Principal_Instruction_AllYears), 3*'&chr(36)&'(vAvgScore_Principal_Instruction_AllYears), Null()),'&chr(39)&'#0.#'&chr(39)&')';
 
     //// Principal Parent/Guardian-Community Ties 0 subconstructs 
@@ -1756,281 +1043,9 @@ set vVersionNumber = '1.0.4.1';
 
     // divide by 4 subconstructs 
     let vCount_Principal_SchoolLeadership_AllYears = 'Count(distinct {'&chr(36)&'<surveyTypeForDisplay={"Principal"}, questionconstruct={"School Leadership"}, YearEnd = >} respondentid)';
-    let vPercMP_Principal_SchoolLeadership_AllYears = 'RangeAvg('&chr(36)&'(vPercMP_Principal_SchoolLeadership_InstructionalLeadership_AllYears), '&chr(36)&'(vPercMP_Principal_SchoolLeadership_ManagementTime_AllYears), '&chr(36)&'(vPercMP_Principal_SchoolLeadership_SchoolDecisionMaking_AllYears), '&chr(36)&'(vPercMP_Principal_SchoolLeadership_SchoolFocus_AllYears))';
+    let vPercMP_Principal_SchoolLeadership_AllYears = '(Alt('&chr(36)&'(vPercMP_Principal_SchoolLeadership_InstructionalLeadership_AllYears),0) + Alt('&chr(36)&'(vPercMP_Principal_SchoolLeadership_ManagementTime_AllYears),0) + Alt('&chr(36)&'(vPercMP_Principal_SchoolLeadership_SchoolDecisionMaking_AllYears),0) + Alt('&chr(36)&'(vPercMP_Principal_SchoolLeadership_SchoolFocus_AllYears),0)) / 4';
     let vmmPercMP_Principal_SchoolLeadership_AllYears = 'Num(IF('&chr(36)&'(vMinPrincipals) <= '&chr(36)&'(vCount_Principal_SchoolLeadership_AllYears), '&chr(36)&'(vPercMP_Principal_SchoolLeadership_AllYears), Null()),'&chr(39)&'#.#%'&chr(39)&')';
-    let vAvgScore_Principal_SchoolLeadership_AllYears = 'RangeAvg('&chr(36)&'(vAvgScore_Principal_SchoolLeadership_InstructionalLeadership_AllYears), '&chr(36)&'(vAvgScore_Principal_SchoolLeadership_ManagementTime_AllYears), '&chr(36)&'(vAvgScore_Principal_SchoolLeadership_SchoolDecisionMaking_AllYears), '&chr(36)&'(vAvgScore_Principal_SchoolLeadership_SchoolFocus_AllYears))';
+    let vAvgScore_Principal_SchoolLeadership_AllYears = '(Alt('&chr(36)&'(vAvgScore_Principal_SchoolLeadership_InstructionalLeadership_AllYears),0) + Alt('&chr(36)&'(vAvgScore_Principal_SchoolLeadership_ManagementTime_AllYears),0) + Alt('&chr(36)&'(vAvgScore_Principal_SchoolLeadership_SchoolDecisionMaking_AllYears),0) + Alt('&chr(36)&'(vAvgScore_Principal_SchoolLeadership_SchoolFocus_AllYears),0)) / 4';
     let vmmAvgScore_Principal_SchoolLeadership_AllYears = 'Num(IF('&chr(36)&'(vMinPrincipals) <= '&chr(36)&'(vCount_Principal_SchoolLeadership_AllYears), 3*'&chr(36)&'(vAvgScore_Principal_SchoolLeadership_AllYears), Null()),'&chr(39)&'#0.#'&chr(39)&')';
        
 
-///// Survey Focus Question Selections and Comparisons
-
-  let vFocusQuestionCode =chr(39)& 'STUDENT|Q3f' & chr(39);
-  let vFocusQuestion = 'Mode({1<surveyquestnum={'&chr(36)&'(vFocusQuestionCode)}>}questiondetailedtext)';
-  let vFocusQuestionRespondent = 'Mode({1<surveyquestnum={'&chr(36)&'(vFocusQuestionCode)}>}surveyTypeForDisplay)';
-  let vFocusQuestionMostPositive = 'Mode({1<surveyquestnum={'&chr(36)&'(vFocusQuestionCode)}, highest={1}>}choice)';
-
-  let vFocusQuestionCode2 =chr(39)& 'PARENT|Q7f' & chr(39);
-  let vFocusQuestion2 = 'Mode({1<surveyquestnum={'&chr(36)&'(vFocusQuestionCode2)}>}questiondetailedtext)';
-  let vFocusQuestion2Respondent = 'Mode({1<surveyquestnum={'&chr(36)&'(vFocusQuestionCode2)}>}surveyTypeForDisplay)';
-  let vFocusQuestion2MostPositive = 'Mode({1<surveyquestnum={'&chr(36)&'(vFocusQuestionCode2)}, highest={1}>}choice)';
-  
-  //// Button labels for scatter plot (Focus Q1 vs. Focus Q2)
-  //// Leave blank if this question is covered by other focus question already
-  //// Button labels for scatter plot (Focus Q1 vs. Focus Q2)
-  //// Leave blank if this question is covered by other focus question already
-  let vButtonLabel_FocusQuestion_Q1 = 'If('&chr(36)&'(vFocusQuestionRespondent) = '&chr(39)&'Student'&chr(39)&', 
-      If ('&chr(36)&'(vStudentQuestionCode1) = '&chr(36)&'(vFocusQuestionCode2), '&chr(39)&' '&chr(39)&',
-      If ('&chr(36)&'(vStudentQuestionCode1) = '&chr(36)&'(vFocusQuestionCode), chr(9658) & '&chr(39)&' '&chr(39)&' & vStudentQuestion1Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vStudentQuestion1Abbr)),
-    If('&chr(36)&'(vFocusQuestionRespondent) = '&chr(39)&'Parent'&chr(39)&',  
-      If ('&chr(36)&'(vParentQuestionCode1) = '&chr(36)&'(vFocusQuestionCode2), '&chr(39)&' '&chr(39)&',
-      If ('&chr(36)&'(vParentQuestionCode1)  = '&chr(36)&'(vFocusQuestionCode), chr(9658) & '&chr(39)&' '&chr(39)&' & vParentQuestion1Abbr  & '&chr(39)&' '&chr(39)&' & chr(9668), vParentQuestion1Abbr)),
-    If('&chr(36)&'(vFocusQuestionRespondent) = '&chr(39)&'Teacher'&chr(39)&', 
-      If ('&chr(36)&'(vTeacherQuestionCode1) = '&chr(36)&'(vFocusQuestionCode2), '&chr(39)&' '&chr(39)&',
-      If ('&chr(36)&'(vTeacherQuestionCode1) = '&chr(36)&'(vFocusQuestionCode), chr(9658) & '&chr(39)&' '&chr(39)&' & vTeacherQuestion1Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vTeacherQuestion1Abbr)))))';
-  let vButtonLabel_FocusQuestion_Q2 = 'If('&chr(36)&'(vFocusQuestionRespondent) = '&chr(39)&'Student'&chr(39)&', 
-      If ('&chr(36)&'(vStudentQuestionCode2) = '&chr(36)&'(vFocusQuestionCode2), '&chr(39)&' '&chr(39)&',
-      If ('&chr(36)&'(vStudentQuestionCode2) = '&chr(36)&'(vFocusQuestionCode), chr(9658) & '&chr(39)&' '&chr(39)&' & vStudentQuestion2Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vStudentQuestion2Abbr)),
-    If('&chr(36)&'(vFocusQuestionRespondent) = '&chr(39)&'Parent'&chr(39)&',  
-      If ('&chr(36)&'(vParentQuestionCode2) = '&chr(36)&'(vFocusQuestionCode2), '&chr(39)&' '&chr(39)&',
-      If ('&chr(36)&'(vParentQuestionCode2)  = '&chr(36)&'(vFocusQuestionCode), chr(9658) & '&chr(39)&' '&chr(39)&' & vParentQuestion2Abbr  & '&chr(39)&' '&chr(39)&' & chr(9668), vParentQuestion2Abbr)),
-    If('&chr(36)&'(vFocusQuestionRespondent) = '&chr(39)&'Teacher'&chr(39)&', 
-      If ('&chr(36)&'(vTeacherQuestionCode2) = '&chr(36)&'(vFocusQuestionCode2), '&chr(39)&' '&chr(39)&',
-      If ('&chr(36)&'(vTeacherQuestionCode2) = '&chr(36)&'(vFocusQuestionCode), chr(9658) & '&chr(39)&' '&chr(39)&' & vTeacherQuestion2Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vTeacherQuestion2Abbr)))))';
-  let vButtonLabel_FocusQuestion_Q3 = 'If('&chr(36)&'(vFocusQuestionRespondent) = '&chr(39)&'Student'&chr(39)&', 
-      If ('&chr(36)&'(vStudentQuestionCode3) = '&chr(36)&'(vFocusQuestionCode2), '&chr(39)&' '&chr(39)&',
-      If ('&chr(36)&'(vStudentQuestionCode3) = '&chr(36)&'(vFocusQuestionCode), chr(9658) & '&chr(39)&' '&chr(39)&' & vStudentQuestion3Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vStudentQuestion3Abbr)),
-    If('&chr(36)&'(vFocusQuestionRespondent) = '&chr(39)&'Parent'&chr(39)&',  
-      If ('&chr(36)&'(vParentQuestionCode3) = '&chr(36)&'(vFocusQuestionCode2), '&chr(39)&' '&chr(39)&',
-      If ('&chr(36)&'(vParentQuestionCode3)  = '&chr(36)&'(vFocusQuestionCode), chr(9658) & '&chr(39)&' '&chr(39)&' & vParentQuestion3Abbr  & '&chr(39)&' '&chr(39)&' & chr(9668), vParentQuestion3Abbr)),
-    If('&chr(36)&'(vFocusQuestionRespondent) = '&chr(39)&'Teacher'&chr(39)&', 
-      If ('&chr(36)&'(vTeacherQuestionCode3) = '&chr(36)&'(vFocusQuestionCode2), '&chr(39)&' '&chr(39)&',
-      If ('&chr(36)&'(vTeacherQuestionCode3) = '&chr(36)&'(vFocusQuestionCode), chr(9658) & '&chr(39)&' '&chr(39)&' & vTeacherQuestion3Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vTeacherQuestion3Abbr)))))';
-  let vButtonLabel_FocusQuestion_Q4 = 'If('&chr(36)&'(vFocusQuestionRespondent) = '&chr(39)&'Student'&chr(39)&', 
-      If ('&chr(36)&'(vStudentQuestionCode4) = '&chr(36)&'(vFocusQuestionCode2), '&chr(39)&' '&chr(39)&',
-      If ('&chr(36)&'(vStudentQuestionCode4) = '&chr(36)&'(vFocusQuestionCode), chr(9658) & '&chr(39)&' '&chr(39)&' & vStudentQuestion4Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vStudentQuestion4Abbr)),
-    If('&chr(36)&'(vFocusQuestionRespondent) = '&chr(39)&'Parent'&chr(39)&',  
-      If ('&chr(36)&'(vParentQuestionCode4) = '&chr(36)&'(vFocusQuestionCode2), '&chr(39)&' '&chr(39)&',
-      If ('&chr(36)&'(vParentQuestionCode4)  = '&chr(36)&'(vFocusQuestionCode), chr(9658) & '&chr(39)&' '&chr(39)&' & vParentQuestion4Abbr  & '&chr(39)&' '&chr(39)&' & chr(9668), vParentQuestion4Abbr)),
-    If('&chr(36)&'(vFocusQuestionRespondent) = '&chr(39)&'Teacher'&chr(39)&', 
-      If ('&chr(36)&'(vTeacherQuestionCode4) = '&chr(36)&'(vFocusQuestionCode2), '&chr(39)&' '&chr(39)&',
-      If ('&chr(36)&'(vTeacherQuestionCode4) = '&chr(36)&'(vFocusQuestionCode), chr(9658) & '&chr(39)&' '&chr(39)&' & vTeacherQuestion4Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vTeacherQuestion4Abbr)))))';
-
-  let vButtonLabel_FocusQuestion2_Q1 = 'If('&chr(36)&'(vFocusQuestion2Respondent) = '&chr(39)&'Student'&chr(39)&', 
-      If ('&chr(36)&'(vStudentQuestionCode1) = '&chr(36)&'(vFocusQuestionCode), '&chr(39)&' '&chr(39)&',
-      If ('&chr(36)&'(vStudentQuestionCode1) = '&chr(36)&'(vFocusQuestionCode2), chr(9658) & '&chr(39)&' '&chr(39)&' & vStudentQuestion1Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vStudentQuestion1Abbr)),
-    If('&chr(36)&'(vFocusQuestion2Respondent) = '&chr(39)&'Parent'&chr(39)&',  
-      If ('&chr(36)&'(vParentQuestionCode1) = '&chr(36)&'(vFocusQuestionCode), '&chr(39)&' '&chr(39)&',
-      If ('&chr(36)&'(vParentQuestionCode1)  = '&chr(36)&'(vFocusQuestionCode2), chr(9658) & '&chr(39)&' '&chr(39)&' & vParentQuestion1Abbr  & '&chr(39)&' '&chr(39)&' & chr(9668), vParentQuestion1Abbr)),
-    If('&chr(36)&'(vFocusQuestion2Respondent) = '&chr(39)&'Teacher'&chr(39)&', 
-      If ('&chr(36)&'(vTeacherQuestionCode1) = '&chr(36)&'(vFocusQuestionCode), '&chr(39)&' '&chr(39)&',
-      If ('&chr(36)&'(vTeacherQuestionCode1) = '&chr(36)&'(vFocusQuestionCode2), chr(9658) & '&chr(39)&' '&chr(39)&' & vTeacherQuestion1Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vTeacherQuestion1Abbr)))))';
-  let vButtonLabel_FocusQuestion2_Q2 = 'If('&chr(36)&'(vFocusQuestion2Respondent) = '&chr(39)&'Student'&chr(39)&', 
-      If ('&chr(36)&'(vStudentQuestionCode2) = '&chr(36)&'(vFocusQuestionCode), '&chr(39)&' '&chr(39)&',
-      If ('&chr(36)&'(vStudentQuestionCode2) = '&chr(36)&'(vFocusQuestionCode2), chr(9658) & '&chr(39)&' '&chr(39)&' & vStudentQuestion2Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vStudentQuestion2Abbr)),
-    If('&chr(36)&'(vFocusQuestion2Respondent) = '&chr(39)&'Parent'&chr(39)&',  
-      If ('&chr(36)&'(vParentQuestionCode2) = '&chr(36)&'(vFocusQuestionCode), '&chr(39)&' '&chr(39)&',
-      If ('&chr(36)&'(vParentQuestionCode2)  = '&chr(36)&'(vFocusQuestionCode2), chr(9658) & '&chr(39)&' '&chr(39)&' & vParentQuestion2Abbr  & '&chr(39)&' '&chr(39)&' & chr(9668), vParentQuestion2Abbr)),
-    If('&chr(36)&'(vFocusQuestion2Respondent) = '&chr(39)&'Teacher'&chr(39)&', 
-      If ('&chr(36)&'(vTeacherQuestionCode2) = '&chr(36)&'(vFocusQuestionCode), '&chr(39)&' '&chr(39)&',
-      If ('&chr(36)&'(vTeacherQuestionCode2) = '&chr(36)&'(vFocusQuestionCode2), chr(9658) & '&chr(39)&' '&chr(39)&' & vTeacherQuestion2Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vTeacherQuestion2Abbr)))))';
-  let vButtonLabel_FocusQuestion2_Q3 = 'If('&chr(36)&'(vFocusQuestion2Respondent) = '&chr(39)&'Student'&chr(39)&', 
-      If ('&chr(36)&'(vStudentQuestionCode3) = '&chr(36)&'(vFocusQuestionCode), '&chr(39)&' '&chr(39)&',
-      If ('&chr(36)&'(vStudentQuestionCode3) = '&chr(36)&'(vFocusQuestionCode2), chr(9658) & '&chr(39)&' '&chr(39)&' & vStudentQuestion3Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vStudentQuestion3Abbr)),
-    If('&chr(36)&'(vFocusQuestion2Respondent) = '&chr(39)&'Parent'&chr(39)&',  
-      If ('&chr(36)&'(vParentQuestionCode3) = '&chr(36)&'(vFocusQuestionCode), '&chr(39)&' '&chr(39)&',
-      If ('&chr(36)&'(vParentQuestionCode3)  = '&chr(36)&'(vFocusQuestionCode2), chr(9658) & '&chr(39)&' '&chr(39)&' & vParentQuestion3Abbr  & '&chr(39)&' '&chr(39)&' & chr(9668), vParentQuestion3Abbr)),
-    If('&chr(36)&'(vFocusQuestion2Respondent) = '&chr(39)&'Teacher'&chr(39)&', 
-      If ('&chr(36)&'(vTeacherQuestionCode3) = '&chr(36)&'(vFocusQuestionCode), '&chr(39)&' '&chr(39)&',
-      If ('&chr(36)&'(vTeacherQuestionCode3) = '&chr(36)&'(vFocusQuestionCode2), chr(9658) & '&chr(39)&' '&chr(39)&' & vTeacherQuestion3Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vTeacherQuestion3Abbr)))))';
-  let vButtonLabel_FocusQuestion2_Q4 = 'If('&chr(36)&'(vFocusQuestion2Respondent) = '&chr(39)&'Student'&chr(39)&', 
-      If ('&chr(36)&'(vStudentQuestionCode4) = '&chr(36)&'(vFocusQuestionCode), '&chr(39)&' '&chr(39)&',
-      If ('&chr(36)&'(vStudentQuestionCode4) = '&chr(36)&'(vFocusQuestionCode2), chr(9658) & '&chr(39)&' '&chr(39)&' & vStudentQuestion4Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vStudentQuestion4Abbr)),
-    If('&chr(36)&'(vFocusQuestion2Respondent) = '&chr(39)&'Parent'&chr(39)&',  
-      If ('&chr(36)&'(vParentQuestionCode4) = '&chr(36)&'(vFocusQuestionCode), '&chr(39)&' '&chr(39)&',
-      If ('&chr(36)&'(vParentQuestionCode4)  = '&chr(36)&'(vFocusQuestionCode2), chr(9658) & '&chr(39)&' '&chr(39)&' & vParentQuestion4Abbr  & '&chr(39)&' '&chr(39)&' & chr(9668), vParentQuestion4Abbr)),
-    If('&chr(36)&'(vFocusQuestion2Respondent) = '&chr(39)&'Teacher'&chr(39)&', 
-      If ('&chr(36)&'(vTeacherQuestionCode4) = '&chr(36)&'(vFocusQuestionCode), '&chr(39)&' '&chr(39)&',
-      If ('&chr(36)&'(vTeacherQuestionCode4) = '&chr(36)&'(vFocusQuestionCode2), chr(9658) & '&chr(39)&' '&chr(39)&' & vTeacherQuestion4Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vTeacherQuestion4Abbr)))))';
-
-///// Survey Focus Respondent Group and Topic
-  
-  //// Selection vars
-    
-    /// Basic group and respondent selection
-      let vCurrentRespondentSimple = chr(39)&'Student'&chr(39);
-      let vCurrentRespondentSimple2 = chr(39)&'Teacher'&chr(39);
-      let vCurrentTopic = chr(39)&'School Climate'&chr(39);
-      // vCurrentRespondent takes into account if there are any topics for this respondent group
-      let vCurrentRespondent = 'If('&chr(36)&'(vCurrentRespondentSimple) = '&chr(39)&'Student'&chr(39)&' and '&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&', '&chr(39)&'Parent'&chr(39)&',
-        If(('&chr(36)&'(vCurrentRespondentSimple) = '&chr(39)&'Student'&chr(39)&' or '&chr(36)&'(vCurrentRespondentSimple) = '&chr(39)&'Parent'&chr(39)&') and ('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Leadership'&chr(39)&' or '&chr(36)&'(vCurrentTopic) = '&chr(39)&'Professional Capacity'&chr(39)&'),'&chr(39)&'Teacher'&chr(39)&',
-        '&chr(36)&'(vCurrentRespondentSimple)
-      ))';
-      let vCurrentRespondent2 = 'If('&chr(36)&'(vCurrentRespondentSimple2) = '&chr(39)&'Student'&chr(39)&' and '&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&', '&chr(39)&'Parent'&chr(39)&',
-        If(('&chr(36)&'(vCurrentRespondentSimple2) = '&chr(39)&'Student'&chr(39)&' or '&chr(36)&'(vCurrentRespondentSimple2) = '&chr(39)&'Parent'&chr(39)&') and ('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Leadership'&chr(39)&' or '&chr(36)&'(vCurrentTopic) = '&chr(39)&'Professional Capacity'&chr(39)&'),'&chr(39)&'Teacher'&chr(39)&',
-        '&chr(36)&'(vCurrentRespondentSimple2)
-      ))';
-      // vCurrentOrFirstRespondent takes account of any selections the user has made to limit groups
-      let vCurrentOrFirstRespondent = 'If(GetSelectedCount(surveyTypeForDisplay)=0 or WildMatch(GetFieldSelections(surveyTypeForDisplay), '&chr(39)&'*'&chr(39)&'&'&chr(36)&'(vCurrentRespondent)&'&chr(39)&'*'&chr(39)&') > 0, 
-        '&chr(36)&'(vCurrentRespondent),
-         MinString(surveyTypeForDisplay))';
-      let vCurrentOrFirstRespondent2 = 'If(GetSelectedCount(surveyTypeForDisplay)=0 or WildMatch(GetFieldSelections(surveyTypeForDisplay), '&chr(39)&'*'&chr(39)&'&'&chr(36)&'(='&chr(36)&'(vCurrentRespondent2))&'&chr(39)&'*'&chr(39)&') > 0, 
-        '&chr(36)&'(vCurrentRespondent2),
-         MinString(surveyTypeForDisplay))';
-
-    /// First Question available (with sorting at sub-construct level)
-      // vFirstSubTopic is the first available subtopic for the given topic and available respondent
-      let vFirstSubTopic = 'MinString({'&chr(36)&'<
-          surveyTypeForDisplay={'&chr(36)&'(='&chr(36)&'(vCurrentOrFirstRespondent))}, 
-          questionconstruct={'&chr(36)&'(vCurrentTopic)}, 
-          subConstructForDisplay={"*"}
-          >}subConstructForDisplay)';
-      // vFirstQuestionDisplayed is the first available question for the first available sub-topic
-      // Note we replace single quotes with two single quotes, this allows set analysis later on where a single-quote would break the string
-      let vFirstQuestionDisplayed = 'If(GetSelectedCount(questiondetailedtext) > 0,
-          Replace(MinString(questiondetailedtext), Chr(39), Chr(39)&Chr(39)),
-          Replace(MinString({'&chr(36)&'<surveyTypeForDisplay={'&chr(36)&'(='&chr(36)&'(vCurrentOrFirstRespondent))}, questionconstruct={'&chr(36)&'(vCurrentTopic)}, subConstructForDisplay={"'&chr(36)&'(='&chr(36)&'(vFirstSubTopic))"}>}questiondetailedtext), Chr(39), Chr(39)&Chr(39))
-      )';
-
-      // vFirstQuestionCode is the code corresponding to the first displayed question
-      let vFirstQuestionCode = 'If(GetSelectedCount(questiondetailedtext) = 0,
-        Mode({'&chr(36)&'<questiondetailedtext={'&chr(39)&chr(36)&'(='&chr(36)&'(vFirstQuestionDisplayed))'&chr(39)&'}, questionconstruct={'&chr(36)&'(vCurrentTopic)}, surveyTypeForDisplay={'&chr(36)&'(='&chr(36)&'(vCurrentOrFirstRespondent))} >}surveyquestnum)
-        ,
-        If( Count({'&chr(36)&'<questiondetailedtext={'&chr(39)&chr(36)&'(='&chr(36)&'(vFirstQuestionDisplayed))'&chr(39)&'}, surveyTypeForDisplay={'&chr(36)&'(='&chr(36)&'(vCurrentOrFirstRespondent))}>} surveyquestnum) > 0,
-          MinString({'&chr(36)&'<questiondetailedtext={'&chr(39)&chr(36)&'(='&chr(36)&'(vFirstQuestionDisplayed))'&chr(39)&'}, surveyTypeForDisplay={'&chr(36)&'(='&chr(36)&'(vCurrentOrFirstRespondent))}>}surveyquestnum),
-           MinString({'&chr(36)&'<questiondetailedtext={'&chr(39)&chr(36)&'(='&chr(36)&'(vFirstQuestionDisplayed))'&chr(39)&'}>}surveyquestnum)
-        )
-      )';
-      
-      // vFirstQuestionm, vFirstQuestionRespondent and vFirstQuestionTopic are derived from the code (for display, not set analysis, use code)
-      let vFirstQuestion = 'MinString({'&chr(36)&'<surveyquestnum={'&chr(36)&'(='&chr(36)&'(vFirstQuestionCode))}>}questiondetailedtext)';
-      let vFirstQuestionRespondent = 'Only({'&chr(36)&'<surveyquestnum={'&chr(36)&'(='&chr(36)&'(vFirstQuestionCode))}>}surveyTypeForDisplay)';
-      let vFirstQuestionTopic = 'Only({'&chr(36)&'<surveyquestnum={'&chr(36)&'(='&chr(36)&'(vFirstQuestionCode))}>}questionconstruct)';
-  
-  //// Selected question for selected topic and respondent metrics, for use in question details
-
-  //// Selected topic metrics
-    let vCount_Student_Topic_Current = 'If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vCount_Student_Climate_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vCount_Student_Instruction_Current)))';
-    let vCount_Parent_Topic_Current = 'If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vCount_Parent_Climate_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vCount_Parent_Instruction_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vCount_Parent_CommunityTies_Current))))';
-    let vCount_Teacher_Topic_Current = 'If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vCount_Teacher_Climate_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vCount_Teacher_Instruction_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vCount_Teacher_CommunityTies_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Professional Capacity'&chr(39)&','&chr(36)&'(vCount_Teacher_ProfessionalCapacity_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Leadership'&chr(39)&','&chr(36)&'(vCount_Teacher_SchoolLeadership_Current))))))';
-    let vCount_Principal_Topic_Current = 'If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vCount_Principal_Climate_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vCount_Principal_Instruction_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vCount_Principal_CommunityTies_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Professional Capacity'&chr(39)&','&chr(36)&'(vCount_Principal_ProfessionalCapacity_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Leadership'&chr(39)&','&chr(36)&'(vCount_Principal_SchoolLeadership_Current))))))';
-    
-    let vPercMP_Student_Topic_Current = 'If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vPercMP_Student_Climate_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vPercMP_Student_Instruction_Current)))';
-    let vPercMP_Parent_Topic_Current = 'If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vPercMP_Parent_Climate_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vPercMP_Parent_Instruction_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vPercMP_Parent_CommunityTies_Current))))';
-    let vPercMP_Teacher_Topic_Current = 'If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vPercMP_Teacher_Climate_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vPercMP_Teacher_Instruction_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vPercMP_Teacher_CommunityTies_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Professional Capacity'&chr(39)&','&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Leadership'&chr(39)&','&chr(36)&'(vPercMP_Teacher_SchoolLeadership_Current))))))';
-    let vPercMP_Principal_Topic_Current = 'If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vPercMP_Principal_Climate_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vPercMP_Principal_Instruction_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vPercMP_Principal_CommunityTies_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Professional Capacity'&chr(39)&','&chr(36)&'(vPercMP_Principal_ProfessionalCapacity_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Leadership'&chr(39)&','&chr(36)&'(vPercMP_Principal_SchoolLeadership_Current))))))';
-        
-    let vmmPercMP_Student_Topic_Current = 'Num(If('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCount_Student_Topic_Current), '&chr(36)&'(vPercMP_Student_Topic_Current), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Parent_Topic_Current = 'Num(If('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Topic_Current), '&chr(36)&'(vPercMP_Parent_Topic_Current), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Teacher_Topic_Current = 'Num(If('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Topic_Current), '&chr(36)&'(vPercMP_Teacher_Topic_Current), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Principal_Topic_Current = 'Num(If('&chr(36)&'(vMinPrincipals) <= '&chr(36)&'(vCount_Principal_Topic_Current), '&chr(36)&'(vPercMP_Principal_Topic_Current), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    
-    let vCount_Student_Topic_Previous = 'If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vCount_Student_Climate_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vCount_Student_Instruction_Previous)))';
-    let vCount_Parent_Topic_Previous = 'If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vCount_Parent_Climate_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vCount_Parent_Instruction_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vCount_Parent_CommunityTies_Previous))))';
-    let vCount_Teacher_Topic_Previous = 'If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vCount_Teacher_Climate_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vCount_Teacher_Instruction_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vCount_Teacher_CommunityTies_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Professional Capacity'&chr(39)&','&chr(36)&'(vCount_Teacher_ProfessionalCapacity_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Leadership'&chr(39)&','&chr(36)&'(vCount_Teacher_SchoolLeadership_Previous))))))';
-    let vCount_Principal_Topic_Previous = 'If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vCount_Principal_Climate_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vCount_Principal_Instruction_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vCount_Principal_CommunityTies_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Professional Capacity'&chr(39)&','&chr(36)&'(vCount_Principal_ProfessionalCapacity_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Leadership'&chr(39)&','&chr(36)&'(vCount_Principal_SchoolLeadership_Previous))))))';
-    
-    let vPercMP_Student_Topic_Previous = 'If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vPercMP_Student_Climate_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vPercMP_Student_Instruction_Previous)))';
-    let vPercMP_Parent_Topic_Previous = 'If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vPercMP_Parent_Climate_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vPercMP_Parent_Instruction_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vPercMP_Parent_CommunityTies_Previous))))';
-    let vPercMP_Teacher_Topic_Previous = 'If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vPercMP_Teacher_Climate_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vPercMP_Teacher_Instruction_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vPercMP_Teacher_CommunityTies_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Professional Capacity'&chr(39)&','&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Leadership'&chr(39)&','&chr(36)&'(vPercMP_Teacher_SchoolLeadership_Previous))))))';
-    let vPercMP_Principal_Topic_Previous = 'If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vPercMP_Principal_Climate_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vPercMP_Principal_Instruction_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vPercMP_Principal_CommunityTies_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Professional Capacity'&chr(39)&','&chr(36)&'(vPercMP_Principal_ProfessionalCapacity_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Leadership'&chr(39)&','&chr(36)&'(vPercMP_Principal_SchoolLeadership_Previous))))))';
-        
-    let vmmPercMP_Student_Topic_Previous = 'Num(If('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCount_Student_Topic_Previous), '&chr(36)&'(vPercMP_Student_Topic_Previous), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Parent_Topic_Previous = 'Num(If('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Topic_Previous), '&chr(36)&'(vPercMP_Parent_Topic_Previous), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Teacher_Topic_Previous = 'Num(If('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Topic_Previous), '&chr(36)&'(vPercMP_Teacher_Topic_Previous), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Principal_Topic_Previous = 'Num(If('&chr(36)&'(vMinPrincipals) <= '&chr(36)&'(vCount_Principal_Topic_Previous), '&chr(36)&'(vPercMP_Principal_Topic_Previous), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-
-    let vCount_Student_Topic_AllYears = 'If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vCount_Student_Climate_AllYears),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vCount_Student_Instruction_AllYears)))';
-    let vCount_Parent_Topic_AllYears = 'If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vCount_Parent_Climate_AllYears),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vCount_Parent_Instruction_AllYears),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vCount_Parent_CommunityTies_AllYears))))';
-    let vCount_Teacher_Topic_AllYears = 'If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vCount_Teacher_Climate_AllYears),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vCount_Teacher_Instruction_AllYears),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vCount_Teacher_CommunityTies_AllYears),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Professional Capacity'&chr(39)&','&chr(36)&'(vCount_Teacher_ProfessionalCapacity_AllYears),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Leadership'&chr(39)&','&chr(36)&'(vCount_Teacher_SchoolLeadership_AllYears))))))';
-    let vCount_Principal_Topic_AllYears = 'If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vCount_Principal_Climate_AllYears),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vCount_Principal_Instruction_AllYears),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vCount_Principal_CommunityTies_AllYears),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Professional Capacity'&chr(39)&','&chr(36)&'(vCount_Principal_ProfessionalCapacity_AllYears),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Leadership'&chr(39)&','&chr(36)&'(vCount_Principal_SchoolLeadership_AllYears))))))';
-    
-    let vPercMP_Student_Topic_AllYears = 'If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vPercMP_Student_Climate_AllYears),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vPercMP_Student_Instruction_AllYears)))';
-    let vPercMP_Parent_Topic_AllYears = 'If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vPercMP_Parent_Climate_AllYears),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vPercMP_Parent_Instruction_AllYears),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vPercMP_Parent_CommunityTies_AllYears))))';
-    let vPercMP_Teacher_Topic_AllYears = 'If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vPercMP_Teacher_Climate_AllYears),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vPercMP_Teacher_Instruction_AllYears),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vPercMP_Teacher_CommunityTies_AllYears),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Professional Capacity'&chr(39)&','&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_AllYears),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Leadership'&chr(39)&','&chr(36)&'(vPercMP_Teacher_SchoolLeadership_AllYears))))))';
-    let vPercMP_Principal_Topic_AllYears = 'If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vPercMP_Principal_Climate_AllYears),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vPercMP_Principal_Instruction_AllYears),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vPercMP_Principal_CommunityTies_AllYears),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Professional Capacity'&chr(39)&','&chr(36)&'(vPercMP_Principal_ProfessionalCapacity_AllYears),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Leadership'&chr(39)&','&chr(36)&'(vPercMP_Principal_SchoolLeadership_AllYears))))))';
-        
-    let vmmPercMP_Student_Topic_AllYears = 'Num(If('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCount_Student_Topic_AllYears), '&chr(36)&'(vPercMP_Student_Topic_AllYears), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Parent_Topic_AllYears = 'Num(If('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Parent_Topic_AllYears), '&chr(36)&'(vPercMP_Parent_Topic_AllYears), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Teacher_Topic_AllYears = 'Num(If('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Teacher_Topic_AllYears), '&chr(36)&'(vPercMP_Teacher_Topic_AllYears), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-    let vmmPercMP_Principal_Topic_AllYears = 'Num(If('&chr(36)&'(vMinPrincipals) <= '&chr(36)&'(vCount_Principal_Topic_AllYears), '&chr(36)&'(vPercMP_Principal_Topic_AllYears), Null()), '&chr(39)&'#.#%'&chr(39)&')';
-      
-   //// Selected topic and respondent metrics
-    let vCount_Respondent_Topic_Current = 'If('&chr(36)&'(vCurrentOrFirstRespondent) = '&chr(39)&'Student'&chr(39)&',
-        If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vCount_Student_Climate_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vCount_Student_Instruction_Current))),
-      If('&chr(36)&'(vCurrentOrFirstRespondent) = '&chr(39)&'Parent'&chr(39)&',
-        If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vCount_Parent_Climate_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vCount_Parent_Instruction_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vCount_Parent_CommunityTies_Current)))),
-      If('&chr(36)&'(vCurrentOrFirstRespondent) = '&chr(39)&'Teacher'&chr(39)&',
-        If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vCount_Teacher_Climate_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vCount_Teacher_Instruction_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vCount_Teacher_CommunityTies_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Professional Capacity'&chr(39)&','&chr(36)&'(vCount_Teacher_ProfessionalCapacity_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Leadership'&chr(39)&','&chr(36)&'(vCount_Teacher_SchoolLeadership_Current)))))),
-      If('&chr(36)&'(vCurrentOrFirstRespondent) = '&chr(39)&'Principal'&chr(39)&',
-        If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vCount_Principal_Climate_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vCount_Principal_Instruction_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vCount_Principal_CommunityTies_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Professional Capacity'&chr(39)&','&chr(36)&'(vCount_Principal_ProfessionalCapacity_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Leadership'&chr(39)&','&chr(36)&'(vCount_Principal_SchoolLeadership_Current))))))
-        ))))';
-    
-    let vPercMP_Respondent_Topic_Current = 'If('&chr(36)&'(vCurrentOrFirstRespondent) = '&chr(39)&'Student'&chr(39)&',
-        If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vPercMP_Student_Climate_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vPercMP_Student_Instruction_Current))),
-      If('&chr(36)&'(vCurrentOrFirstRespondent) = '&chr(39)&'Parent'&chr(39)&',
-        If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vPercMP_Parent_Climate_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vPercMP_Parent_Instruction_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vPercMP_Parent_CommunityTies_Current)))),
-      If('&chr(36)&'(vCurrentOrFirstRespondent) = '&chr(39)&'Teacher'&chr(39)&',
-        If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vPercMP_Teacher_Climate_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vPercMP_Teacher_Instruction_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vPercMP_Teacher_CommunityTies_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Professional Capacity'&chr(39)&','&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Leadership'&chr(39)&','&chr(36)&'(vPercMP_Teacher_SchoolLeadership_Current)))))),
-      If('&chr(36)&'(vCurrentOrFirstRespondent) = '&chr(39)&'Principal'&chr(39)&',
-        If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vPercMP_Principal_Climate_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vPercMP_Principal_Instruction_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vPercMP_Principal_CommunityTies_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Professional Capacity'&chr(39)&','&chr(36)&'(vPercMP_Principal_ProfessionalCapacity_Current),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Leadership'&chr(39)&','&chr(36)&'(vPercMP_Principal_SchoolLeadership_Current))))))
-        ))))';
-    
-    let vmmPercMP_Respondent_Topic_Current = 'Num(
-      If('&chr(36)&'(vCurrentOrFirstRespondent) = '&chr(39)&'Student'&chr(39)&',
-        If('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCount_Respondent_Topic_Current), '&chr(36)&'(vPercMP_Respondent_Topic_Current), Null()),
-      If('&chr(36)&'(vCurrentOrFirstRespondent) = '&chr(39)&'Parent'&chr(39)&',
-        If('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Respondent_Topic_Current), '&chr(36)&'(vPercMP_Respondent_Topic_Current), Null()),
-      If('&chr(36)&'(vCurrentOrFirstRespondent) = '&chr(39)&'Teacher'&chr(39)&',
-        If('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Respondent_Topic_Current), '&chr(36)&'(vPercMP_Respondent_Topic_Current), Null()),
-      If('&chr(36)&'(vCurrentOrFirstRespondent) = '&chr(39)&'Principal'&chr(39)&',
-        If('&chr(36)&'(vMinPrincipals) <= '&chr(36)&'(vCount_Respondent_Topic_Current), '&chr(36)&'(vPercMP_Respondent_Topic_Current), Null()), Null()
-        )))), '&chr(39)&'#.#%'&chr(39)&')';
-
-    // this master measure is for use in a respondent-dimensional chart.
-    let vmmPercMP_AnyRespondent_Topic_Current = 'Num(
-      If(surveyTypeForDisplay = '&chr(39)&'Student'&chr(39)&',
-        If('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCount_Respondent_Topic_Current), '&chr(36)&'(vPercMP_Respondent_Topic_Current), Null()),
-      If(surveyTypeForDisplay = '&chr(39)&'Parent'&chr(39)&',
-        If('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Respondent_Topic_Current), '&chr(36)&'(vPercMP_Respondent_Topic_Current), Null()),
-      If(surveyTypeForDisplay = '&chr(39)&'Teacher'&chr(39)&',
-        If('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Respondent_Topic_Current), '&chr(36)&'(vPercMP_Respondent_Topic_Current), Null()),
-      If(surveyTypeForDisplay = '&chr(39)&'Principal'&chr(39)&',
-        If('&chr(36)&'(vMinPrincipals) <= '&chr(36)&'(vCount_Respondent_Topic_Current), '&chr(36)&'(vPercMP_Respondent_Topic_Current), Null()), Null()
-        )))), '&chr(39)&'#.#%'&chr(39)&')';
-
-    // previous year
-    let vCount_Respondent_Topic_Previous = 'If('&chr(36)&'(vCurrentOrFirstRespondent) = '&chr(39)&'Student'&chr(39)&',
-        If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vCount_Student_Climate_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vCount_Student_Instruction_Previous))),
-      If('&chr(36)&'(vCurrentOrFirstRespondent) = '&chr(39)&'Parent'&chr(39)&',
-        If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vCount_Parent_Climate_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vCount_Parent_Instruction_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vCount_Parent_CommunityTies_Previous)))),
-      If('&chr(36)&'(vCurrentOrFirstRespondent) = '&chr(39)&'Teacher'&chr(39)&',
-        If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vCount_Teacher_Climate_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vCount_Teacher_Instruction_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vCount_Teacher_CommunityTies_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Professional Capacity'&chr(39)&','&chr(36)&'(vCount_Teacher_ProfessionalCapacity_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Leadership'&chr(39)&','&chr(36)&'(vCount_Teacher_SchoolLeadership_Previous)))))),
-      If('&chr(36)&'(vCurrentOrFirstRespondent) = '&chr(39)&'Principal'&chr(39)&',
-        If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vCount_Principal_Climate_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vCount_Principal_Instruction_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vCount_Principal_CommunityTies_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Professional Capacity'&chr(39)&','&chr(36)&'(vCount_Principal_ProfessionalCapacity_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Leadership'&chr(39)&','&chr(36)&'(vCount_Principal_SchoolLeadership_Previous))))))
-        ))))';
-    
-    let vPercMP_Respondent_Topic_Previous = 'If('&chr(36)&'(vCurrentOrFirstRespondent) = '&chr(39)&'Student'&chr(39)&',
-        If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vPercMP_Student_Climate_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vPercMP_Student_Instruction_Previous))),
-      If('&chr(36)&'(vCurrentOrFirstRespondent) = '&chr(39)&'Parent'&chr(39)&',
-        If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vPercMP_Parent_Climate_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vPercMP_Parent_Instruction_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vPercMP_Parent_CommunityTies_Previous)))),
-      If('&chr(36)&'(vCurrentOrFirstRespondent) = '&chr(39)&'Teacher'&chr(39)&',
-        If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vPercMP_Teacher_Climate_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vPercMP_Teacher_Instruction_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vPercMP_Teacher_CommunityTies_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Professional Capacity'&chr(39)&','&chr(36)&'(vPercMP_Teacher_ProfessionalCapacity_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Leadership'&chr(39)&','&chr(36)&'(vPercMP_Teacher_SchoolLeadership_Previous)))))),
-      If('&chr(36)&'(vCurrentOrFirstRespondent) = '&chr(39)&'Principal'&chr(39)&',
-        If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Climate'&chr(39)&','&chr(36)&'(vPercMP_Principal_Climate_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Instruction'&chr(39)&','&chr(36)&'(vPercMP_Principal_Instruction_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Parent/Guardian-Community Ties'&chr(39)&','&chr(36)&'(vPercMP_Principal_CommunityTies_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'Professional Capacity'&chr(39)&','&chr(36)&'(vPercMP_Principal_ProfessionalCapacity_Previous),If('&chr(36)&'(vCurrentTopic) = '&chr(39)&'School Leadership'&chr(39)&','&chr(36)&'(vPercMP_Principal_SchoolLeadership_Previous))))))
-        ))))';
-    
-    let vmmPercMP_Respondent_Topic_Previous = 'Num(
-      If('&chr(36)&'(vCurrentOrFirstRespondent) = '&chr(39)&'Student'&chr(39)&',
-        If('&chr(36)&'(vMinStudents) <= '&chr(36)&'(vCount_Respondent_Topic_Previous), '&chr(36)&'(vPercMP_Respondent_Topic_Previous), Null()),
-      If('&chr(36)&'(vCurrentOrFirstRespondent) = '&chr(39)&'Parent'&chr(39)&',
-        If('&chr(36)&'(vMinParents) <= '&chr(36)&'(vCount_Respondent_Topic_Previous), '&chr(36)&'(vPercMP_Respondent_Topic_Previous), Null()),
-      If('&chr(36)&'(vCurrentOrFirstRespondent) = '&chr(39)&'Teacher'&chr(39)&',
-        If('&chr(36)&'(vMinTeachers) <= '&chr(36)&'(vCount_Respondent_Topic_Previous), '&chr(36)&'(vPercMP_Respondent_Topic_Previous), Null()),
-      If('&chr(36)&'(vCurrentOrFirstRespondent) = '&chr(39)&'Principal'&chr(39)&',
-        If('&chr(36)&'(vMinPrincipals) <= '&chr(36)&'(vCount_Respondent_Topic_Previous), '&chr(36)&'(vPercMP_Respondent_Topic_Previous), Null()), Null()
-        )))), '&chr(39)&'#.#%'&chr(39)&')';
-
-    // YOY
-    let vmmPercMP_Respondent_Topic_YOY = 'Num(
-      '&chr(36)&'(vmmPercMP_Respondent_Topic_Current) - '&chr(36)&'(vmmPercMP_Respondent_Topic_Previous)
-      ,  '&chr(39)&'#.#%'&chr(39)&')';
