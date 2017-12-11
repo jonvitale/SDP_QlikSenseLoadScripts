@@ -1,0 +1,90 @@
+///// Survey Focus Question Selections and Comparisons
+
+  let vFocusQuestionCode =chr(39)& 'STUDENT|Q3f' & chr(39);
+  let vFocusQuestion = 'Mode({1<surveyquestnum={'&chr(36)&'(vFocusQuestionCode)}>}questiondetailedtext)';
+  let vFocusQuestionRespondent = 'Mode({1<surveyquestnum={'&chr(36)&'(vFocusQuestionCode)}>}surveyTypeForDisplay)';
+  let vFocusQuestionMostPositive = 'Mode({1<surveyquestnum={'&chr(36)&'(vFocusQuestionCode)}, highest={1}>}choice)';
+
+  let vFocusQuestionCode2 =chr(39)& 'PARENT|Q7f' & chr(39);
+  let vFocusQuestion2 = 'Mode({1<surveyquestnum={'&chr(36)&'(vFocusQuestionCode2)}>}questiondetailedtext)';
+  let vFocusQuestion2Respondent = 'Mode({1<surveyquestnum={'&chr(36)&'(vFocusQuestionCode2)}>}surveyTypeForDisplay)';
+  let vFocusQuestion2MostPositive = 'Mode({1<surveyquestnum={'&chr(36)&'(vFocusQuestionCode2)}, highest={1}>}choice)';
+  
+  //// Button labels for scatter plot (Focus Q1 vs. Focus Q2)
+  //// Leave blank if this question is covered by other focus question already
+  //// Button labels for scatter plot (Focus Q1 vs. Focus Q2)
+  //// Leave blank if this question is covered by other focus question already
+  let vButtonLabel_FocusQuestion_Q1 = 'If('&chr(36)&'(vFocusQuestionRespondent) = '&chr(39)&'Student'&chr(39)&', 
+      If ('&chr(36)&'(vStudentQuestionCode1) = '&chr(36)&'(vFocusQuestionCode2), '&chr(39)&' '&chr(39)&',
+      If ('&chr(36)&'(vStudentQuestionCode1) = '&chr(36)&'(vFocusQuestionCode), chr(9658) & '&chr(39)&' '&chr(39)&' & vStudentQuestion1Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vStudentQuestion1Abbr)),
+    If('&chr(36)&'(vFocusQuestionRespondent) = '&chr(39)&'Parent'&chr(39)&',  
+      If ('&chr(36)&'(vParentQuestionCode1) = '&chr(36)&'(vFocusQuestionCode2), '&chr(39)&' '&chr(39)&',
+      If ('&chr(36)&'(vParentQuestionCode1)  = '&chr(36)&'(vFocusQuestionCode), chr(9658) & '&chr(39)&' '&chr(39)&' & vParentQuestion1Abbr  & '&chr(39)&' '&chr(39)&' & chr(9668), vParentQuestion1Abbr)),
+    If('&chr(36)&'(vFocusQuestionRespondent) = '&chr(39)&'Teacher'&chr(39)&', 
+      If ('&chr(36)&'(vTeacherQuestionCode1) = '&chr(36)&'(vFocusQuestionCode2), '&chr(39)&' '&chr(39)&',
+      If ('&chr(36)&'(vTeacherQuestionCode1) = '&chr(36)&'(vFocusQuestionCode), chr(9658) & '&chr(39)&' '&chr(39)&' & vTeacherQuestion1Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vTeacherQuestion1Abbr)))))';
+  let vButtonLabel_FocusQuestion_Q2 = 'If('&chr(36)&'(vFocusQuestionRespondent) = '&chr(39)&'Student'&chr(39)&', 
+      If ('&chr(36)&'(vStudentQuestionCode2) = '&chr(36)&'(vFocusQuestionCode2), '&chr(39)&' '&chr(39)&',
+      If ('&chr(36)&'(vStudentQuestionCode2) = '&chr(36)&'(vFocusQuestionCode), chr(9658) & '&chr(39)&' '&chr(39)&' & vStudentQuestion2Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vStudentQuestion2Abbr)),
+    If('&chr(36)&'(vFocusQuestionRespondent) = '&chr(39)&'Parent'&chr(39)&',  
+      If ('&chr(36)&'(vParentQuestionCode2) = '&chr(36)&'(vFocusQuestionCode2), '&chr(39)&' '&chr(39)&',
+      If ('&chr(36)&'(vParentQuestionCode2)  = '&chr(36)&'(vFocusQuestionCode), chr(9658) & '&chr(39)&' '&chr(39)&' & vParentQuestion2Abbr  & '&chr(39)&' '&chr(39)&' & chr(9668), vParentQuestion2Abbr)),
+    If('&chr(36)&'(vFocusQuestionRespondent) = '&chr(39)&'Teacher'&chr(39)&', 
+      If ('&chr(36)&'(vTeacherQuestionCode2) = '&chr(36)&'(vFocusQuestionCode2), '&chr(39)&' '&chr(39)&',
+      If ('&chr(36)&'(vTeacherQuestionCode2) = '&chr(36)&'(vFocusQuestionCode), chr(9658) & '&chr(39)&' '&chr(39)&' & vTeacherQuestion2Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vTeacherQuestion2Abbr)))))';
+  let vButtonLabel_FocusQuestion_Q3 = 'If('&chr(36)&'(vFocusQuestionRespondent) = '&chr(39)&'Student'&chr(39)&', 
+      If ('&chr(36)&'(vStudentQuestionCode3) = '&chr(36)&'(vFocusQuestionCode2), '&chr(39)&' '&chr(39)&',
+      If ('&chr(36)&'(vStudentQuestionCode3) = '&chr(36)&'(vFocusQuestionCode), chr(9658) & '&chr(39)&' '&chr(39)&' & vStudentQuestion3Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vStudentQuestion3Abbr)),
+    If('&chr(36)&'(vFocusQuestionRespondent) = '&chr(39)&'Parent'&chr(39)&',  
+      If ('&chr(36)&'(vParentQuestionCode3) = '&chr(36)&'(vFocusQuestionCode2), '&chr(39)&' '&chr(39)&',
+      If ('&chr(36)&'(vParentQuestionCode3)  = '&chr(36)&'(vFocusQuestionCode), chr(9658) & '&chr(39)&' '&chr(39)&' & vParentQuestion3Abbr  & '&chr(39)&' '&chr(39)&' & chr(9668), vParentQuestion3Abbr)),
+    If('&chr(36)&'(vFocusQuestionRespondent) = '&chr(39)&'Teacher'&chr(39)&', 
+      If ('&chr(36)&'(vTeacherQuestionCode3) = '&chr(36)&'(vFocusQuestionCode2), '&chr(39)&' '&chr(39)&',
+      If ('&chr(36)&'(vTeacherQuestionCode3) = '&chr(36)&'(vFocusQuestionCode), chr(9658) & '&chr(39)&' '&chr(39)&' & vTeacherQuestion3Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vTeacherQuestion3Abbr)))))';
+  let vButtonLabel_FocusQuestion_Q4 = 'If('&chr(36)&'(vFocusQuestionRespondent) = '&chr(39)&'Student'&chr(39)&', 
+      If ('&chr(36)&'(vStudentQuestionCode4) = '&chr(36)&'(vFocusQuestionCode2), '&chr(39)&' '&chr(39)&',
+      If ('&chr(36)&'(vStudentQuestionCode4) = '&chr(36)&'(vFocusQuestionCode), chr(9658) & '&chr(39)&' '&chr(39)&' & vStudentQuestion4Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vStudentQuestion4Abbr)),
+    If('&chr(36)&'(vFocusQuestionRespondent) = '&chr(39)&'Parent'&chr(39)&',  
+      If ('&chr(36)&'(vParentQuestionCode4) = '&chr(36)&'(vFocusQuestionCode2), '&chr(39)&' '&chr(39)&',
+      If ('&chr(36)&'(vParentQuestionCode4)  = '&chr(36)&'(vFocusQuestionCode), chr(9658) & '&chr(39)&' '&chr(39)&' & vParentQuestion4Abbr  & '&chr(39)&' '&chr(39)&' & chr(9668), vParentQuestion4Abbr)),
+    If('&chr(36)&'(vFocusQuestionRespondent) = '&chr(39)&'Teacher'&chr(39)&', 
+      If ('&chr(36)&'(vTeacherQuestionCode4) = '&chr(36)&'(vFocusQuestionCode2), '&chr(39)&' '&chr(39)&',
+      If ('&chr(36)&'(vTeacherQuestionCode4) = '&chr(36)&'(vFocusQuestionCode), chr(9658) & '&chr(39)&' '&chr(39)&' & vTeacherQuestion4Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vTeacherQuestion4Abbr)))))';
+
+  let vButtonLabel_FocusQuestion2_Q1 = 'If('&chr(36)&'(vFocusQuestion2Respondent) = '&chr(39)&'Student'&chr(39)&', 
+      If ('&chr(36)&'(vStudentQuestionCode1) = '&chr(36)&'(vFocusQuestionCode), '&chr(39)&' '&chr(39)&',
+      If ('&chr(36)&'(vStudentQuestionCode1) = '&chr(36)&'(vFocusQuestionCode2), chr(9658) & '&chr(39)&' '&chr(39)&' & vStudentQuestion1Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vStudentQuestion1Abbr)),
+    If('&chr(36)&'(vFocusQuestion2Respondent) = '&chr(39)&'Parent'&chr(39)&',  
+      If ('&chr(36)&'(vParentQuestionCode1) = '&chr(36)&'(vFocusQuestionCode), '&chr(39)&' '&chr(39)&',
+      If ('&chr(36)&'(vParentQuestionCode1)  = '&chr(36)&'(vFocusQuestionCode2), chr(9658) & '&chr(39)&' '&chr(39)&' & vParentQuestion1Abbr  & '&chr(39)&' '&chr(39)&' & chr(9668), vParentQuestion1Abbr)),
+    If('&chr(36)&'(vFocusQuestion2Respondent) = '&chr(39)&'Teacher'&chr(39)&', 
+      If ('&chr(36)&'(vTeacherQuestionCode1) = '&chr(36)&'(vFocusQuestionCode), '&chr(39)&' '&chr(39)&',
+      If ('&chr(36)&'(vTeacherQuestionCode1) = '&chr(36)&'(vFocusQuestionCode2), chr(9658) & '&chr(39)&' '&chr(39)&' & vTeacherQuestion1Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vTeacherQuestion1Abbr)))))';
+  let vButtonLabel_FocusQuestion2_Q2 = 'If('&chr(36)&'(vFocusQuestion2Respondent) = '&chr(39)&'Student'&chr(39)&', 
+      If ('&chr(36)&'(vStudentQuestionCode2) = '&chr(36)&'(vFocusQuestionCode), '&chr(39)&' '&chr(39)&',
+      If ('&chr(36)&'(vStudentQuestionCode2) = '&chr(36)&'(vFocusQuestionCode2), chr(9658) & '&chr(39)&' '&chr(39)&' & vStudentQuestion2Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vStudentQuestion2Abbr)),
+    If('&chr(36)&'(vFocusQuestion2Respondent) = '&chr(39)&'Parent'&chr(39)&',  
+      If ('&chr(36)&'(vParentQuestionCode2) = '&chr(36)&'(vFocusQuestionCode), '&chr(39)&' '&chr(39)&',
+      If ('&chr(36)&'(vParentQuestionCode2)  = '&chr(36)&'(vFocusQuestionCode2), chr(9658) & '&chr(39)&' '&chr(39)&' & vParentQuestion2Abbr  & '&chr(39)&' '&chr(39)&' & chr(9668), vParentQuestion2Abbr)),
+    If('&chr(36)&'(vFocusQuestion2Respondent) = '&chr(39)&'Teacher'&chr(39)&', 
+      If ('&chr(36)&'(vTeacherQuestionCode2) = '&chr(36)&'(vFocusQuestionCode), '&chr(39)&' '&chr(39)&',
+      If ('&chr(36)&'(vTeacherQuestionCode2) = '&chr(36)&'(vFocusQuestionCode2), chr(9658) & '&chr(39)&' '&chr(39)&' & vTeacherQuestion2Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vTeacherQuestion2Abbr)))))';
+  let vButtonLabel_FocusQuestion2_Q3 = 'If('&chr(36)&'(vFocusQuestion2Respondent) = '&chr(39)&'Student'&chr(39)&', 
+      If ('&chr(36)&'(vStudentQuestionCode3) = '&chr(36)&'(vFocusQuestionCode), '&chr(39)&' '&chr(39)&',
+      If ('&chr(36)&'(vStudentQuestionCode3) = '&chr(36)&'(vFocusQuestionCode2), chr(9658) & '&chr(39)&' '&chr(39)&' & vStudentQuestion3Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vStudentQuestion3Abbr)),
+    If('&chr(36)&'(vFocusQuestion2Respondent) = '&chr(39)&'Parent'&chr(39)&',  
+      If ('&chr(36)&'(vParentQuestionCode3) = '&chr(36)&'(vFocusQuestionCode), '&chr(39)&' '&chr(39)&',
+      If ('&chr(36)&'(vParentQuestionCode3)  = '&chr(36)&'(vFocusQuestionCode2), chr(9658) & '&chr(39)&' '&chr(39)&' & vParentQuestion3Abbr  & '&chr(39)&' '&chr(39)&' & chr(9668), vParentQuestion3Abbr)),
+    If('&chr(36)&'(vFocusQuestion2Respondent) = '&chr(39)&'Teacher'&chr(39)&', 
+      If ('&chr(36)&'(vTeacherQuestionCode3) = '&chr(36)&'(vFocusQuestionCode), '&chr(39)&' '&chr(39)&',
+      If ('&chr(36)&'(vTeacherQuestionCode3) = '&chr(36)&'(vFocusQuestionCode2), chr(9658) & '&chr(39)&' '&chr(39)&' & vTeacherQuestion3Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vTeacherQuestion3Abbr)))))';
+  let vButtonLabel_FocusQuestion2_Q4 = 'If('&chr(36)&'(vFocusQuestion2Respondent) = '&chr(39)&'Student'&chr(39)&', 
+      If ('&chr(36)&'(vStudentQuestionCode4) = '&chr(36)&'(vFocusQuestionCode), '&chr(39)&' '&chr(39)&',
+      If ('&chr(36)&'(vStudentQuestionCode4) = '&chr(36)&'(vFocusQuestionCode2), chr(9658) & '&chr(39)&' '&chr(39)&' & vStudentQuestion4Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vStudentQuestion4Abbr)),
+    If('&chr(36)&'(vFocusQuestion2Respondent) = '&chr(39)&'Parent'&chr(39)&',  
+      If ('&chr(36)&'(vParentQuestionCode4) = '&chr(36)&'(vFocusQuestionCode), '&chr(39)&' '&chr(39)&',
+      If ('&chr(36)&'(vParentQuestionCode4)  = '&chr(36)&'(vFocusQuestionCode2), chr(9658) & '&chr(39)&' '&chr(39)&' & vParentQuestion4Abbr  & '&chr(39)&' '&chr(39)&' & chr(9668), vParentQuestion4Abbr)),
+    If('&chr(36)&'(vFocusQuestion2Respondent) = '&chr(39)&'Teacher'&chr(39)&', 
+      If ('&chr(36)&'(vTeacherQuestionCode4) = '&chr(36)&'(vFocusQuestionCode), '&chr(39)&' '&chr(39)&',
+      If ('&chr(36)&'(vTeacherQuestionCode4) = '&chr(36)&'(vFocusQuestionCode2), chr(9658) & '&chr(39)&' '&chr(39)&' & vTeacherQuestion4Abbr & '&chr(39)&' '&chr(39)&' & chr(9668), vTeacherQuestion4Abbr)))))';
+
