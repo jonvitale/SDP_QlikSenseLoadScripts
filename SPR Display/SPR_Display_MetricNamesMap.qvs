@@ -1,0 +1,56 @@
+metric_names_map:
+mapping load * Inline
+[
+metric,metric_publ
+ACCESS_GROWTH,Access for ELLs: % Growth in 60th Percentile or Above
+ACCESS_PROF,Access for ELLs: % 4.5 or Above
+ATTENDANCE,% of Students Attending 95% or More of Instructional Days
+BACK_ON_TRACK,% of Off-Track Students Earning Credits Required For Promotion
+DRA,% Reading at Grade Level - Grades K-2
+FAFSA,FAFSA Completion Rate
+FF_MATRIC,First-Fall College Matriculation Rate
+GRAD,Four-Year Cohort Graduation Rate
+ISS,% of Students with Zero In-School Suspensions
+KEYSTONE_ADV_ALG1,Keystone Exam - Algebra I: % Advanced
+KEYSTONE_ADV_BIO,Keystone Exam - Biology: % Advanced
+KEYSTONE_ADV_LIT,Keystone Exam - Literature: % Advanced
+KEYSTONE_ALG1_AGI_L20P,Keystone Exam - Algebra I: AGI for the Lowest-Performing 20% of Students
+KEYSTONE_BIO_AGI_L20P,Keystone Exam - Biology: AGI for the Lowest-Performing 20% of Students
+KEYSTONE_LIT_AGI_L20P,Keystone Exam - Literature: AGI for the Lowest-Performing 20% of Students
+KEYSTONE_PROFADV_ALG1,Keystone Exam - Algebra I: % Proficient or Advanced
+KEYSTONE_PROFADV_BIO,Keystone Exam - Biology: % Proficient or Advanced
+KEYSTONE_PROFADV_LIT,Keystone Exam - Literature: % Proficient or Advanced
+KEYSTONE_ALGEBRA_I_AGI,Keystone Exam - Algebra I: Average Growth Index (AGI)
+KEYSTONE_BIOLOGY_AGI,Keystone Exam - Biology: Average Growth Index (AGI)
+KEYSTONE_LITERATURE_AGI,Keystone Exam - Literature: Average Growth Index (AGI)
+OSS,% of Students with Zero Out-Of-School Suspensions
+PSSA_ADV_ELA,PSSA - English Language Arts (All Grades): % Advanced
+PSSA_ADV_ELA_G3,PSSA - English Language Arts (Grade 3): % Advanced
+PSSA_ADV_ELA_48,PSSA - English Language Arts (Grades 4-8): % Advanced
+PSSA_ADV_MATH,PSSA - Mathematics: % Advanced
+PSSA_ADV_SCI,PSSA - Science: % Advanced
+PSSA_ELA_AGI,PSSA - English Language Arts: Average Growth Index (AGI)
+PSSA_MATH_AGI,PSSA - Mathematics: Average Growth Index (AGI)
+PSSA_GR_4_SCIENCE_AGI,PSSA - Science (Grade 4): Average Growth Index (AGI)
+PSSA_GR_8_SCIENCE_AGI,PSSA - Science (Grade 8): Average Growth Index (AGI)
+PSSA_PROFADV_ELA,PSSA - English Language Arts (All Grades): % Proficient or Advanced
+PSSA_PROFADV_ELA_G3,PSSA - English Language Arts (Grade 3): % Proficient or Advanced
+PSSA_PROFADV_ELA_48,PSSA - English Language Arts (Grades 4-8): % Proficient or Advanced
+PSSA_PROFADV_MATH,PSSA - Mathematics: % Proficient or Advanced
+PSSA_PROFADV_SCI,PSSA - Science: % Proficient or Advanced
+PSSA_ELA_AGI_L20P,PSSA - English Language Arts: AGI for the Lowest-Performing 20% of Students
+PSSA_MATH_AGI_L20P,PSSA - Mathematics: AGI for the Lowest-Performing 20% of Students
+RETENTION,Annual Retention Rate
+STAY_ON_TRACK,% of On-Track Students Earning Credits Required for Promotion
+SVY_CLIM_PAR,Parent Survey: School Climate Rating (% of most positive responses)
+SVY_CLIM_STUD,Student Survey: School Climate Rating (% of most positive responses)
+SVY_PARENT_RATE,Parent/Guardian Survey: Participation Rate
+SVY_STUD_CCR,Student Survey: College and Career Readiness Rating (% of most positive responses)
+Z_ACH_OVERALL,Achievement Domain Score
+Z_CLIM_OVERALL,Climate Domain Score
+Z_CC_OVERALL,College & Career Domain Score
+Z_PROG_OVERALL,Progress Domain Score
+Z_OVERALL_OVERALL,Overall Score
+ACT_SAT,SAT & ACT Exams - Participation and Performance
+AP_IB_NOCTI,'AP, IB, & NOCTI Exams - Participation and Performance'
+];

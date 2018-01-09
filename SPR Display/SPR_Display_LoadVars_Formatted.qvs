@@ -1,0 +1,208 @@
+/**
+*	Loading Variables: SPR Display
+*	Jonathan Vitale
+*	Changes:
+*
+*	Version 0.4:
+*		- 
+*
+*	Reminder:
+*	THIS FILE IS THE RAW QLIK CODE. IT **MUST** BE COMPILED INTO STRINGS TO BE LOADED INTO A SCRIPT.
+*   Make sure to save the formatted code in a separate file and keep this file raw. 
+*	For SUBLIME TEST use the RegReplace package with custom rules and commands
+*   Note: I am using the RegEx instead of the default py regualar expression engine (v.1). Set this in package settings.
+**/
+
+///// What is the latest year?
+  let vMaxYearEnd = 'Num#(Max(YearEnd))';
+  let vLastYearEnd = 'Num#(Max(YearEnd)-1)';
+  let vLastLastYearEnd = 'Num#(Max(YearEnd)-2)';
+  let vMaxYear = '(max(left(Year,4))) & '&chr(39)&chr(45)&chr(39)&' & (max(right(Year,4)))';
+  let vLastYear = '(max(left(Year,4))-1) & '&chr(39)&chr(45)&chr(39)&' & (max(right(Year,4))-1)';
+  let vLastLastYear = '(max(left(Year,4))-2) & '&chr(39)&chr(45)&chr(39)&' & (max(right(Year,4))-2)';
+
+///// Colors
+	let vColor_OverallTier = 'IF([Overall Tier] = '&chr(39)&'Intervene'&chr(39)&', rgb(192,80,77),
+		IF([Overall Tier] = '&chr(39)&'Watch'&chr(39)&', rgb(247,150,70),
+		IF([Overall Tier] = '&chr(39)&'Reinforce'&chr(39)&', rgb(0,176,80),
+		IF([Overall Tier] = '&chr(39)&'Model'&chr(39)&', rgb(0,112,192)))))';
+
+	let vColor_DomainTier = 'IF([Tier in Domain] = '&chr(39)&'Intervene'&chr(39)&', rgb(192,80,77),
+		IF([Tier in Domain] = '&chr(39)&'Watch'&chr(39)&', rgb(247,150,70),
+		IF([Tier in Domain] = '&chr(39)&'Reinforce'&chr(39)&', rgb(0,176,80),
+		IF([Tier in Domain] = '&chr(39)&'Model'&chr(39)&', rgb(0,112,192)))))';
+
+	let vColor_Tier = 'IF([Tier] = '&chr(39)&'Intervene'&chr(39)&', rgb(192,80,77),
+		IF([Tier] = '&chr(39)&'Watch'&chr(39)&', rgb(247,150,70),
+		IF([Tier] = '&chr(39)&'Reinforce'&chr(39)&', rgb(0,176,80),
+		IF([Tier] = '&chr(39)&'Model'&chr(39)&', rgb(0,112,192)))))';
+
+	let vColor_PercScore_Overall = 'IF(Avg([Percent Earned Overall]) < 0.25, rgb(192,80,77),
+		IF(Avg([Percent Earned Overall]) < 0.5, rgb(247,150,70),
+		IF(Avg([Percent Earned Overall]) < 0.75, rgb(0,176,80),
+		IF(Avg([Percent Earned Overall]) >= 0.75, rgb(0,112,192)))))';
+
+	let vColor_PercScore_Domain = 'IF(Avg([Percent Earned in Domain]) < 0.25, rgb(192,80,77),
+		IF(Avg([Percent Earned in Domain]) < 0.5, rgb(247,150,70),
+		IF(Avg([Percent Earned in Domain]) < 0.75, rgb(0,176,80),
+		IF(Avg([Percent Earned in Domain]) >= 0.75, rgb(0,112,192)))))';
+
+	let vColor_PercScore_Metric = 'IF(Avg([Percent Earned]) < 0.25, rgb(192,80,77),
+		IF(Avg([Percent Earned]) < 0.5, rgb(247,150,70),
+		IF(Avg([Percent Earned]) < 0.75, rgb(0,176,80),
+		IF(Avg([Percent Earned]) >= 0.75, rgb(0,112,192)))))';
+
+///// Overall
+	//// Overall score
+		let vmmAvg_Score_Overall = 'Num(Avg([Points Earned Overall]), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmAvg_Score_Overall_Current = 'Num(Avg({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Points Earned Overall]), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmAvg_Score_Overall_Previous = 'Num(Avg({<YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>}[Points Earned Overall]), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmAvg_Score_Overall_3Year = 'Num(Avg({<YearEnd={">='&chr(36)&'(='&chr(36)&'(vLastLastYearEnd))"}>}[Points Earned Overall]), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmAvg_Score_Overall_YOY = 'Num('&chr(36)&'(vmmAvg_Score_Overall_Current)-'&chr(36)&'(vmmAvg_Score_Overall_Previous), '&chr(39)&'#,##0.#'&chr(39)&')';
+
+		let vmmMax_Score_Overall = 'Num(Max([Points Possible Overall]), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmMax_Score_Overall_Current = 'Num(Max({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Points Possible Overall]), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmMax_Score_Overall_Previous = 'Num(Max({<YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>}[Points Possible Overall]), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmMax_Score_Overall_YOY = 'Num('&chr(36)&'(vmmMax_Score_Overall_Current)-'&chr(36)&'(vmmAvg_Score_Overall_Previous), '&chr(39)&'#,##0.#'&chr(39)&')';
+
+		let vmmAvg_PercScore_Overall = 'Num(Avg([Percent Earned Overall]), '&chr(39)&'#0.#%'&chr(39)&')';
+		let vmmAvg_PercScore_Overall_Current = 'Num(Avg({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Percent Earned Overall]), '&chr(39)&'#0.#%'&chr(39)&')';
+		let vmmAvg_PercScore_Overall_Previous = 'Num(Avg({<YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>}[Percent Earned Overall]), '&chr(39)&'#0.#%'&chr(39)&')';
+		let vmmAvg_PercScore_Overall_3Year = 'Num(Avg({<YearEnd={">='&chr(36)&'(='&chr(36)&'(vLastLastYearEnd))"}>}[Percent Earned Overall]), '&chr(39)&'#0.#%'&chr(39)&')';
+		let vmmAvg_PercScore_Overall_YOY = 'Num('&chr(36)&'(vmmAvg_PercScore_Overall_Current)-'&chr(36)&'(vmmAvg_PercScore_Overall_Previous), '&chr(39)&'#0.#%'&chr(39)&')';
+
+	//// All Domains
+		let vmmAvg_Score_Domain = 'Num(Avg([Points Earned in Domain]), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmAvg_Score_Domain_Current = 'Num(Avg({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Points Earned in Domain]), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmAvg_Score_Domain_Previous = 'Num(Avg({<YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>}[Points Earned in Domain]), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmAvg_Score_Domain_YOY = 'Num('&chr(36)&'(vmmAvg_Score_Domain_Current)-'&chr(36)&'(vmmAvg_Score_Domain_Previous), '&chr(39)&'#,##0.#'&chr(39)&')';
+
+		let vmmMax_Score_Domain = 'Num(Max([Points Possible in Domain]), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmMax_Score_Domain_Current = 'Num(Max({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Points Possible in Domain]), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmMax_Score_Domain_Previous = 'Num(Max({<YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>}[Points Possible in Domain]), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmMax_Score_Domain_YOY = 'Num('&chr(36)&'(vmmMax_Score_Domain_Current)-'&chr(36)&'(vmmAvg_Score_Domain_Previous), '&chr(39)&'#,##0.#'&chr(39)&')';
+		
+		let vmmAvg_PercScore_Domain = 'Num(Avg([Percent Earned in Domain]), '&chr(39)&'#0.#%'&chr(39)&')';
+		let vmmAvg_PercScore_Domain_Current = 'Num(Avg({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Percent Earned in Domain]), '&chr(39)&'#0.#%'&chr(39)&')';
+		let vmmAvg_PercScore_Domain_Previous = 'Num(Avg({<YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>}[Percent Earned in Domain]), '&chr(39)&'#0.#%'&chr(39)&')';
+		let vmmAvg_PercScore_Domain_YOY = 'Num('&chr(36)&'(vmmAvg_PercScore_Domain_Current)-'&chr(36)&'(vmmAvg_PercScore_Domain_Previous), '&chr(39)&'#0.#%'&chr(39)&')';
+
+	//// All Metrics
+		let vmmAvg_Score_Metric = 'Num(Avg({<IsSum={0}>}[Points Earned]), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmAvg_Score_Metric_Current = 'Num(Avg({<IsSum={0}, YearEnd={'&chr(36)&'(='&chr(36)&'(vAvgYearEnd))}>}[Points Earned]), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmAvg_Score_Metric_Previous = 'Num(Avg({<IsSum={0}, YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>}[Points Earned]), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmAvg_Score_Metric_YOY = 'Num('&chr(36)&'(vmmAvg_Score_Metric_Current)-'&chr(36)&'(vmmAvg_Score_Metric_Previous), '&chr(39)&'#,##0.#'&chr(39)&')';
+
+		let vmmMax_Score_Metric = 'Num(Max({<IsSum={0}>}[Points Possible]), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmMax_Score_Metric_Current = 'Num(Max({<IsSum={0}, YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Points Possible]), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmMax_Score_Metric_Previous = 'Num(Max({<IsSum={0}, YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>}[Points Possible]), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmMax_Score_Metric_YOY = 'Num('&chr(36)&'(vmmMax_Score_Metric_Current)-'&chr(36)&'(vmmAvg_Score_Metric_Previous), '&chr(39)&'#,##0.#'&chr(39)&')';
+
+		let vmmAvg_PercScore_Metric = 'Num(Avg([Percent Earned]), '&chr(39)&'#0.#%'&chr(39)&')';
+		let vmmAvg_PercScore_Metric_Current = 'Num(Avg({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Percent Earned]), '&chr(39)&'#0.#%'&chr(39)&')';
+		let vmmAvg_PercScore_Metric_Previous = 'Num(Avg({<YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>}[Percent Earned]), '&chr(39)&'#0.#%'&chr(39)&')';
+		let vmmAvg_PercScore_Metric_YOY = 'Num('&chr(36)&'(vmmAvg_PercScore_Metric_Current)-'&chr(36)&'(vmmAvg_PercScore_Metric_Previous), '&chr(39)&'#0.#%'&chr(39)&')';
+
+	//// Drill Down
+		let vmmAvg_Score_OverallToDomainToMetric = 'If(GetSelectedCount([Domain Name]) = 1, If(GetSelectedCount([Metric Name]) = 1, '&chr(36)&'(vmmAvg_Score_Metric), '&chr(36)&'(vmmAvg_Score_Domain)), '&chr(36)&'(vmmAvg_Score_Overall))';
+		let vmmAvg_Score_OverallToDomainToMetric_Current = 'If(GetSelectedCount([Domain Name]) = 1, If(GetSelectedCount([Metric Name]) = 1, '&chr(36)&'(vmmAvg_Score_Metric_Current), '&chr(36)&'(vmmAvg_Score_Domain_Current)), '&chr(36)&'(vmmAvg_Score_Overall_Current))';
+		let vmmAvg_Score_OverallToDomainToMetric_Previous = 'If(GetSelectedCount([Domain Name]) = 1, If(GetSelectedCount([Metric Name]) = 1, '&chr(36)&'(vmmAvg_Score_Metric_Previous), '&chr(36)&'(vmmAvg_Score_Domain_Previous)), '&chr(36)&'(vmmAvg_Score_Overall_Previous))';
+		let vmmAvg_Score_OverallToDomainToMetric_YOY = 'If(GetSelectedCount([Domain Name]) = 1, If(GetSelectedCount([Metric Name]) = 1, '&chr(36)&'(vmmAvg_Score_Metric_YOY), '&chr(36)&'(vmmAvg_Score_Domain_YOY)), '&chr(36)&'(vmmAvg_Score_Overall_YOY))';
+
+
+		let vmmMax_Score_OverallToDomainToMetric = 'If(GetSelectedCount([Domain Name]) = 1, If(GetSelectedCount([Metric Name]) = 1, '&chr(36)&'(vmmMax_Score_Metric), '&chr(36)&'(vmmMax_Score_Domain)), '&chr(36)&'(vmmMax_Score_Overall))';
+		let vmmMax_Score_OverallToDomainToMetric_Current = 'If(GetSelectedCount([Domain Name]) = 1, If(GetSelectedCount([Metric Name]) = 1, '&chr(36)&'(vmmMax_Score_Metric_Current), '&chr(36)&'(vmmMax_Score_Domain_Current)), '&chr(36)&'(vmmMax_Score_Overall_Current))';
+		let vmmMax_Score_OverallToDomainToMetric_Previous = 'If(GetSelectedCount([Domain Name]) = 1, If(GetSelectedCount([Metric Name]) = 1, '&chr(36)&'(vmmMax_Score_Metric_Previous), '&chr(36)&'(vmmMax_Score_Domain_Previous)), '&chr(36)&'(vmmMax_Score_Overall_Previous))';
+		let vmmMax_Score_OverallToDomainToMetric_YOY = 'If(GetSelectedCount([Domain Name]) = 1, If(GetSelectedCount([Metric Name]) = 1, '&chr(36)&'(vmmMax_Score_Metric_YOY), '&chr(36)&'(vmmMax_Score_Domain_YOY)), '&chr(36)&'(vmmMax_Score_Overall_YOY))';
+
+
+		let vmmMax_Score_DomainToMetric = 'If(GetSelectedCount([Domain Name]) = 1, '&chr(36)&'(vmmMax_Score_Metric), '&chr(36)&'(vmmMax_Score_Domain))';
+		let vmmMax_Score_DomainToMetric_Current = 'If(GetSelectedCount([Domain Name]) = 1, '&chr(36)&'(vmmMax_Score_Metric_Current), '&chr(36)&'(vmmMax_Score_Domain_Current))';
+		let vmmMax_Score_DomainToMetric_Previous = 'If(GetSelectedCount([Domain Name]) = 1, '&chr(36)&'(vmmMax_Score_Metric_Previous), '&chr(36)&'(vmmMax_Score_Domain_Previous))';
+		let vmmMax_Score_DomainToMetric_YOY = 'If(GetSelectedCount([Domain Name]) = 1, '&chr(36)&'(vmmMax_Score_Metric_YOY), '&chr(36)&'(vmmMax_Score_Domain_YOY))';
+
+
+
+	//// Specific Domains
+
+		/// Achievement
+			let vmmAvg_Score_Achievement = 'Num(Avg({<[Domain Name]={"Achievement"}>} [Points Earned in Domain]), '&chr(39)&'#,##0.#'&chr(39)&')';
+			let vmmAvg_Score_Achievement_Current = 'Num(Avg({<[Domain Name]={"Achievement"}, YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Points Earned in Domain]), '&chr(39)&'#,##0.#'&chr(39)&')';
+			let vmmAvg_Score_Achievement_Previous = 'Num(Avg({<[Domain Name]={"Achievement"}, YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>}[Points Earned in Domain]), '&chr(39)&'#,##0.#'&chr(39)&')';
+			let vmmAvg_Score_Achievement_3Year = 'Num(Avg({<[Domain Name]={"Achievement"}, YearEnd={">='&chr(36)&'(='&chr(36)&'(vLastLastYearEnd))"}>}[Points Earned in Domain]), '&chr(39)&'#,##0.#'&chr(39)&')';
+			let vmmAvg_Score_Achievement_YOY = 'Num('&chr(36)&'(vmmAvg_Score_Achievement_Current)-'&chr(36)&'(vmmAvg_Score_Achievement_Previous), '&chr(39)&'#,##0.#'&chr(39)&')';
+
+			let vmmAvg_PercScore_Achievement = 'Num(Avg({<[Domain Name]={"Achievement"}>} [Percent Earned in Domain]), '&chr(39)&'#0.#%'&chr(39)&')';
+			let vmmAvg_PercScore_Achievement_Current = 'Num(Avg({<[Domain Name]={"Achievement"}, YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Percent Earned in Domain]), '&chr(39)&'#0.#%'&chr(39)&')';
+			let vmmAvg_PercScore_Achievement_Previous = 'Num(Avg({<[Domain Name]={"Achievement"}, YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>}[Percent Earned in Domain]), '&chr(39)&'#0.#%'&chr(39)&')';
+			let vmmAvg_PercScore_Achievement_3Year = 'Num(Avg({<[Domain Name]={"Achievement"}, YearEnd={">='&chr(36)&'(='&chr(36)&'(vLastLastYearEnd))"}>}[Percent Earned in Domain]), '&chr(39)&'#0.#%'&chr(39)&')';
+			let vmmAvg_PercScore_Achievement_YOY = 'Num('&chr(36)&'(vmmAvg_PercScore_Achievement_Current)-'&chr(36)&'(vmmAvg_PercScore_Achievement_Previous), '&chr(39)&'#0.#%'&chr(39)&')';
+
+		/// College & Career
+			let vmmAvg_Score_CollegeCareer = 'Num(Avg({<[Domain Name]={"College & Career"}>} [Points Earned in Domain]), '&chr(39)&'#,##0.#'&chr(39)&')';
+			let vmmAvg_Score_CollegeCareer_Current = 'Num(Avg({<[Domain Name]={"College & Career"}, YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Points Earned in Domain]), '&chr(39)&'#,##0.#'&chr(39)&')';
+			let vmmAvg_Score_CollegeCareer_Previous = 'Num(Avg({<[Domain Name]={"College & Career"}, YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>}[Points Earned in Domain]), '&chr(39)&'#,##0.#'&chr(39)&')';
+			let vmmAvg_Score_CollegeCareer_3Year = 'Num(Avg({<[Domain Name]={"College & Career"}, YearEnd={">='&chr(36)&'(='&chr(36)&'(vLastLastYearEnd))"}>}[Points Earned in Domain]), '&chr(39)&'#,##0.#'&chr(39)&')';
+			let vmmAvg_Score_CollegeCareer_YOY = 'Num('&chr(36)&'(vmmAvg_Score_CollegeCareer_Current)-'&chr(36)&'(vmmAvg_Score_CollegeCareer_Previous), '&chr(39)&'#,##0.#'&chr(39)&')';
+
+			let vmmAvg_PercScore_CollegeCareer = 'Num(Avg({<[Domain Name]={"College & Career"}>} [Percent Earned in Domain]), '&chr(39)&'#0.#%'&chr(39)&')';
+			let vmmAvg_PercScore_CollegeCareer_Current = 'Num(Avg({<[Domain Name]={"College & Career"}, YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Percent Earned in Domain]), '&chr(39)&'#0.#%'&chr(39)&')';
+			let vmmAvg_PercScore_CollegeCareer_Previous = 'Num(Avg({<[Domain Name]={"College & Career"}, YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>}[Percent Earned in Domain]), '&chr(39)&'#0.#%'&chr(39)&')';
+			let vmmAvg_PercScore_CollegeCareer_3Year = 'Num(Avg({<[Domain Name]={"College & Career"}, YearEnd={">='&chr(36)&'(='&chr(36)&'(vLastLastYearEnd))"}>}[Percent Earned in Domain]), '&chr(39)&'#0.#%'&chr(39)&')';
+			let vmmAvg_PercScore_CollegeCareer_YOY = 'Num('&chr(36)&'(vmmAvg_PercScore_CollegeCareer_Current)-'&chr(36)&'(vmmAvg_PercScore_CollegeCareer_Previous), '&chr(39)&'#0.#%'&chr(39)&')';
+
+		/// Climate
+			let vmmAvg_Score_Climate = 'Num(Avg({<[Domain Name]={"Climate"}>} [Points Earned in Domain]), '&chr(39)&'#,##0.#'&chr(39)&')';
+			let vmmAvg_Score_Climate_Current = 'Num(Avg({<[Domain Name]={"Climate"}, YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Points Earned in Domain]), '&chr(39)&'#,##0.#'&chr(39)&')';
+			let vmmAvg_ScCoore_Climate_Previous = 'Num(Avg({<[Domain Name]={"Climate"}, YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>}[Points Earned in Domain]), '&chr(39)&'#,##0.#'&chr(39)&')';
+			let vmmAvg_ScCoore_Climate_3Year = 'Num(Avg({<[Domain Name]={"Climate"}, YearEnd={">='&chr(36)&'(='&chr(36)&'(vLastLastYearEnd))"}>}[Points Earned in Domain]), '&chr(39)&'#,##0.#'&chr(39)&')';
+			let vmmAvg_Score_Climate_YOY = 'Num('&chr(36)&'(vmmAvg_Score_Climate_Current)-'&chr(36)&'(vmmAvg_Score_Climate_Previous), '&chr(39)&'#,##0.#'&chr(39)&')';
+
+			let vmmAvg_PercScore_Climate = 'Num(Avg({<[Domain Name]={"Climate"}>} [Percent Earned in Domain]), '&chr(39)&'#0.#%'&chr(39)&')';
+			let vmmAvg_PercScore_Climate_Current = 'Num(Avg({<[Domain Name]={"Climate"}, YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Percent Earned in Domain]), '&chr(39)&'#0.#%'&chr(39)&')';
+			let vmmAvg_PercScore_Climate_Previous = 'Num(Avg({<[Domain Name]={"Climate"}, YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>}[Percent Earned in Domain]), '&chr(39)&'#0.#%'&chr(39)&')';
+			let vmmAvg_PercScore_Climate_3Year = 'Num(Avg({<[Domain Name]={"Climate"}, YearEnd={">='&chr(36)&'(='&chr(36)&'(vLastLastYearEnd))"}>}[Percent Earned in Domain]), '&chr(39)&'#0.#%'&chr(39)&')';
+			let vmmAvg_PercScore_Climate_YOY = 'Num('&chr(36)&'(vmmAvg_PercScore_Climate_Current)-'&chr(36)&'(vmmAvg_PercScore_Climate_Previous), '&chr(39)&'#0.#%'&chr(39)&')';
+
+		/// Progress
+			let vmmAvg_Score_Progress = 'Num(Avg({<[Domain Name]={"Progress"}>} [Points Earned in Domain]), '&chr(39)&'#,##0.#'&chr(39)&')';
+			let vmmAvg_Score_Progress_Current = 'Num(Avg({<[Domain Name]={"Progress"}, YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Points Earned in Domain]), '&chr(39)&'#,##0.#'&chr(39)&')';
+			let vmmAvg_Score_Progress_Previous = 'Num(Avg({<[Domain Name]={"Progress"}, YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>}[Points Earned in Domain]), '&chr(39)&'#,##0.#'&chr(39)&')';
+			let vmmAvg_Score_Progress_3Year = 'Num(Avg({<[Domain Name]={"Progress"}, YearEnd={">='&chr(36)&'(='&chr(36)&'(vLastLastYearEnd))"}>}[Points Earned in Domain]), '&chr(39)&'#,##0.#'&chr(39)&')';
+			let vmmAvg_Score_Progress_YOY = 'Num('&chr(36)&'(vmmAvg_Score_Progress_Current)-'&chr(36)&'(vmmAvg_Score_Progress_Previous), '&chr(39)&'#,##0.#'&chr(39)&')';
+
+			let vmmAvg_PercScore_Progress = 'Num(Avg({<[Domain Name]={"Progress"}>} [Percent Earned in Domain]), '&chr(39)&'#0.#%'&chr(39)&')';
+			let vmmAvg_PercScore_Progress_Current = 'Num(Avg({<[Domain Name]={"Progress"}, YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Percent Earned in Domain]), '&chr(39)&'#0.#%'&chr(39)&')';
+			let vmmAvg_PercScore_Progress_Previous = 'Num(Avg({<[Domain Name]={"Progress"}, YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>}[Percent Earned in Domain]), '&chr(39)&'#0.#%'&chr(39)&')';
+			let vmmAvg_PercScore_Progress_3Year = 'Num(Avg({<[Domain Name]={"Progress"}, YearEnd={">='&chr(36)&'(='&chr(36)&'(vLastLastYearEnd))"}>}[Percent Earned in Domain]), '&chr(39)&'#0.#%'&chr(39)&')';
+			let vmmAvg_PercScore_Progress_YOY = 'Num('&chr(36)&'(vmmAvg_PercScore_Progress_Current)-'&chr(36)&'(vmmAvg_PercScore_Progress_Previous), '&chr(39)&'#0.#%'&chr(39)&')';
+
+///// # of schools
+	
+	//// Across Tiers
+		let vmmCount_Schools_Overall = 'Num(Count(distinct %SchoolReportYearDomainKey), '&chr(39)&'#,##0'&chr(39)&')';
+		let vmmCount_Schools_Overall_Current = 'Num(Count(distinct {<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}%SchoolReportYearDomainKey), '&chr(39)&'#,##0'&chr(39)&')';
+		let vmmCount_Schools_Overall_Previous = 'Num(Count(distinct {<YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>}%SchoolReportYearDomainKey), '&chr(39)&'#,##0'&chr(39)&')';
+		let vmmCount_Schools_Overall_YOY = 'Num('&chr(36)&'(vmmCount_Schools_Overall_Current)-'&chr(36)&'(vmmCount_Schools_Overall_Previous), '&chr(39)&'#,##0'&chr(39)&')';
+
+
+	//// In Tier: Model/Reinforce
+		let vmmCount_Schools_ModelReinforce_Overall = 'Num(Count(distinct {<[Overall Tier] = {"Model", "Reinforce"}>}%SchoolReportYearDomainKey), '&chr(39)&'#,##0'&chr(39)&')';
+		let vmmCount_Schools_ModelReinforce_Overall_Current = 'Num(Count(distinct {<[Overall Tier] = {"Model", "Reinforce"}, YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}%SchoolReportYearDomainKey), '&chr(39)&'#,##0'&chr(39)&')';
+		let vmmCount_Schools_ModelReinforce_Overall_Previous = 'Num(Count(distinct {<[Overall Tier] = {"Model", "Reinforce"}, YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>}%SchoolReportYearDomainKey), '&chr(39)&'#,##0'&chr(39)&')';
+		let vmmCount_Schools_ModelReinforce_Overall_YOY = 'Num('&chr(36)&'(vmmCount_Schools_ModelReinforce_Overall_Current)-'&chr(36)&'(vmmCount_Schools_ModelReinforce_Overall_Previous), '&chr(39)&'#,##0'&chr(39)&')';
+
+///// # of students
+	//// Across Tiers
+		let vmmCount_Students_Overall = 'Num(Sum(Enrollment), '&chr(39)&'#,##0'&chr(39)&')';
+		let vmmCount_Students_Overall_Current = 'Num(Sum({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}Enrollment), '&chr(39)&'#,##0'&chr(39)&')';
+		let vmmCount_Students_Overall_Previous = 'Num(Sum({<YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>}Enrollment), '&chr(39)&'#,##0'&chr(39)&')';
+		let vmmCount_Students_Overall_YOY = 'Num('&chr(36)&'(vmmCount_Students_Overall_Current)-'&chr(36)&'(vmmCount_Students_Overall_Previous), '&chr(39)&'#,##0'&chr(39)&')';
+
+
+	//// In Tier: Model/Reinforce
+		let vmmCount_Students_ModelReinforce_Overall = 'Num(Sum({<[Overall Tier] = {"Model", "Reinforce"}>}Enrollment), '&chr(39)&'#,##0'&chr(39)&')';
+		let vmmCount_Students_ModelReinforce_Overall_Current = 'Num(Sum({<[Overall Tier] = {"Model", "Reinforce"}, YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}Enrollment), '&chr(39)&'#,##0'&chr(39)&')';
+		let vmmCount_Students_ModelReinforce_Overall_Previous = 'Num(Sum({<[Overall Tier] = {"Model", "Reinforce"}, YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>}Enrollment), '&chr(39)&'#,##0'&chr(39)&')';
+		let vmmCount_Students_ModelReinforce_Overall_YOY = 'Num('&chr(36)&'(vmmCount_Students_ModelReinforce_Overall_Current)-'&chr(36)&'(vmmCount_Students_ModelReinforce_Overall_Previous), '&chr(39)&'#,##0'&chr(39)&')';
+

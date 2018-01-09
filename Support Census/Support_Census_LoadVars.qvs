@@ -1,0 +1,101 @@
+/**
+*	Loading Variables: School Support Census
+*	Jonathan Vitale
+*	Changes:
+*
+*	Version 0.2:
+*		- 
+*
+*	Reminders:
+*	- All the let statements will be strings, if you want an actual single quote in the string, use '&chr(39)&'
+*	- Alternatively, you can use double-quotes in set analyses, but these enable search and wildcards, so be careful.
+*   - A $(somevar) tells click to substitute whatever is somevar immediately. If you want to prevent this expansion replace $ with '&chr(36)&'
+*   - Similarly $(=$(somevar)) tells Qlik to evaluate the somevar expression, if you do not want this done in the load script replace both $ with chr(36)
+**/
+
+///// What is the latest year?
+  let vMaxYearEnd = 'Max(YearEnd)';
+  let vLastYearEnd = '(Max(YearEnd)-1)';
+  let vMaxYear = '(max(left(Year,4))) & ' &chr(39)& chr(45) &chr(39)& ' & (max(right(Year,4)))';
+  let vLastYear = '(max(left(Year,4))-1) & ' &chr(39)& chr(45) &chr(39)& ' & (max(right(Year,4))-1)';
+ 
+ //// Metrics for School, Network, District
+
+ 	//// Completion:
+ 		let vmmCount_Responded_Current = 'Num(Sum({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} Responded), '&chr(39)&'#,##0'&chr(39)&')';
+ 		let vmmCount_Responded_Previous = 'Num(Sum({<YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} Responded), '&chr(39)&'#,##0'&chr(39)&')';
+
+ 		let vmmCount_Schools_Current = 'Num(Count({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} Responded), '&chr(39)&'#,##0'&chr(39)&')';
+ 		let vmmCount_Schools_Previous = 'Num(Count({<YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} Responded), '&chr(39)&'#,##0'&chr(39)&')';
+
+ 		let vmmRatio_Responded_Current = 'Num(Sum({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} Responded) / '&chr(36)&'(vmmCount_Schools_Current), '&chr(39)&'#0.#%'&chr(39)&')';
+ 		let vmmRatio_Responded_Previous = 'Num(Sum({<YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} Responded) / '&chr(36)&'(vmmCount_Schools_Previous), '&chr(39)&'#0.#%'&chr(39)&')';
+ 		let vmmRatio_Responded_YOY = 'Num('&chr(36)&'(vmmRatio_Responded_Current) - '&chr(36)&'(vmmRatio_Responded_Previous), '&chr(39)&'#0.#%'&chr(39)&')';
+		
+		let vmmRatio_RespondedNeeds_Current = 'Num(Sum({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} RespondedNeeds) / '&chr(36)&'(vmmCount_Schools_Current), '&chr(39)&'#0.#%'&chr(39)&')';
+ 		let vmmRatio_RespondedNeeds_Previous = 'Num(Sum({<YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} RespondedNeeds) / '&chr(36)&'(vmmCount_Schools_Previous), '&chr(39)&'#0.#%'&chr(39)&')';
+ 		let vmmRatio_RespondedNeeds_YOY = 'Num('&chr(36)&'(vmmRatio_RespondedNeeds_Current) - '&chr(36)&'(vmmRatio_RespondedNeeds_Previous), '&chr(39)&'#0.#%'&chr(39)&')';
+	
+
+	//// Enrollment: already aggregated at a school level
+		let vmmCount_Students_Current = 'Num(Sum({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} Enrollment), '&chr(39)&'#,##0'&chr(39)&')';
+		let vmmCount_Students_Previous = 'Num(Sum({<YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} Enrollment), '&chr(39)&'#,##0'&chr(39)&')';
+	
+	//// SPR
+		//let vmmSPR_Current = 'Num(Only({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} [2014-15 SPR]), '&chr(39)&'#,##0'&chr(39)&')';
+		//let vmmSPR_Previous = 'Num(Only({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} [2014-15 SPR]), '&chr(39)&'#,##0'&chr(39)&')';
+	
+	//// Number of partnerships at a school
+		let vmmCount_Partnerships = 'Num(Count(distinct Partnership), '&chr(39)&'#,##0'&chr(39)&')';
+		let vmmCount_Partnerships_Current = 'Num(Count(distinct {<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} Partnership), '&chr(39)&'#,##0'&chr(39)&')';
+		let vmmCount_Partnerships_Previous = 'Num(Count(distinct {<YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} Partnership), '&chr(39)&'#,##0'&chr(39)&')';
+		let vmmCount_Partnerships_YOY = 'Num('&chr(36)&'(vmmCount_Partnerships_Current) - '&chr(36)&'(vmmCount_Partnerships_Previous), '&chr(39)&'#,##0'&chr(39)&')';
+
+		let vmmCount_Partners = 'Num(Count(distinct PartnerNum), '&chr(39)&'#,##0'&chr(39)&')';
+		let vmmCount_Partners_Current = 'Num(Count(distinct {<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} PartnerNum), '&chr(39)&'#,##0'&chr(39)&')';
+		let vmmCount_Partners_Previous = 'Num(Count(distinct {<YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} PartnerNum), '&chr(39)&'#,##0'&chr(39)&')';
+		let vmmCount_Partners_YOY = 'Num('&chr(36)&'(vmmCount_Partners_Current) - '&chr(36)&'(vmmCount_Partners_Previous), '&chr(39)&'#,##0'&chr(39)&')';
+
+		let vmmRatio_PartnershipsPerStudent_Current = 'Num(100 * '&chr(36)&'(vmmCount_Partnerships_Current) / '&chr(36)&'(vmmCount_Students_Current), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmRatio_PartnershipsPerStudent_Previous = 'Num(100 * '&chr(36)&'(vmmCount_Partnerships_Previous) / '&chr(36)&'(vmmCount_Students_Previous), '&chr(39)&'#,##0.#'&chr(39)&')';
+
+		let vmmRatio_PartnersPerStudent_Current = 'Num(100 * '&chr(36)&'(vmmCount_Partners_Current) / '&chr(36)&'(vmmCount_Students_Current), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmRatio_PartnersPerStudent_Previous = 'Num(100 * '&chr(36)&'(vmmCount_Partners_Previous) / '&chr(36)&'(vmmCount_Students_Previous), '&chr(39)&'#,##0.#'&chr(39)&')';
+
+		let vmmAvg_Partnerships_AggSchool_Current = 'Num(Avg(Aggr(Count(distinct {<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} Partnership), [School Name])), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmAvg_Partnerships_AggSchool_Previous = 'Num(Avg(Aggr(Count(distinct {<YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} Partnership), [School Name])), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmAvg_Partnerships_AggSchool_YOY = 'Num('&chr(36)&'(vmmAvg_Partnerships_AggSchool_Current) - '&chr(36)&'(vmmAvg_Partnerships_AggSchool_Previous), '&chr(39)&'#,##0.#'&chr(39)&')';
+
+		let vmmAvg_Partners_AggSchool_Current = 'Num(Avg(Aggr(Count(distinct {<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} PartnerNum), [School Name])), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmAvg_Partners_AggSchool_Previous = 'Num(Avg(Aggr(Count(distinct {<YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} PartnerNum), [School Name])), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmAvg_Partners_AggSchool_YOY = 'Num('&chr(36)&'(vmmAvg_Partners_AggSchool_Current) - '&chr(36)&'(vmmAvg_Partners_AggSchool_Previous), '&chr(39)&'#,##0.#'&chr(39)&')';
+
+	//// Needs areas
+		let vmmCount_Needs_Critical = 'Num(If(Count([Need Value]) > 0, Count({<[Need Value]={3}>}[Need Area]),Null()), '&chr(39)&'#,##0'&chr(39)&')';
+		let vmmCount_Needs_Critical_Current = 'Num(If(Count( {<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} [Need Value]) > 0, Count({<[Need Value]={3}, YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Need Area]),Null()), '&chr(39)&'#,##0'&chr(39)&')';
+		let vmmCount_Needs_Critical_Previous = 'Num(If(Count({<YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} [Need Value]) > 0, Count({<[Need Value]={3}, YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>}[Need Area]),Null()), '&chr(39)&'#,##0'&chr(39)&')';
+		let vmmCount_Needs_Critical_YOY = 'Num('&chr(36)&'(vmmCount_Needs_Critical_Current) - '&chr(36)&'(vmmCount_Needs_Critical_Previous), '&chr(39)&'#,##0'&chr(39)&')';
+		let vCount_Needs_Critical_Current_Color = 'If(Count( {<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} [Need Value]) > 0, 100 - Count({<[Need Value]={3}, YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Need Area]),Null())';
+		
+		let vmmAvg_Needs = 'Num(Avg([Need Value]), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmAvg_Needs_Current = 'Num(Avg( {<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} [Need Value]), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmAvg_Needs_Previous = 'Num(Avg({<YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} [Need Value]), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vAvg_Needs_Current_Color = '3 - Avg( {<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} [Need Value])';
+		
+		let vmmAvg_Needs_Critical_AggSchool_Current = 'Num(Avg(Aggr(Count({<[Need Value]={3}, YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} [Need Value]), [School Name])), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmAvg_Needs_Critical_AggSchool_Previous = 'Num(Avg(Aggr(Count({<[Need Value]={3}, YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} [Need Value]), [School Name])), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmAvg_Needs_Critical_AggSchool_YOY = 'Num('&chr(36)&'(vmmAvg_Needs_Critical_AggSchool_Current) - '&chr(36)&'(vmmAvg_Needs_Critical_AggSchool_Previous), '&chr(39)&'#,##0.#'&chr(39)&')';
+
+//// Metrics for Partners, Partnerships
+	//// Number of schools served
+		//let vmmCount_Schools = 'Num(Count(distinct [School Name]), '&chr(39)&'#,##0'&chr(39)&')';
+		//let vmmCount_Schools_Current = 'Num(Count(distinct  {<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>} [School Name]), '&chr(39)&'#,##0'&chr(39)&')';
+		//let vmmCount_Schools_Previous = 'Num(Count(distinct {<YearEnd={'&chr(36)&'(='&chr(36)&'(vLastYearEnd))}>} [School Name]), '&chr(39)&'#,##0'&chr(39)&')';
+		//let vmmCount_Schools_YOY = 'Num('&chr(36)&'(vmmCount_Schools_Current) - '&chr(36)&'(vmmCount_Schools_Previous), '&chr(39)&'#,##0'&chr(39)&')';
+	
+	//// SPR stats for schools served by this partner/partnership
+		let vmmAvg_SPR = 'Num(Avg([2014-15 SPR]), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmMin_SPR = 'Num(Min([2014-15 SPR]), '&chr(39)&'#,##0.#'&chr(39)&')';
+		let vmmMax_SPR = 'Num(Max([2014-15 SPR]), '&chr(39)&'#,##0.#'&chr(39)&')';
+
+set vSelectedMetric = vmmCount_Partnerships_Current;

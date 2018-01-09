@@ -1,0 +1,172 @@
+/**
+*	Loading Variables: SPR Display
+*	Jonathan Vitale
+*	Changes:
+*
+*	Version 0.4:
+*		- 
+*
+*	Reminders:
+*	- All the let statements will be strings, if you want an actual single quote in the string, use '
+*	- Alternatively, you can use double-quotes in set analyses, but these enable search and wildcards, so be careful.
+*   - A $(somevar) tells click to substitute whatever is somevar immediately. If you want to prevent this expansion replace $ with $
+*   - Similarly $(=$(somevar)) tells Qlik to evaluate the somevar expression, if you do not want this done in the load script replace both $ with chr(36)
+**/
+
+///// What is the latest year?
+  let vMaxYearEnd = Num(Max(YearEnd));
+  let vLastYearEnd = Num(Max(YearEnd)-1);
+  let vLastLastYearEnd = Num(Max(YearEnd)-2);
+  let vMaxYear = (max(left(Year,4))) & '-' & (max(right(Year,4)));
+  let vLastYear = (max(left(Year,4))-1) & '-' & (max(right(Year,4))-1);
+  let vLastYear = (max(left(Year,4))-2) & '-' & (max(right(Year,4))-2);
+
+///// Overall
+	//// Overall score
+		let vmmAvg_Score_Overall = Num(Avg([Points Earned Overall]), '#,##0.#');
+		let vmmAvg_Score_Overall_Current = Num(Avg({<YearEnd={$(=$(vMaxYearEnd))}>}[Points Earned Overall]), '#,##0.#');
+		let vmmAvg_Score_Overall_Previous = Num(Avg({<YearEnd={$(=$(vLastYearEnd))}>}[Points Earned Overall]), '#,##0.#');
+		let vmmAvg_Score_Overall_3Year = Num(Avg({<YearEnd={">=$(=$(vLastLastYearEnd))"}>}[Points Earned Overall]), '#,##0.#');
+		let vmmAvg_Score_Overall_YOY = Num($(vmmAvg_Score_Overall_Current)-$(vmmAvg_Score_Overall_Previous), '#,##0.#');
+
+		let vmmMax_Score_Overall = Num(Max([Points Possible Overall]), '#,##0.#');
+		let vmmMax_Score_Overall_Current = Num(Max({<YearEnd={$(=$(vMaxYearEnd))}>}[Points Possible Overall]), '#,##0.#');
+		let vmmMax_Score_Overall_Previous = Num(Max({<YearEnd={$(=$(vLastYearEnd))}>}[Points Possible Overall]), '#,##0.#');
+		let vmmMax_Score_Overall_YOY = Num($(vmmMax_Score_Overall_Current)-$(vmmAvg_Score_Overall_Previous), '#,##0.#');
+
+		let vmmAvg_PercScore_Overall = Num(Avg([Percent Earned Overall]), '#0.#%');
+		let vmmAvg_PercScore_Overall_Current = Num(Avg({<YearEnd={$(=$(vMaxYearEnd))}>}[Percent Earned Overall]), '#0.#%');
+		let vmmAvg_PercScore_Overall_Previous = Num(Avg({<YearEnd={$(=$(vLastYearEnd))}>}[Percent Earned Overall]), '#0.#%');
+		let vmmAvg_PercScore_Overall_3Year = Num(Avg({<YearEnd={">=$(=$(vLastLastYearEnd))"}>}[Percent Earned Overall]), '#0.#%');
+		let vmmAvg_PercScore_Overall_YOY = Num($(vmmAvg_PercScore_Overall_Current)-$(vmmAvg_PercScore_Overall_Previous), '#0.#%');
+
+	//// All Domains
+		let vmmAvg_Score_Domain = Num(Avg([Points Earned in Domain]), '#,##0.#');
+		let vmmAvg_Score_Domain_Current = Num(Avg({<YearEnd={$(=$(vMaxYearEnd))}>}[Points Earned in Domain]), '#,##0.#');
+		let vmmAvg_Score_Domain_Previous = Num(Avg({<YearEnd={$(=$(vLastYearEnd))}>}[Points Earned in Domain]), '#,##0.#');
+		let vmmAvg_Score_Domain_YOY = Num($(vmmAvg_Score_Domain_Current)-$(vmmAvg_Score_Domain_Previous), '#,##0.#');
+
+		let vmmMax_Score_Domain = Num(Max([Points Possible in Domain]), '#,##0.#');
+		let vmmMax_Score_Domain_Current = Num(Max({<YearEnd={$(=$(vMaxYearEnd))}>}[Points Possible in Domain]), '#,##0.#');
+		let vmmMax_Score_Domain_Previous = Num(Max({<YearEnd={$(=$(vLastYearEnd))}>}[Points Possible in Domain]), '#,##0.#');
+		let vmmMax_Score_Domain_YOY = Num($(vmmMax_Score_Domain_Current)-$(vmmAvg_Score_Domain_Previous), '#,##0.#');
+		
+		let vmmAvg_PercScore_Domain = Num(Avg([Percent Earned in Domain]), '#0.#%');
+		let vmmAvg_PercScore_Domain_Current = Num(Avg({<YearEnd={$(=$(vMaxYearEnd))}>}[Percent Earned in Domain]), '#0.#%');
+		let vmmAvg_PercScore_Domain_Previous = Num(Avg({<YearEnd={$(=$(vLastYearEnd))}>}[Percent Earned in Domain]), '#0.#%');
+		let vmmAvg_PercScore_Domain_YOY = Num($(vmmAvg_PercScore_Domain_Current)-$(vmmAvg_PercScore_Domain_Previous), '#0.#%');
+
+	//// All Metrics
+		let vmmAvg_Score_Metric = Num(Avg({<IsSum={0}>}[Points Earned]), '#,##0.#');
+		let vmmAvg_Score_Metric_Current = Num(Avg({<IsSum={0}, YearEnd={$(=$(vAvgYearEnd))}>}[Points Earned]), '#,##0.#');
+		let vmmAvg_Score_Metric_Previous = Num(Avg({<IsSum={0}, YearEnd={$(=$(vLastYearEnd))}>}[Points Earned]), '#,##0.#');
+		let vmmAvg_Score_Metric_YOY = Num($(vmmAvg_Score_Metric_Current)-$(vmmAvg_Score_Metric_Previous), '#,##0.#');
+
+		let vmmMax_Score_Metric = Num(Max({<IsSum={0}>}[Points Possible]), '#,##0.#');
+		let vmmMax_Score_Metric_Current = Num(Max({<IsSum={0}, YearEnd={$(=$(vMaxYearEnd))}>}[Points Possible]), '#,##0.#');
+		let vmmMax_Score_Metric_Previous = Num(Max({<IsSum={0}, YearEnd={$(=$(vLastYearEnd))}>}[Points Possible]), '#,##0.#');
+		let vmmMax_Score_Metric_YOY = Num($(vmmMax_Score_Metric_Current)-$(vmmAvg_Score_Metric_Previous), '#,##0.#');
+
+	//// Drill Down
+		let vmmAvg_Score_OverallToDomainToMetric = If(GetSelectedCount([Domain Name]) = 1, If(GetSelectedCount([Metric Name]) = 1, $(vmmAvg_Score_Metric), $(vmmAvg_Score_Domain)), $(vmmAvg_Score_Overall));
+		let vmmAvg_Score_OverallToDomainToMetric_Current = If(GetSelectedCount([Domain Name]) = 1, If(GetSelectedCount([Metric Name]) = 1, $(vmmAvg_Score_Metric_Current), $(vmmAvg_Score_Domain_Current)), $(vmmAvg_Score_Overall_Current));
+		let vmmAvg_Score_OverallToDomainToMetric_Previous = If(GetSelectedCount([Domain Name]) = 1, If(GetSelectedCount([Metric Name]) = 1, $(vmmAvg_Score_Metric_Previous), $(vmmAvg_Score_Domain_Previous)), $(vmmAvg_Score_Overall_Previous));
+		let vmmAvg_Score_OverallToDomainToMetric_YOY = If(GetSelectedCount([Domain Name]) = 1, If(GetSelectedCount([Metric Name]) = 1, $(vmmAvg_Score_Metric_YOY), $(vmmAvg_Score_Domain_YOY)), $(vmmAvg_Score_Overall_YOY));
+
+
+		let vmmMax_Score_OverallToDomainToMetric = If(GetSelectedCount([Domain Name]) = 1, If(GetSelectedCount([Metric Name]) = 1, $(vmmMax_Score_Metric), $(vmmMax_Score_Domain)), $(vmmMax_Score_Overall));
+		let vmmMax_Score_OverallToDomainToMetric_Current = If(GetSelectedCount([Domain Name]) = 1, If(GetSelectedCount([Metric Name]) = 1, $(vmmMax_Score_Metric_Current), $(vmmMax_Score_Domain_Current)), $(vmmMax_Score_Overall_Current));
+		let vmmMax_Score_OverallToDomainToMetric_Previous = If(GetSelectedCount([Domain Name]) = 1, If(GetSelectedCount([Metric Name]) = 1, $(vmmMax_Score_Metric_Previous), $(vmmMax_Score_Domain_Previous)), $(vmmMax_Score_Overall_Previous));
+		let vmmMax_Score_OverallToDomainToMetric_YOY = If(GetSelectedCount([Domain Name]) = 1, If(GetSelectedCount([Metric Name]) = 1, $(vmmMax_Score_Metric_YOY), $(vmmMax_Score_Domain_YOY)), $(vmmMax_Score_Overall_YOY));
+
+
+		let vmmMax_Score_DomainToMetric = If(GetSelectedCount([Domain Name]) = 1, $(vmmMax_Score_Metric), $(vmmMax_Score_Domain));
+		let vmmMax_Score_DomainToMetric_Current = If(GetSelectedCount([Domain Name]) = 1, $(vmmMax_Score_Metric_Current), $(vmmMax_Score_Domain_Current));
+		let vmmMax_Score_DomainToMetric_Previous = If(GetSelectedCount([Domain Name]) = 1, $(vmmMax_Score_Metric_Previous), $(vmmMax_Score_Domain_Previous));
+		let vmmMax_Score_DomainToMetric_YOY = If(GetSelectedCount([Domain Name]) = 1, $(vmmMax_Score_Metric_YOY), $(vmmMax_Score_Domain_YOY));
+
+
+
+	//// Specific Domains
+
+		/// Achievement
+			let vmmAvg_Score_Achievement = Num(Avg({<[Domain Name]={"Achievement"}>} [Points Earned in Domain]), '#,##0.#');
+			let vmmAvg_Score_Achievement_Current = Num(Avg({<[Domain Name]={"Achievement"}, YearEnd={$(=$(vMaxYearEnd))}>}[Points Earned in Domain]), '#,##0.#');
+			let vmmAvg_Score_Achievement_Previous = Num(Avg({<[Domain Name]={"Achievement"}, YearEnd={$(=$(vLastYearEnd))}>}[Points Earned in Domain]), '#,##0.#');
+			let vmmAvg_Score_Achievement_3Year = Num(Avg({<[Domain Name]={"Achievement"}, YearEnd={">=$(=$(vLastLastYearEnd))"}>}[Points Earned in Domain]), '#,##0.#');
+			let vmmAvg_Score_Achievement_YOY = Num($(vmmAvg_Score_Achievement_Current)-$(vmmAvg_Score_Achievement_Previous), '#,##0.#');
+
+			let vmmAvg_PercScore_Achievement = Num(Avg({<[Domain Name]={"Achievement"}>} [Percent Earned in Domain]), '#0.#%');
+			let vmmAvg_PercScore_Achievement_Current = Num(Avg({<[Domain Name]={"Achievement"}, YearEnd={$(=$(vMaxYearEnd))}>}[Percent Earned in Domain]), '#0.#%');
+			let vmmAvg_PercScore_Achievement_Previous = Num(Avg({<[Domain Name]={"Achievement"}, YearEnd={$(=$(vLastYearEnd))}>}[Percent Earned in Domain]), '#0.#%');
+			let vmmAvg_PercScore_Achievement_3Year = Num(Avg({<[Domain Name]={"Achievement"}, YearEnd={">=$(=$(vLastLastYearEnd))"}>}[Percent Earned in Domain]), '#0.#%');
+			let vmmAvg_PercScore_Achievement_YOY = Num($(vmmAvg_PercScore_Achievement_Current)-$(vmmAvg_PercScore_Achievement_Previous), '#0.#%');
+
+		/// College & Career
+			let vmmAvg_Score_CollegeCareer = Num(Avg({<[Domain Name]={"College & Career"}>} [Points Earned in Domain]), '#,##0.#');
+			let vmmAvg_Score_CollegeCareer_Current = Num(Avg({<[Domain Name]={"College & Career"}, YearEnd={$(=$(vMaxYearEnd))}>}[Points Earned in Domain]), '#,##0.#');
+			let vmmAvg_Score_CollegeCareer_Previous = Num(Avg({<[Domain Name]={"College & Career"}, YearEnd={$(=$(vLastYearEnd))}>}[Points Earned in Domain]), '#,##0.#');
+			let vmmAvg_Score_CollegeCareer_3Year = Num(Avg({<[Domain Name]={"College & Career"}, YearEnd={">=$(=$(vLastLastYearEnd))"}>}[Points Earned in Domain]), '#,##0.#');
+			let vmmAvg_Score_CollegeCareer_YOY = Num($(vmmAvg_Score_CollegeCareer_Current)-$(vmmAvg_Score_CollegeCareer_Previous), '#,##0.#');
+
+			let vmmAvg_PercScore_CollegeCareer = Num(Avg({<[Domain Name]={"College & Career"}>} [Percent Earned in Domain]), '#0.#%');
+			let vmmAvg_PercScore_CollegeCareer_Current = Num(Avg({<[Domain Name]={"College & Career"}, YearEnd={$(=$(vMaxYearEnd))}>}[Percent Earned in Domain]), '#0.#%');
+			let vmmAvg_PercScore_CollegeCareer_Previous = Num(Avg({<[Domain Name]={"College & Career"}, YearEnd={$(=$(vLastYearEnd))}>}[Percent Earned in Domain]), '#0.#%');
+			let vmmAvg_PercScore_CollegeCareer_3Year = Num(Avg({<[Domain Name]={"College & Career"}, YearEnd={">=$(=$(vLastLastYearEnd))"}>}[Percent Earned in Domain]), '#0.#%');
+			let vmmAvg_PercScore_CollegeCareer_YOY = Num($(vmmAvg_PercScore_CollegeCareer_Current)-$(vmmAvg_PercScore_CollegeCareer_Previous), '#0.#%');
+
+		/// Climate
+			let vmmAvg_Score_Climate = Num(Avg({<[Domain Name]={"Climate"}>} [Points Earned in Domain]), '#,##0.#');
+			let vmmAvg_Score_Climate_Current = Num(Avg({<[Domain Name]={"Climate"}, YearEnd={$(=$(vMaxYearEnd))}>}[Points Earned in Domain]), '#,##0.#');
+			let vmmAvg_ScCoore_Climate_Previous = Num(Avg({<[Domain Name]={"Climate"}, YearEnd={$(=$(vLastYearEnd))}>}[Points Earned in Domain]), '#,##0.#');
+			let vmmAvg_ScCoore_Climate_3Year = Num(Avg({<[Domain Name]={"Climate"}, YearEnd={">=$(=$(vLastLastYearEnd))"}>}[Points Earned in Domain]), '#,##0.#');
+			let vmmAvg_Score_Climate_YOY = Num($(vmmAvg_Score_Climate_Current)-$(vmmAvg_Score_Climate_Previous), '#,##0.#');
+
+			let vmmAvg_PercScore_Climate = Num(Avg({<[Domain Name]={"Climate"}>} [Percent Earned in Domain]), '#0.#%');
+			let vmmAvg_PercScore_Climate_Current = Num(Avg({<[Domain Name]={"Climate"}, YearEnd={$(=$(vMaxYearEnd))}>}[Percent Earned in Domain]), '#0.#%');
+			let vmmAvg_PercScore_Climate_Previous = Num(Avg({<[Domain Name]={"Climate"}, YearEnd={$(=$(vLastYearEnd))}>}[Percent Earned in Domain]), '#0.#%');
+			let vmmAvg_PercScore_Climate_3Year = Num(Avg({<[Domain Name]={"Climate"}, YearEnd={">=$(=$(vLastLastYearEnd))"}>}[Percent Earned in Domain]), '#0.#%');
+			let vmmAvg_PercScore_Climate_YOY = Num($(vmmAvg_PercScore_Climate_Current)-$(vmmAvg_PercScore_Climate_Previous), '#0.#%');
+
+		/// Progress
+			let vmmAvg_Score_Progress = Num(Avg({<[Domain Name]={"Progress"}>} [Points Earned in Domain]), '#,##0.#');
+			let vmmAvg_Score_Progress_Current = Num(Avg({<[Domain Name]={"Progress"}, YearEnd={$(=$(vMaxYearEnd))}>}[Points Earned in Domain]), '#,##0.#');
+			let vmmAvg_Score_Progress_Previous = Num(Avg({<[Domain Name]={"Progress"}, YearEnd={$(=$(vLastYearEnd))}>}[Points Earned in Domain]), '#,##0.#');
+			let vmmAvg_Score_Progress_3Year = Num(Avg({<[Domain Name]={"Progress"}, YearEnd={">=$(=$(vLastLastYearEnd))"}>}[Points Earned in Domain]), '#,##0.#');
+			let vmmAvg_Score_Progress_YOY = Num($(vmmAvg_Score_Progress_Current)-$(vmmAvg_Score_Progress_Previous), '#,##0.#');
+
+			let vmmAvg_PercScore_Progress = Num(Avg({<[Domain Name]={"Progress"}>} [Percent Earned in Domain]), '#0.#%');
+			let vmmAvg_PercScore_Progress_Current = Num(Avg({<[Domain Name]={"Progress"}, YearEnd={$(=$(vMaxYearEnd))}>}[Percent Earned in Domain]), '#0.#%');
+			let vmmAvg_PercScore_Progress_Previous = Num(Avg({<[Domain Name]={"Progress"}, YearEnd={$(=$(vLastYearEnd))}>}[Percent Earned in Domain]), '#0.#%');
+			let vmmAvg_PercScore_Progress_3Year = Num(Avg({<[Domain Name]={"Progress"}, YearEnd={">=$(=$(vLastLastYearEnd))"}>}[Percent Earned in Domain]), '#0.#%');
+			let vmmAvg_PercScore_Progress_YOY = Num($(vmmAvg_PercScore_Progress_Current)-$(vmmAvg_PercScore_Progress_Previous), '#0.#%');
+
+///// # of schools
+	
+	//// Across Tiers
+		let vmmCount_Schools_Overall = Num(Count(distinct %SchoolReportYearDomainKey), '#,##0');
+		let vmmCount_Schools_Overall_Current = Num(Count(distinct {<YearEnd={$(=$(vMaxYearEnd))}>}%SchoolReportYearDomainKey), '#,##0');
+		let vmmCount_Schools_Overall_Previous = Num(Count(distinct {<YearEnd={$(=$(vLastYearEnd))}>}%SchoolReportYearDomainKey), '#,##0');
+		let vmmCount_Schools_Overall_YOY = Num($(vmmCount_Schools_Overall_Current)-$(vmmCount_Schools_Overall_Previous), '#,##0');
+
+
+	//// In Tier: Model/Reinforce
+		let vmmCount_Schools_ModelReinforce_Overall = Num(Count(distinct {<[Overall Tier] = {"Model", "Reinforce"}>}%SchoolReportYearDomainKey), '#,##0');
+		let vmmCount_Schools_ModelReinforce_Overall_Current = Num(Count(distinct {<[Overall Tier] = {"Model", "Reinforce"}, YearEnd={$(=$(vMaxYearEnd))}>}%SchoolReportYearDomainKey), '#,##0');
+		let vmmCount_Schools_ModelReinforce_Overall_Previous = Num(Count(distinct {<[Overall Tier] = {"Model", "Reinforce"}, YearEnd={$(=$(vLastYearEnd))}>}%SchoolReportYearDomainKey), '#,##0');
+		let vmmCount_Schools_ModelReinforce_Overall_YOY = Num($(vmmCount_Schools_ModelReinforce_Overall_Current)-$(vmmCount_Schools_ModelReinforce_Overall_Previous), '#,##0');
+
+///// # of students
+	//// Across Tiers
+		let vmmCount_Students_Overall = Num(Sum(Enrollment), '#,##0');
+		let vmmCount_Students_Overall_Current = Num(Sum({<YearEnd={$(=$(vMaxYearEnd))}>}Enrollment), '#,##0');
+		let vmmCount_Students_Overall_Previous = Num(Sum({<YearEnd={$(=$(vLastYearEnd))}>}Enrollment), '#,##0');
+		let vmmCount_Students_Overall_YOY = Num($(vmmCount_Students_Overall_Current)-$(vmmCount_Students_Overall_Previous), '#,##0');
+
+
+	//// In Tier: Model/Reinforce
+		let vmmCount_Students_ModelReinforce_Overall = Num(Sum({<[Overall Tier] = {"Model", "Reinforce"}>}Enrollment), '#,##0');
+		let vmmCount_Students_ModelReinforce_Overall_Current = Num(Sum({<[Overall Tier] = {"Model", "Reinforce"}, YearEnd={$(=$(vMaxYearEnd))}>}Enrollment), '#,##0');
+		let vmmCount_Students_ModelReinforce_Overall_Previous = Num(Sum({<[Overall Tier] = {"Model", "Reinforce"}, YearEnd={$(=$(vLastYearEnd))}>}Enrollment), '#,##0');
+		let vmmCount_Students_ModelReinforce_Overall_YOY = Num($(vmmCount_Students_ModelReinforce_Overall_Current)-$(vmmCount_Students_ModelReinforce_Overall_Previous), '#,##0');
+

@@ -1,0 +1,55 @@
+		let vmmAvg_Score_Overall = Num(Avg([Points Earned Overall]), '#,##0.#');
+		let vmmAvg_Score_Overall_Current = Num(Avg({<YearEnd={$(=$(vMaxYearEnd))}>}[Points Earned Overall]), '#,##0.#');
+		let vmmAvg_Score_Overall_Previous = Num(Avg({<YearEnd={$(=$(vLastYearEnd))}>}[Points Earned Overall]), '#,##0.#');
+		let vmmAvg_Score_Overall_3Year = Num(Avg({<YearEnd={">=$(=$(vLastLastYearEnd))"}>}[Points Earned Overall]), '#,##0.#');
+		let vmmAvg_Score_Overall_YOY = Num($(vmmAvg_Score_Overall_Current)-$(vmmAvg_Score_Overall_Previous), '#,##0.#');
+
+		let vmmMax_Score_Overall = Num(Max([Points Possible Overall]), '#,##0.#');
+		let vmmMax_Score_Overall_Current = Num(Max({<YearEnd={$(=$(vMaxYearEnd))}>}[Points Possible Overall]), '#,##0.#');
+		let vmmMax_Score_Overall_Previous = Num(Max({<YearEnd={$(=$(vLastYearEnd))}>}[Points Possible Overall]), '#,##0.#');
+		let vmmMax_Score_Overall_YOY = Num($(vmmMax_Score_Overall_Current)-$(vmmAvg_Score_Overall_Previous), '#,##0.#');
+
+		let vmmAvg_Score_Domain = Num(Avg([Points Earned in Domain]), '#,##0.#');
+		let vmmAvg_Score_Domain_Current = Num(Avg({<YearEnd={$(=$(vMaxYearEnd))}>}[Points Earned in Domain]), '#,##0.#');
+		let vmmAvg_Score_Domain_Previous = Num(Avg({<YearEnd={$(=$(vLastYearEnd))}>}[Points Earned in Domain]), '#,##0.#');
+		let vmmAvg_Score_Domain_YOY = Num($(vmmAvg_Score_Domain_Current)-$(vmmAvg_Score_Domain_Previous), '#,##0.#');
+
+		let vmmMax_Score_Domain = Num(Max([Points Possible in Domain]), '#,##0.#');
+		let vmmMax_Score_Domain_Current = Num(Max({<YearEnd={$(=$(vMaxYearEnd))}>}[Points Possible in Domain]), '#,##0.#');
+		let vmmMax_Score_Domain_Previous = Num(Max({<YearEnd={$(=$(vLastYearEnd))}>}[Points Possible in Domain]), '#,##0.#');
+		let vmmMax_Score_Domain_YOY = Num($(vmmMax_Score_Domain_Current)-$(vmmAvg_Score_Domain_Previous), '#,##0.#');
+		
+
+		let vmmAvg_Score_OverallToDomainToMetric = If(GetSelectedCount([Domain Name]) = 1, If(GetSelectedCount([Metric Name]) = 1, $(vmmAvg_Score_Metric), $(vmmAvg_Score_Domain)), $(vmmAvg_Score_Overall));
+		let vmmAvg_Score_OverallToDomainToMetric_Current = If(GetSelectedCount([Domain Name]) = 1, If(GetSelectedCount([Metric Name]) = 1, $(vmmAvg_Score_Metric_Current), $(vmmAvg_Score_Domain_Current)), $(vmmAvg_Score_Overall_Current));
+		let vmmAvg_Score_OverallToDomainToMetric_Previous = If(GetSelectedCount([Domain Name]) = 1, If(GetSelectedCount([Metric Name]) = 1, $(vmmAvg_Score_Metric_Previous), $(vmmAvg_Score_Domain_Previous)), $(vmmAvg_Score_Overall_Previous));
+		let vmmAvg_Score_OverallToDomainToMetric_YOY = If(GetSelectedCount([Domain Name]) = 1, If(GetSelectedCount([Metric Name]) = 1, $(vmmAvg_Score_Metric_YOY), $(vmmAvg_Score_Domain_YOY)), $(vmmAvg_Score_Overall_YOY));
+
+
+		let vmmMax_Score_OverallToDomainToMetric = If(GetSelectedCount([Domain Name]) = 1, If(GetSelectedCount([Metric Name]) = 1, $(vmmMax_Score_Metric), $(vmmMax_Score_Domain)), $(vmmMax_Score_Overall));
+		let vmmMax_Score_OverallToDomainToMetric_Current = If(GetSelectedCount([Domain Name]) = 1, If(GetSelectedCount([Metric Name]) = 1, $(vmmMax_Score_Metric_Current), $(vmmMax_Score_Domain_Current)), $(vmmMax_Score_Overall_Current));
+		let vmmMax_Score_OverallToDomainToMetric_Previous = If(GetSelectedCount([Domain Name]) = 1, If(GetSelectedCount([Metric Name]) = 1, $(vmmMax_Score_Metric_Previous), $(vmmMax_Score_Domain_Previous)), $(vmmMax_Score_Overall_Previous));
+		let vmmMax_Score_OverallToDomainToMetric_YOY = If(GetSelectedCount([Domain Name]) = 1, If(GetSelectedCount([Metric Name]) = 1, $(vmmMax_Score_Metric_YOY), $(vmmMax_Score_Domain_YOY)), $(vmmMax_Score_Overall_YOY));
+
+
+		let vmmMax_Score_DomainToMetric = If(GetSelectedCount([Domain Name]) = 1, $(vmmMax_Score_Metric), $(vmmMax_Score_Domain));
+		let vmmMax_Score_DomainToMetric_Current = If(GetSelectedCount([Domain Name]) = 1, $(vmmMax_Score_Metric_Current), $(vmmMax_Score_Domain_Current));
+		let vmmMax_Score_DomainToMetric_Previous = If(GetSelectedCount([Domain Name]) = 1, $(vmmMax_Score_Metric_Previous), $(vmmMax_Score_Domain_Previous));
+		let vmmMax_Score_DomainToMetric_YOY = If(GetSelectedCount([Domain Name]) = 1, $(vmmMax_Score_Metric_YOY), $(vmmMax_Score_Domain_YOY));
+
+		let vmmSum_Score_Metric = Num(Sum({<IsSum={0}>}[Points Earned]), '#,##0.#');
+		let vmmSum_Score_Metric_Current = Num(Sum({<IsSum={0}, YearEnd={$(=$(vMaxYearEnd))}>}[Points Earned]), '#,##0.#');
+		let vmmSum_Score_Metric_Previous = Num(Sum({<IsSum={0}, YearEnd={$(=$(vLastYearEnd))}>}[Points Earned]), '#,##0.#');
+		let vmmSum_Score_Metric_YOY = Num($(vmmSum_Score_Metric_Current)-$(vmmAvg_Score_Metric_Previous), '#,##0.#');
+
+		let vmmAvg_Score_Metric = Num(Avg({<IsSum={0}>}[Points Earned]), '#,##0.#');
+		let vmmAvg_Score_Metric_Current = Num(Avg({<IsSum={0}, YearEnd={$(=$(vMaxYearEnd))}>}[Points Earned]), '#,##0.#');
+		let vmmAvg_Score_Metric_Previous = Num(Avg({<IsSum={0}, YearEnd={$(=$(vLastYearEnd))}>}[Points Earned]), '#,##0.#');
+		let vmmAvg_Score_Metric_YOY = Num($(vmmAvg_Score_Metric_Current)-$(vmmAvg_Score_Metric_Previous), '#,##0.#');
+
+		let vmmMax_Score_Metric = Num(Max({<IsSum={0}>}[Points Possible]), '#,##0.#');
+		let vmmMax_Score_Metric_Current = Num(Max({<IsSum={0}, YearEnd={$(=$(vMaxYearEnd))}>}[Points Possible]), '#,##0.#');
+		let vmmMax_Score_Metric_Previous = Num(Max({<IsSum={0}, YearEnd={$(=$(vLastYearEnd))}>}[Points Possible]), '#,##0.#');
+		let vmmMax_Score_Metric_YOY = Num($(vmmMax_Score_Metric_Current)-$(vmmAvg_Score_Metric_Previous), '#,##0.#');
+
+		
