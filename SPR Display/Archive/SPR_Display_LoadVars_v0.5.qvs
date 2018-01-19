@@ -3,8 +3,8 @@
 *	Jonathan Vitale
 *	Changes:
 *
-*	Version 0.6:
-*		- No longer have "Overall" or "Educator Effectiveness" within "Domain Name", nor do we have any overall scores in the "Metric Name"
+*	Version 0.5:
+*		- Uses variables for if statements
 *		- Format: By sheet, Visualziation
 *
 *	Reminder:
@@ -18,19 +18,19 @@
 ///// Universal Variables
 	//// Expressions
 
-		let vExpr_AllDomainsPossible = GetPossibleCount([Domain Name]) > 1 and GetSelectedCount([Domain Name]) = 0;
-		let vExpr_MultipleDomainsSelected = GetSelectedCount([Domain Name]) > 1;
-		let vExpr_MultipleMetricsSelected = GetSelectedCount([Metric Name]) > 1;
-		let vExpr_SomeDomainsSelected = GetSelectedCount([Domain Name]) > 0;
-		let vExpr_SingleDomainSelected = GetSelectedCount([Domain Name]) = 1;
+		let vExpr_AllDomainsPossible = GetPossibleCount([Domain Name]) > 1 and GetSelectedCount([Domain Name]) = 0 or WildMatch(Concat(GetFieldSelections([Domain Name])), '*Overall*') > 0 or WildMatch(Concat(GetFieldSelections([Metric Name])), '*Overall Score*') > 0;
+		let vExpr_MultipleDomainsSelected = GetSelectedCount([Domain Name]) > 1 and WildMatch(Concat(GetFieldSelections([Domain Name])), '*Overall*') < 1 and WildMatch(Concat(GetFieldSelections([Metric Name])), '*Overall Score*') < 1;
+		let vExpr_MultipleMetricsSelected = GetSelectedCount([Metric Name]) > 1 and WildMatch(Concat(GetFieldSelections([Domain Name])), '*Overall*') < 1 and WildMatch(Concat(GetFieldSelections([Metric Name])), '*Overall Score*') < 1;
+		let vExpr_SomeDomainsSelected = GetSelectedCount([Domain Name]) > 0 and WildMatch(Concat(GetFieldSelections([Domain Name])), '*Overall*') < 1 and WildMatch(Concat(GetFieldSelections([Metric Name])), '*Overall Score*') < 1;
+		let vExpr_SingleDomainSelected = WildMatch(Concat(GetFieldSelections([Domain Name])), '*Overall*') < 1 and WildMatch(Concat(GetFieldSelections([Metric Name])), '*Overall Score*') < 1 and (GetSelectedCount([Domain Name]) = 1 or (GetPossibleCount([Domain Name]) = 0 and WildMatch(Concat(GetFieldSelections([Metric Name])), '*Domain Score*') > 0));
 		let vExpr_SingleDomainSelected_AllMetricsPossible  = $(vExpr_SingleDomainSelected) and GetSelectedCount([Metric Name]) = 0;
 		let vExpr_SingleDomainPossible_SomeMetricsSelected = $(vExpr_SingleDomainSelected) and GetSelectedCount([Metric Name]) > 0;
-		let vExpr_MultipleDomainsPossible = GetPossibleCount([Domain Name]) > 1;
+		let vExpr_MultipleDomainsPossible = WildMatch(Concat(GetFieldSelections([Domain Name])), '*Overall*') < 1 and WildMatch(Concat(GetFieldSelections([Metric Name])), '*Overall Score*') < 1 and GetPossibleCount([Domain Name]) > 1;
 		let vExpr_MultipleDomainsPossible_AllMetricsPossible = $(vExpr_MultipleDomainsPossible) and GetSelectedCount([Metric Name]) = 0;
-		let vExpr_MultipleDomainsPossible_SomeMetricsSelected = $(vExpr_MultipleDomainsPossible) and GetSelectedCount([Metric Name]) > 0;
-		let vExpr_SomeMetricsSelected = GetSelectedCount([Metric Name]) > 0;
-		let vExpr_SingleMetricSelected = GetSelectedCount([Metric Name]) = 1;
-		let vExpr_NoMetricSelected = GetSelectedCount([Metric Name]) = 0;
+		let vExpr_MultipleDomainsPossible_SomeMetricsSelected = $(vExpr_MultipleDomainsPossible) and GetSelectedCount([Metric Name]) > 0 and WildMatch(Concat(GetFieldSelections([Metric Name])), '*Domain Score*') < 1;
+		let vExpr_SomeMetricsSelected = GetSelectedCount([Metric Name]) > 0 and GetPossibleCount([Domain Name]) = 1 and WildMatch(Concat(GetFieldSelections([Metric Name])), '*Domain Score*') < 1;
+		let vExpr_SingleMetricSelected = GetSelectedCount([Metric Name]) = 1 and GetPossibleCount([Domain Name]) = 1 and WildMatch(Concat(GetFieldSelections([Metric Name])), '*Domain Score*') < 1;
+		let vExpr_NoMetricSelected = GetSelectedCount([Metric Name]) = 0 or WildMatch(Concat(GetFieldSelections([Metric Name])), '*Domain Score*') > 0;
 		let vExpr_SingleDomainSelected_or_SingleMetricSelected = $(vExpr_SingleDomainSelected) or $(vExpr_SingleMetricSelected);
 
 	//// Date
@@ -648,7 +648,7 @@
 	                    'Average Score by Metric in ' & Only(GetFieldSelections([Domain Name]))
 	                ),
 					$(vTitle_Avg_PercScore_OverallToDomainToMetric)
-				) & ' (' & $(v_Last_Year) &')';
+				) & ' (' & $(v_Max_Year) &')';
 
 			// Change in SPR Score from the previous to the current year. If a single network is selected, will display each domain score, separately. If a single network and a single domain score is selected, will display each metric score, separately. If a specific network is not selected, will display either the overall, domain, or metric score selected for each network, based upon domain and metric selections. 
 			let vMM_Avg_PercScore_NetworkToDomainToMetric_YOY = Num(
@@ -735,7 +735,7 @@
 	                    'Average Score by Metric in ' & Only(GetFieldSelections([Domain Name]))
 	                ),
 					$(vTitle_Avg_PercScore_OverallToDomainToMetric)
-				) & ' (' & $(v_Last_Year) &')';
+				) & ' (' & $(v_Max_Year) &')';
 
 			// Change in SPR Score from the previous to the current year. If a single school is selected, will display each domain score, separately. If a single school and a single domain score is selected, will display each metric score, separately. If a specific network is not selected, will display either the overall, domain, or metric score selected for each network, based upon domain and metric selections. 
 			let vMM_Avg_PercScore_SchoolToDomainToMetric_YOY = Num(

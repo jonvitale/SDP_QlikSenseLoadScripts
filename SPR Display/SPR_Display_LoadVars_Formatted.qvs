@@ -37,20 +37,20 @@
 		IF([Tier] = '&chr(39)&'Reinforce'&chr(39)&', rgb(0,176,80),
 		IF([Tier] = '&chr(39)&'Model'&chr(39)&', rgb(0,112,192)))))';
 
-	let vColor_PercScore_Overall = 'IF(Avg([Percent Earned Overall]) < 0.25, rgb(192,80,77),
-		IF(Avg([Percent Earned Overall]) < 0.5, rgb(247,150,70),
-		IF(Avg([Percent Earned Overall]) < 0.75, rgb(0,176,80),
-		IF(Avg([Percent Earned Overall]) >= 0.75, rgb(0,112,192)))))';
+	let vColor_PercScore_Overall_Current = 'IF(Avg({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Percent Earned Overall]) < 0.25, rgb(192,80,77),
+		IF(Avg({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Percent Earned Overall]) < 0.5, rgb(247,150,70),
+		IF(Avg({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Percent Earned Overall]) < 0.75, rgb(0,176,80),
+		IF(Avg({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Percent Earned Overall]) >= 0.75, rgb(0,112,192)))))';
 
-	let vColor_PercScore_Domain = 'IF(Avg([Percent Earned in Domain]) < 0.25, rgb(192,80,77),
-		IF(Avg([Percent Earned in Domain]) < 0.5, rgb(247,150,70),
-		IF(Avg([Percent Earned in Domain]) < 0.75, rgb(0,176,80),
-		IF(Avg([Percent Earned in Domain]) >= 0.75, rgb(0,112,192)))))';
+	let vColor_PercScore_Domain_Current = 'IF(Avg({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Percent Earned in Domain]) < 0.25, rgb(192,80,77),
+		IF(Avg({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Percent Earned in Domain]) < 0.5, rgb(247,150,70),
+		IF(Avg({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Percent Earned in Domain]) < 0.75, rgb(0,176,80),
+		IF(Avg({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Percent Earned in Domain]) >= 0.75, rgb(0,112,192)))))';
 
-	let vColor_PercScore_Metric = 'IF(Avg([Percent Earned]) < 0.25, rgb(192,80,77),
-		IF(Avg([Percent Earned]) < 0.5, rgb(247,150,70),
-		IF(Avg([Percent Earned]) < 0.75, rgb(0,176,80),
-		IF(Avg([Percent Earned]) >= 0.75, rgb(0,112,192)))))';
+	let vColor_PercScore_Metric_Current = 'IF(Avg({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Percent Earned]) < 0.25, rgb(192,80,77),
+		IF(Avg({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Percent Earned]) < 0.5, rgb(247,150,70),
+		IF(Avg({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Percent Earned]) < 0.75, rgb(0,176,80),
+		IF(Avg({<YearEnd={'&chr(36)&'(='&chr(36)&'(vMaxYearEnd))}>}[Percent Earned]) >= 0.75, rgb(0,112,192)))))';
 
 ///// Overall
 	//// Overall score

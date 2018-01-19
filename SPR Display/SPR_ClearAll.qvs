@@ -1,0 +1,861 @@
+/**
+*	Clear all variables with regular expression search:
+*	(?s)let (.*?)=(.*?);
+*	Replace:
+*	set \1 = ;
+*/
+
+///// Universal Variables
+	//// Expressions
+
+		set vExpr_AllDomainsPossible  = ;
+		set vExpr_MultipleDomainsSelected  = ;
+		set vExpr_MultipleMetricsSelected  = ;
+		set vExpr_SomeDomainsSelected  = ;
+		set vExpr_SingleDomainSelected  = ;
+		set vExpr_SingleDomainSelected_AllMetricsPossible  = ;
+		set vExpr_SingleDomainPossible_SomeMetricsSelected  = ;
+		set vExpr_MultipleDomainsPossible  = ;
+		set vExpr_MultipleDomainsPossible_AllMetricsPossible  = ;
+		set vExpr_MultipleDomainsPossible_SomeMetricsSelected  = ;
+		set vExpr_SingleMetricSelected  = ;
+		set vExpr_NoMetricSelected  = ;
+		set vExpr_SingleDomainSelected_or_SingleMetricSelected  = ;
+
+	//// Date
+		 set v_Max_YearEnd  = ;
+		 set v_Last_YearEnd  = ;
+		 set v_LastLast_YearEnd  = ;
+		 set v_LastLastLast_YearEnd  = ;
+		 set v_Max_Year  = ;
+		 set v_Last_Year  = ;
+		 set v_LastLast_Year  = ;
+		 set v_LastLastLast_Year  = ;
+
+	//// Count of schools, students
+		set vMM_Count_Reports  = ;
+		// The number of schools in the most recent year.
+		set vMM_Count_Reports_Current  = ;
+		set vLab_Count_Reports_Current  = ;
+		
+		// The number of schools in the previous year.
+		set vMM_Count_Reports_Previous  = ;
+		set vLab_Count_Reports_Previous  = ;
+
+		set vMM_Count_Reports_Previous2  = ;
+		// The number of schools in the previous three years.
+		set vMM_Count_Reports_3Year_Current  = ;
+		set vLab_Count_Reports_3Year_Current  = ;
+
+		set vMM_Count_Reports_ModelReinforce  = ;
+		set vMM_Count_Reports_ModelReinforce_Current  = ;
+		set vMM_Count_Reports_ModelReinforce_Previous  = ;
+		set vMM_Count_Reports_ModelReinforce_YOY  = ;
+		set vMM_Count_Reports_WatchIntervene_Current  = ;
+		set vMM_Count_Reports_WatchIntervene_Previous  = ;
+		
+
+		set vMM_Count_Students  = ;
+
+		// The number of students in the most recent year.
+		set vMM_Count_Students_Current  = ;
+		set vLab_Count_Students_Current  = ;
+
+		// The number of students in the previous year.
+		set vMM_Count_Students_Previous  = ;
+		set vLab_Count_Students_Previous  = ;
+
+		set vMM_Count_Students_ModelReinforce  = ;
+		set vMM_Count_Students_ModelReinforce_Current  = ;
+		set vMM_Count_Students_ModelReinforce_Previous  = ;
+		set vMM_Count_Students_ModelReinforce_YOY  = ;
+
+	//// Titles and labels
+		set vTitle_Avg_PercScore_OverallToDomainToMetric  = ;
+
+		set vTitle_Avg_Tier_OverallToDomainToMetric  = ;
+
+	
+///// Universal Dimensions and Sorts
+	set vDim_DomainToMetric  = ;
+
+	set vSort_PeerGroup  = ;
+
+///// Landing Page
+
+	//// Calculation Condition
+		/// 
+			set vCalc_ZeroOrOne_Domains_Metrics  = ;
+
+			set vCalcDisplay_ZeroOrOne_Domains_Metrics  = ;
+
+
+	//// KPI (top-left): Avg Score - drill from overall to selected domain/metric
+
+		/// Title
+			// vTitle_Avg_PercScore_OverallToDomainToMetric
+
+		/// SubTitle
+			set vSubTitle_Avg_PercScore_OverallToDomainToMetric  = ;
+
+		/// Measure 1: Average Score in the Current Year (drill from overall to selected domain to selected metric)
+			// Description:
+			// SPR Score for the current year. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
+			set vMM_Avg_PercScore_OverallToDomainToMetric_Current  = ;
+
+			set vLab_Avg_PercScore_OverallToDomainToMetric_Current  = ;
+
+		/// Measure 2: YOY 
+			// Average SPR Score in the previous year. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
+			set vMM_Avg_PercScore_OverallToDomainToMetric_Previous  = ;
+
+			set vLab_Avg_PercScore_OverallToDomainToMetric_Previous  = ;	
+
+			// Change in SPR Score from the previous year to the current year. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
+			set vMM_Avg_PercScore_OverallToDomainToMetric_YOY  = ;
+
+			set vLab_Avg_PercScore_OverallToDomainToMetric_YOY  = ;	
+
+	//// KPI (top-left-middle): 3 Year Runniing Average Score - drill from overall to selected domain/metric
+		/// Title
+			set vTitle_Avg_PercScore_OverallToDomainToMetric_3Year_Current  = ;
+
+		/// SubTitle
+			set vSubTitle_Avg_PercScore_OverallToDomainToMetric_3Year_Current  = ;
+
+		/// Measure 1:
+			// The average percent of possible points earned in the most recent three years. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
+			set vMM_Avg_PercScore_OverallToDomainToMetric_3Year_Current  = ;
+
+
+			set vLab_Avg_PercScore_OverallToDomainToMetric_3Year_Current  = ;
+		
+		/// Measure 1:
+			// The average percent of possible points earned in the most recent three years prior to the current year. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
+			set vMM_Avg_PercScore_OverallToDomainToMetric_3Year_Previous  = ;
+
+
+			set vLab_Avg_PercScore_OverallToDomainToMetric_3Year_Previous  = ;
+		
+			// The change in the average percent of possible points earned from the previous 3-year period to the most recent 3-year period. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
+			set vMM_Avg_PercScore_OverallToDomainToMetric_3Year_YOY  = ;
+
+
+			set vLab_Avg_PercScore_OverallToDomainToMetric_3Year_YOY  = ;
+		
+	//// KPI  (top-right-middle): % of schools classified as model or reinforce
+		/// Title
+			// '% of "Model" and "Reinforce" School Reports'
+
+		/// SubTitle
+			set vSubTitle_Ratio_Reports_ModelReinforce  = ;
+			
+		/// Measure 1:
+			// The % of school reports with overall scores that put them in either the "Model" and "Reinforce" tiers (scores >= 50).	
+			set vMM_Ratio_Reports_ModelReinforce_Current  = ;
+
+			set vLab_Ratio_Reports_ModelReinforce_Current  = ;
+
+		/// Measure 2:
+			// The change from the previous to most recent year in the percent of school reports with overall scores that put them in either the "Model" and "Reinforce" tiers (scores >= 50).
+			set vMM_Ratio_Reports_ModelReinforce_YOY  = ;
+
+			set vLab_Ratio_Reports_ModelReinforce_YOY  = ;
+
+	//// KPI  (top-right): % of students in schools classified as model or reinforce
+		/// Title
+			// % of Students in "Model" and "Reinforce" School Reports
+
+		/// SubTitle
+			set vSubTitle_Ratio_Students_ModelReinforce  = ;
+			
+		/// Measure 1:
+			// The % of students in schools with overall scores that put them in either the "Model" and "Reinforce" tiers (scores >= 50).	
+			set vMM_Ratio_Students_ModelReinforce_Current  = ;
+
+			set vLab_Ratio_Students_ModelReinforce_Current  = ;
+
+		/// Measure 1:
+			// The change from the previous to most recent year in the percent of students in schools with overall scores that put them in either the "Model" and "Reinforce" tiers (scores >= 50).
+			set vMM_Ratio_Students_ModelReinforce_YOY  = ;
+
+			set vLab_Ratio_Students_ModelReinforce_YOY  = ;
+
+	//// Combo Chart (bottom-left): Average by Domain, drill to metric
+		/// Title
+			set vTitle_Avg_PercScore_DomainToMetric  = ;
+
+		/// SubTitle
+
+		/// Measure 1
+			// The percent of possible points earned for all available metrics in the most current year. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			set vMM_Avg_PercScore_DomainToMetric_Current  = ;
+
+			set vLab_Avg_PercScore_DomainToMetric_Current  = ;
+
+		/// Measure 2
+			// The percent of possible points earned for all available metrics in the previous year. Without selections this defaults to the domain level.  If a single domain is selected this will display individual metrics
+			set vMM_Avg_PercScore_DomainToMetric_Previous  = ;
+
+			set vLab_Avg_PercScore_DomainToMetric_Previous  = ;
+
+		/// Color
+			set vCol_Avg_PercScore_DomainToMetric_Current  = ;
+
+	//// Line Chart (bottom-left-middle): 3 Year Average by Domain, drill to metric
+		/// Title
+			set vTitle_Avg_PercScore_DomainToMetric_3Year_Current  = ;
+
+		/// SubTitle
+
+		/// Measure 1
+			// vMM_Avg_PercScore_OverallToDomainToMetric_3Year
+			
+		/// Color
+			set vCol_Avg_PercScore_DomainToMetric_3Year_Current  = ;
+
+	//// Combo Chart (bottom-right-middle): % of Schools in each Tier
+		/// Title
+			// '% of School Reports in each Tier'
+
+		/// Subtitle
+
+		/// Measure 1
+			// vMM_Count_Reports_Current
+
+		/// Measure 2
+			// vMM_Count_Reports_Previous
+
+		/// Color
+			set vCol_Tier  = ;
+
+	//// Combo Chart (bottom-right-middle): % of Schools in each Tier
+		/// Title
+			// '% of Students in Schools From each Tier'
+
+		/// Subtitle
+
+		/// Measure 1
+			// vMM_Count_Students_Current
+
+		/// Measure 2
+			// vMM_Count_Students_Previous
+
+		/// Color
+			// vCol_OverallTier
+
+///// YOY Scores (by Network, Domain, Metric)
+	//// Combo Chart (center): Average Schore by Network, School Report
+
+		/// Title
+			set vTitle_Avg_PercScore_NetworkToDomainToMetric  = ;
+
+		/// SubTitle
+			set vSubTitle_Avg_PercScore_NetworkToDomainToMetric  = ;
+
+		/// Measure 1
+			// SPR Score for the current year. If a single network is selected, will display each domain score, separately. If a single network and a single domain score is selected, will display each metric score, separately. If a specific network is not selected, will display either the overall, domain, or metric score selected for each network, based upon domain and metric selections. 
+			set vMM_Avg_PercScore_NetworkToDomainToMetric_Current  = ;
+
+			set vLab_Avg_PercScore_NetworkToDomainToMetric_Current  = ;
+
+
+		// Measure 2
+			// SPR Score for the previous year. If a single network is selected, will display each domain score, separately. If a single network and a single domain score is selected, will display each metric score, separately. If a specific network is not selected, will display either the overall, domain, or metric score selected for each network, based upon domain and metric selections. 
+			set vMM_Avg_PercScore_NetworkToDomainToMetric_Previous  = ;
+
+			set vLab_Avg_PercScore_NetworkToDomainToMetric_Previous  = ;
+
+			// Change in SPR Score from the previous to the current year. If a single network is selected, will display each domain score, separately. If a single network and a single domain score is selected, will display each metric score, separately. If a specific network is not selected, will display either the overall, domain, or metric score selected for each network, based upon domain and metric selections. 
+			set vMM_Avg_PercScore_NetworkToDomainToMetric_YOY  = ;
+
+			set vLab_Avg_PercScore_NetworkToDomainToMetric_YOY  = ;	
+
+		/// Color
+			// $(vMM_Avg_PercScore_NetworkToDomainToMetric_YOY);
+
+///// YOY Scores (by School, Domain, Metric)
+	//// Combo Chart (center): Average Schore by Network, School Report
+
+		/// Title
+			set vTitle_Avg_PercScore_SchoolToDomainToMetric  = ;
+
+		/// SubTitle
+			set vSubTitle_Avg_PercScore_SchoolToDomainToMetric  = ;
+
+		/// Measure 1
+			// SPR Score for the current year. If a single school is selected, will display each domain score, separately. If a single school and a single domain score is selected, will display each metric score, separately. If a specific network is not selected, will display either the overall, domain, or metric score selected for each network, based upon domain and metric selections. 
+			set vMM_Avg_PercScore_SchoolToDomainToMetric_Current  = ;
+
+			set vLab_Avg_PercScore_SchoolToDomainToMetric_Current  = ;
+
+
+		// Measure 2
+			// SPR Score for the previous year. If a single school is selected, will display each domain score, separately. If a single school and a single domain score is selected, will display each metric score, separately. If a specific network is not selected, will display either the overall, domain, or metric score selected for each network, based upon domain and metric selections. 
+			set vMM_Avg_PercScore_SchoolToDomainToMetric_Previous  = ;
+
+			set vLab_Avg_PercScore_SchoolToDomainToMetric_Previous  = ;
+
+			// Change in SPR Score from the previous to the current year. If a single school is selected, will display each domain score, separately. If a single school and a single domain score is selected, will display each metric score, separately. If a specific network is not selected, will display either the overall, domain, or metric score selected for each network, based upon domain and metric selections. 
+			set vMM_Avg_PercScore_SchoolToDomainToMetric_YOY  = ;
+
+			set vLab_Avg_PercScore_SchoolToDomainToMetric_YOY  = ;	
+
+		/// Color
+			// $(vMM_Avg_PercScore_SchoolToDomainToMetric_YOY);
+
+///// Points Possible and Points Earned (Scoring Page)
+
+	set vSheet_Points_Possible_and_Points_Earned  = ; 
+
+	//// Since this page must default to a specific report type, create a variable to store this
+	set v_SelectedOrFirst_ReportType  = ;
+
+	//// KPI 1 - # of points possible
+		/// Measure 1
+			// Average Points Possible for the current year for the selected report type. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
+			set vMM_Avg_PointsPossible_Report_OverallToDomainToMetric_Current  = ;
+
+			set vLab_Avg_PointsPossible_Report_OverallToDomainToMetric_Current  = ;
+		/// Measure 2
+
+			set vMM_Max_PointsPossible_OverallToDomainToMetric_Current  = ;
+
+	//// KPI 2 - # of points earned
+		// Average Points Earned for the current year for the selected report type. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
+		set vMM_Avg_PointsEarned_Report_OverallToDomainToMetric_Current  = ;
+
+		set vLab_Avg_PointsEarned_Report_OverallToDomainToMetric_Current  = ;
+
+	//// KPI 3 - % of points earned
+		// SPR Score for the current year for the selected report type. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
+		set vMM_Avg_PercScore_Report_OverallToDomainToMetric_Current  = ;
+
+		set vLab_Avg_PercScore_Report_OverallToDomainToMetric_Current  = ;
+
+
+	//// KPI 4 - Current Tier
+		// Aperage Tier for the current year (< 0.25 = 'Intervene', < 0.50 = 'Watch', < .75 = 'Reinforce', >= 'Model'). If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
+		set vMM_Avg_Tier_Report_OverallToDomainToMetric_Current  = ;
+
+		set vLab_Avg_Tier_Report_OverallToDomainToMetric_Current  = ;
+
+	//// TreeMap (Bottom) - Displays size by number of points, color by tier
+		/// Title
+			set vTitle_Scoring_Report_DomainToMetric  = ;
+
+		/// Subtitle:
+			set vSubTitle_Scoring_Report_DomainToMetric  = ;	
+
+		/// Measure (for size)
+			// Displays the maximum number of points per domain. If a single domain is selected will show the maximum # of points per metric.
+			set vMM_MaxScore_Report_DomainToMetric_Current  = ;
+
+			set vLab_MaxScore_Report_DomainToMetric_Current  = ;
+		
+
+		/// Color
+			// The percent of possible points earned for all available metrics in the most current year. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			set vMM_Avg_PercScore_Report_DomainToMetric_Current  = ;
+
+			set vLab_Avg_PercScore_Report_DomainToMetric_Current  = ;
+
+
+			set vCol_Avg_PercScore_Report_DomainToMetric_Current  = ;
+
+///// Change from 2015-2016 to 2016-2017 (Sankey Page)
+
+	//// Sheet Name
+		set vSheet_Change_from_Previous_to_Current  = ;
+
+	//// KPI  (top-left): # of school reports
+		/// Title			
+			
+
+		/// Measure 1:
+			// vMM_Count_Reports_Current	
+
+	/// KPI 2: 
+
+		/// Measure 1:
+			// The # of schools that increased their SPR score.
+			set vMM_Count_Reports_Increase_Current  = ;
+
+			set vLab_Count_Reports_Increase_Current  = ;
+
+		/// Measure 2:
+			// The % of schools that increased their SPR score.
+			set vMM_Ratio_Reports_Increase_Current  = ;
+
+			set vLab_Ratio_Reports_Increase_Current  = ;
+	
+	/// KPI 3: 
+
+		/// Measure 1:
+			// The # of schools that increased their SPR Tier level (such as Watch to Reinforce or Model).
+			set vMM_Count_Reports_IncreaseTier_Current  = ;
+
+			set vLab_Count_Reports_IncreaseTier_Current  = ;
+
+		/// Measure 2:
+			// The % of schools that increased their SPR Tier level (such as Watch to Reinforce or Model).
+			set vMM_Ratio_Reports_IncreaseTier_Current  = ;
+
+			set vLab_Ratio_Reports_IncreaseTier_Current  = ;
+
+	/// KPI 4: 
+
+		/// Measure 1:
+			// The # of schools that moved from Intervene or Watch to Reinforce or Model.
+			set vMM_Count_Reports_MovedToUpperTier_Current  = ;
+
+			set vLab_Count_Reports_MovedToUpperTier_Current  = ;
+	
+		/// Measure 2:
+			// The % of schools that moved from Intervene or Watch to Reinforce or Model.
+			set vMM_Ratio_Reports_MovedToUpperTier_Current  = ;
+
+			set vLab_Ratio_Reports_MovedToUpperTier_Current  = ;
+
+	//// Sankey (bottom-left)
+
+		/// Variables for selecting the appropriate year
+			set v_Sankey_Current  = ;
+
+    		set v_Sankey_Previous  = ;
+
+			set v_Sankey_Previous2  = ;    		
+
+		/// Measure (for size)
+			set vMM_Count_Tier_OverallToDomainToMetric  = ;
+
+		/// Color Nodes (2016-2017)
+			set vCol_OverallTier_Current  = ;
+			
+
+		/// Color Nodes (2015-2016)
+			set vCol_OverallTier_Previous  = ;
+
+		/// Color Nodes (2014-2015)
+			set vCol_OverallTier_Previous2  = ;
+
+
+		/// Color Flow (2016-2017)
+			set vCol_TierYOY_Previous  = ;
+			set vCol_TierYOY_Previous2  = ;
+
+		/// Sort (2016-2017)
+			set vSort_OverallTier_Current  = ;
+
+		/// Sort (2015-2016)
+			set vSort_OverallTier_Previous  = ;
+
+		/// Sort (2014-2015)
+			set vSort_OverallTier_Previous2  = ;
+
+	//// Table
+
+		/// Measure 1 - Score Previous
+			// vMM_Avg_PercScore_OverallToDomainToMetric_Previous
+
+			// background coloring
+			set vCol_Avg_PercScore_OverallToDomainToMetric_Previous  = ;
+		
+		/// Measure 2 - Score Current
+			//  vMM_Avg_PercScore_OverallToDomainToMetric_Current
+			
+			// background coloring
+			set vCol_Avg_PercScore_OverallToDomainToMetric_Current  = ;
+
+		/// Measure 3 - Score Change 
+			// vMM_Avg_PercScore_OverallToDomainToMetric_YOY 
+
+			// background coloring
+			set vCol_Avg_PercScore_OverallToDomainToMetric_YOY  = ;
+
+		
+///// Map Sheet - User can select which metric to view based upon button selected
+	set vSelectedMeasure  = ;
+
+	//// Button - Current Score
+		set vButLab_Metric_Score_Current  = ;
+
+	//// Button - Previous Score
+		set vButLab_Metric_Score_Previous  = ;
+
+	//// Button - Current Score
+		set vButLab_Metric_Score_YOY  = ;
+
+	//// Button - Current Score
+		set vButLab_Metric_Score_3Year_Current  = ;
+
+	//// Map (Center-Left)
+		/// Measure (for size)
+			set vMM_Measure_Selected  = ;
+				
+			// this isn't actually working as a real master measure, perhaps map will allow in an update.
+			set vLab_Measure_Selected  = ;	
+
+		/// Colors
+			set vCol_Measure_Selected  = ;
+
+	//// Treemap Legend (bottom)
+			set vColLegend_Measure_Selected  = ;    
+
+///// Achievement Domain Sheet
+	//// Line Graph (top-left) - shows last 3 years of performance in the Achievement domain, drill to metrics
+		/// Title
+			set vTitle_Avg_PercScore_Achievement_3Year_Current  = ;
+
+		/// SubTitle
+			set vSubTitle_Avg_PercScore_Achievement_3Year_Current  = ;
+
+		/// Measure 1
+			// The average percent of possible points earned for all available "Achievement" metrics in the previous 3 years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			set vMM_Avg_PercScore_Achievement_3Year_Current  = ;
+
+			set vLab_Avg_PercScore_Achievement_3Year_Current  = ;	
+			
+		/// Color
+			set vCol_Avg_PercScore_Achievement_3Year_Current  = ;
+
+	
+	
+	//// Table (bottom-left)
+		/// Measure 1: Achievement - # of reports
+			// The number of "Achievement" reports in the most recent three years.
+			set vMM_Count_Reports_Achievement_3Year_Current  = ;
+			set vLab_Count_Reports_Achievement_3Year_Current  = ;
+			
+		/// Measure 2: Achievement - Average Points Possible
+			// The average number of total possible points for all available "Achievement" metrics in the previous three years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			set vMM_Avg_PointsPossible_Achievement_3Year_Current  = ;
+			set vLab_Avg_PointsPossible_Achievement_3Year_Current  = ;
+
+		/// Measure 3: Achievement - Average Points Earned
+			// The average number of points earned for all available "Achievement" metrics in the previous three years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			set vMM_Avg_PointsEarned_Achievement_3Year_Current  = ;
+			set vLab_Avg_PointsEarned_Achievement_3Year_Current  = ;
+
+		/// Measure 3: Achievement - Average Score %
+			// vMM_Avg_PercScore_Achievement_3Year_Current 
+			
+
+		/// Measure 4: Achievement - Average Tier
+			// The average tier for the "Achievement" achievement domain for the previous 3 years (< 0.25 = 'Intervene', < 0.50 = 'Watch', < .75 = 'Reinforce', >= 'Model'). Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			set vMM_Avg_Tier_Achievement_3Year_Current  = ;
+			set vLab_Avg_Tier_Achievement_3Year_Current  = ;
+
+
+		/// Measure 5: Achievement - # of reports in "model" or "reinforce"
+			// The number of reports at the "Model" and "Reinforce" tier withing the "Achievement" domain.
+			set vMM_Count_Reports_ModelReinforce_Achievement_3Year_Current  = ;
+			set vLab_Count_Reports_ModelReinforce_Achievement_3Year_Current  = ;
+		
+		
+		/// Color
+			set vCol_YearEnd  = ;
+
+
+	//// Bar Chart (right)
+		/// Title
+			set vTitle_Avg_PercScore_Achievement_Current  = ;
+
+		/// SubTitle
+			set vSubTitle_Avg_PercScore_Achievement_Current  = ;	
+
+		/// Measure 1
+			// The percent of possible points earned for all available "Achievement" metrics in the most current year. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			set vMM_Avg_PercScore_AchievementToMetric_Current  = ;
+			
+			set vLab_Avg_PercScore_AchievementToMetric_Current  = ;
+
+		/// Color: vMM_Avg_PercScore_AchievementToMetric_Current 
+			set vCol_Avg_PercScore_AchievementToMetric_Current  = ;
+
+///// Progress Domain Sheet
+	//// Line Graph (top-left) - shows last 3 years of performance in the Progress domain, drill to metrics
+		/// Title
+			set vTitle_Avg_PercScore_Progress_3Year_Current  = ;
+
+		/// SubTitle
+			set vSubTitle_Avg_PercScore_Progress_3Year_Current  = ;
+
+		/// Measure 1
+			// The average percent of possible points earned for all available "Progress" metrics in the previous 3 years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			set vMM_Avg_PercScore_Progress_3Year_Current  = ;
+
+			set vLab_Avg_PercScore_Progress_3Year_Current  = ;	
+			
+		/// Color
+			set vCol_Avg_PercScore_Progress_3Year_Current  = ;
+
+	
+	
+	//// Table (bottom-left)
+		/// Measure 1: Progress - # of reports
+			// The number of "Progress" reports in the most recent three years.
+			set vMM_Count_Reports_Progress_3Year_Current  = ;
+			set vLab_Count_Reports_Progress_3Year_Current  = ;
+			
+		/// Measure 2: Progress - Average Points Possible
+			// The average number of total possible points for all available "Progress" metrics in the previous three years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			set vMM_Avg_PointsPossible_Progress_3Year_Current  = ;
+			set vLab_Avg_PointsPossible_Progress_3Year_Current  = ;
+
+		/// Measure 3: Progress - Average Points Earned
+			// The average number of points earned for all available "Progress" metrics in the previous three years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			set vMM_Avg_PointsEarned_Progress_3Year_Current  = ;
+			set vLab_Avg_PointsEarned_Progress_3Year_Current  = ;
+
+		/// Measure 3: Progress - Average Score %
+			// vMM_Avg_PercScore_Progress_3Year_Current 
+			
+
+		/// Measure 4: Progress - Average Tier
+			// The average tier for the "Progress" achievement domain for the previous 3 years (< 0.25 = 'Intervene', < 0.50 = 'Watch', < .75 = 'Reinforce', >= 'Model'). Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			set vMM_Avg_Tier_Progress_3Year_Current  = ;
+			set vLab_Avg_Tier_Progress_3Year_Current  = ;
+
+
+		/// Measure 5: Progress - # of reports in "model" or "reinforce"
+			// The number of reports at the "Model" and "Reinforce" tier withing the "Progress" domain.
+			set vMM_Count_Reports_ModelReinforce_Progress_3Year_Current  = ;
+			set vLab_Count_Reports_ModelReinforce_Progress_3Year_Current  = ;
+		
+		
+		/// Color
+			set vCol_YearEnd  = ;
+
+
+	//// Bar Chart (right)
+		/// Title
+			set vTitle_Avg_PercScore_Progress_Current  = ;
+
+		/// SubTitle
+			set vSubTitle_Avg_PercScore_Progress_Current  = ;	
+
+		/// Measure 1
+			// The percent of possible points earned for all available "Progress" metrics in the most current year. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			set vMM_Avg_PercScore_ProgressToMetric_Current  = ;
+			
+			set vLab_Avg_PercScore_ProgressToMetric_Current  = ;
+
+		/// Color:
+			set vCol_Avg_PercScore_ProgressToMetric_Current  = ;
+
+///// Climate Domain Sheet
+	//// Line Graph (top-left) - shows last 3 years of performance in the Climate domain, drill to metrics
+		/// Title
+			set vTitle_Avg_PercScore_Climate_3Year_Current  = ;
+
+		/// SubTitle
+			set vSubTitle_Avg_PercScore_Climate_3Year_Current  = ;
+
+		/// Measure 1
+			// The average percent of possible points earned for all available "Climate" metrics in the previous 3 years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			set vMM_Avg_PercScore_Climate_3Year_Current  = ;
+
+			set vLab_Avg_PercScore_Climate_3Year_Current  = ;	
+			
+		/// Color
+			set vCol_Avg_PercScore_Climate_3Year_Current  = ;
+
+	
+	
+	//// Table (bottom-left)
+		/// Measure 1: Climate - # of reports
+			// The number of "Climate" reports in the most recent three years.
+			set vMM_Count_Reports_Climate_3Year_Current  = ;
+			set vLab_Count_Reports_Climate_3Year_Current  = ;
+			
+		/// Measure 2: Climate - Average Points Possible
+			// The average number of total possible points for all available "Climate" metrics in the previous three years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			set vMM_Avg_PointsPossible_Climate_3Year_Current  = ;
+			set vLab_Avg_PointsPossible_Climate_3Year_Current  = ;
+
+		/// Measure 3: Climate - Average Points Earned
+			// The average number of points earned for all available "Climate" metrics in the previous three years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			set vMM_Avg_PointsEarned_Climate_3Year_Current  = ;
+			set vLab_Avg_PointsEarned_Climate_3Year_Current  = ;
+
+		/// Measure 3: Climate - Average Score %
+			// vMM_Avg_PercScore_Climate_3Year_Current 
+			
+
+		/// Measure 4: Climate - Average Tier
+			// The average tier for the "Climate" achievement domain for the previous 3 years (< 0.25 = 'Intervene', < 0.50 = 'Watch', < .75 = 'Reinforce', >= 'Model'). Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			set vMM_Avg_Tier_Climate_3Year_Current  = ;
+			set vLab_Avg_Tier_Climate_3Year_Current  = ;
+
+
+		/// Measure 5: Climate - # of reports in "model" or "reinforce"
+			// The number of reports at the "Model" and "Reinforce" tier withing the "Climate" domain.
+			set vMM_Count_Reports_ModelReinforce_Climate_3Year_Current  = ;
+			set vLab_Count_Reports_ModelReinforce_Climate_3Year_Current  = ;
+		
+		
+		/// Color
+			set vCol_YearEnd  = ;
+
+
+	//// Bar Chart (right)
+		/// Title
+			set vTitle_Avg_PercScore_Climate_Current  = ;
+
+		/// SubTitle
+			set vSubTitle_Avg_PercScore_Climate_Current  = ;	
+
+		/// Measure 1
+			// The percent of possible points earned for all available "Climate" metrics in the most current year. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			set vMM_Avg_PercScore_ClimateToMetric_Current  = ;
+			
+			set vLab_Avg_PercScore_ClimateToMetric_Current  = ;
+
+		/// Color:
+			set vCol_Avg_PercScore_ClimateToMetric_Current  = ;
+
+///// College & Career Domain Sheet
+	//// Line Graph (top-left) - shows last 3 years of performance in the College & Career domain, drill to metrics
+		/// Title
+			set vTitle_Avg_PercScore_CollegeCareer_3Year_Current  = ;
+
+		/// SubTitle
+			set vSubTitle_Avg_PercScore_CollegeCareer_3Year_Current  = ;
+
+		/// Measure 1
+			// The average percent of possible points earned for all available "College & Career" metrics in the previous 3 years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			set vMM_Avg_PercScore_CollegeCareer_3Year_Current  = ;
+
+			set vLab_Avg_PercScore_CollegeCareer_3Year_Current  = ;	
+			
+		/// Color
+			set vCol_Avg_PercScore_CollegeCareer_3Year_Current  = ;
+
+	
+	
+	//// Table (bottom-left)
+		/// Measure 1: College & Career - # of reports
+			// The number of "College & Career" reports in the most recent three years.
+			set vMM_Count_Reports_CollegeCareer_3Year_Current  = ;
+			set vLab_Count_Reports_CollegeCareer_3Year_Current  = ;
+			
+		/// Measure 2: College & Career - Average Points Possible
+			// The average number of total possible points for all available "College & Career" metrics in the previous three years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			set vMM_Avg_PointsPossible_CollegeCareer_3Year_Current  = ;
+			set vLab_Avg_PointsPossible_CollegeCareer_3Year_Current  = ;
+
+		/// Measure 3: College & Career - Average Points Earned
+			// The average number of points earned for all available "College & Career" metrics in the previous three years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			set vMM_Avg_PointsEarned_CollegeCareer_3Year_Current  = ;
+			set vLab_Avg_PointsEarned_CollegeCareer_3Year_Current  = ;
+
+		/// Measure 3: College & Career - Average Score %
+			// vMM_Avg_PercScore_CollegeCareer_3Year_Current 
+			
+
+		/// Measure 4: College & Career - Average Tier
+			// The average tier for the "College & Career" achievement domain for the previous 3 years (< 0.25 = 'Intervene', < 0.50 = 'Watch', < .75 = 'Reinforce', >= 'Model'). Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			set vMM_Avg_Tier_CollegeCareer_3Year_Current  = ;
+			set vLab_Avg_Tier_CollegeCareer_3Year_Current  = ;
+
+
+		/// Measure 5: College & Career - # of reports in "model" or "reinforce"
+			// The number of reports at the "Model" and "Reinforce" tier withing the "College & Career" domain.
+			set vMM_Count_Reports_ModelReinforce_CollegeCareer_3Year_Current  = ;
+			set vLab_Count_Reports_ModelReinforce_CollegeCareer_3Year_Current  = ;
+		
+		
+		/// Color
+			set vCol_YearEnd  = ;
+
+
+	//// Bar Chart (right)
+		/// Title
+			set vTitle_Avg_PercScore_CollegeCareer_Current  = ;
+
+		/// SubTitle
+			set vSubTitle_Avg_PercScore_CollegeCareer_Current  = ;	
+
+		/// Measure 1
+			// The percent of possible points earned for all available "College & Career" metrics in the most current year. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			set vMM_Avg_PercScore_CollegeCareerToMetric_Current  = ;
+			
+			set vLab_Avg_PercScore_CollegeCareerToMetric_Current  = ;
+
+		/// Color:
+			set vCol_Avg_PercScore_CollegeCareerToMetric_Current  = ;
+
+///// Educator Effectiveness Domain Sheet
+	//// Line Graph (top-left) - shows last 3 years of performance in the College & Career domain, drill to metrics
+		/// Title
+			set vTitle_Avg_PercScore_EducatorEffectiveness_3Year_Current  = ;
+
+		/// SubTitle
+			set vSubTitle_Avg_PercScore_EducatorEffectiveness_3Year_Current  = ;
+
+		/// Measure 1
+			// The average percent of possible points earned for all available "College & Career" metrics in the previous 3 years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			set vMM_Avg_PercScore_EducatorEffectiveness_3Year_Current  = ;
+
+			set vLab_Avg_PercScore_EducatorEffectiveness_3Year_Current  = ;	
+			
+		/// Color
+			set vCol_Avg_PercScore_EducatorEffectiveness_3Year_Current  = ;
+	
+///// Table Page
+
+	//// Table
+		/// Measure 1: City rank
+			// Description:
+			// City Rank for a selected school in the current year. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made this is equal to the score for the domain.
+			set vMM_CityRank_OverallToDomain_Current  = ;
+
+			set vLab_CityRank_OverallToDomain_Current  = ;
+
+			set vMM_CityRankPerc_OverallToDomain_Current  = ;
+
+			set vCol_CityRankPerc_OverallToDomain_Current  = ;
+
+		/// Measure 2: Peer rank
+			// Description:
+			// Peer Rank for a selected school in the current year. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made this is equal to the score for the domain.
+			set vMM_PeerRank_OverallToDomain_Current  = ;
+
+			set vLab_PeerRank_OverallToDomain_Current  = ;
+
+			set vMM_PeerRankPerc_OverallToDomain_Current  = ;
+
+			set vCol_PeerRankPerc_OverallToDomain_Current  = ;
+
+
+		/// Colors for previously defined measures
+			set vCol_Avg_PercScore_OverallToDomainToMetric_3Year_Current  = ;
+
+			set vCol_Avg_PercScore_OverallToDomainToMetric_3Year_YOY  = ;
+
+///// SPP Page
+	
+	//// Scatter Chart (center)
+
+		/// Title
+			set vTitle_Avg_PercScore_v_SPP  = ;
+
+		/// SubTitle
+
+		/// Measure 1
+			set v_Format_SPP_Selected  = ;
+
+			// The Penssylvania School Performance Profile (SPP) "Final Academic Score" for the current year. Please visit http://www.paschoolperformance.org for more information.
+			set vMM_Avg_SPPScore_Selected_Current  = ;
+
+			set vLab_Avg_SPPScore_Selected_Current  = ;
+
+			// add 5% to max that is not a %
+			set vYMax_Avg_SPPScore_Selected_Current  = ;
+
+		/// We may not use the following, but we'll keep it in the system
+			// The Penssylvania School Performance Profile (SPP) "Final Academic Score" for the current year. Please visit http://www.paschoolperformance.org for more information.
+			set vMM_Avg_SPPScore_FinalAcademicScore_Current  = ;
+
+			set vLab_Avg_SPPScore_FinalAcademicScore_Current  = ;

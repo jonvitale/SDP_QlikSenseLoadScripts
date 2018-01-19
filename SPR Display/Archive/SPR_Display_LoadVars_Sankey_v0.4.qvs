@@ -1,0 +1,311 @@
+///// Change from 2015-2016 to 2016-2017 (Sankey Page)
+
+
+	//// KPI  (top-left): # of school reports
+		/// Title			
+			
+
+		/// Measure 1:
+			let vMM_Count_Reports_2017 = $(vMM_Count_Tier_OverallToDomainToMetric);
+
+			let vLab_Count_Reports_2017 = '# of School Reports (2016-2017)';		
+
+	/// KPI 2: 
+
+		/// Measure 1:
+			// The # of schools that increased their SPR score.
+			let vMM_Count_Reports_Increase_2017 =  Num(
+				IF ((GetSelectedCount([Domain Name]) = 0 or Only(GetFieldSelections([Domain Name])) = 'Overall') and (GetSelectedCount([Metric Name]) = 0 or Only(GetFieldSelections([Metric Name])) = 'Overall Score'), 
+					Sum(Aggr(If(Only(distinct {<[Metric ID] = {"Z_OVERALL_OVERALL"}, YearEnd={2017}>} [Percent Earned]) - Only(distinct {<[Metric ID] = {"Z_OVERALL_OVERALL"}, YearEnd={2016}>} [Percent Earned]) > 0, 1, 0), [%SchoolReportKey])),
+					IF ((GetSelectedCount([Domain Name]) = 1 and Only(GetFieldSelections([Domain Name])) <> 'Overall') and (GetSelectedCount([Metric Name]) = 0), 
+						If(Only(GetFieldSelections([Domain Name])) = 'Achievement', 
+				       		Sum(Aggr(If(Only(distinct {<[Metric ID] = {"Z_ACH_OVERALL"}, YearEnd={2017}>} [Percent Earned]) - Only(distinct {<[Metric ID] = {"Z_ACH_OVERALL"}, YearEnd={2016}>} [Percent Earned]) > 0, 1, 0), [%SchoolReportKey])),
+				        	If(Only(GetFieldSelections([Domain Name])) = 'Progress', 
+				        		Sum(Aggr(If(Only(distinct {<[Metric ID] = {"Z_PROG_OVERALL"}, YearEnd={2017}>} [Percent Earned]) - Only(distinct {<[Metric ID] = {"Z_PROG_OVERALL"}, YearEnd={2016}>} [Percent Earned]) > 0, 1, 0), [%SchoolReportKey])),
+					     	    If(Only(GetFieldSelections([Domain Name])) = 'Climate', 
+				    		    	Sum(Aggr(If(Only(distinct {<[Metric ID] = {"Z_CLIM_OVERALL"}, YearEnd={2017}>} [Percent Earned]) - Only(distinct {<[Metric ID] = {"Z_CLIM_OVERALL"}, YearEnd={2016}>} [Percent Earned]) > 0, 1, 0), [%SchoolReportKey])),
+				       				If(Only(GetFieldSelections([Domain Name])) = 'College & Career', 
+				        				Sum(Aggr(If(Only(distinct {<[Metric ID] = {"Z_CC_OVERALL"}, YearEnd={2017}>} [Percent Earned]) - Only(distinct {<[Metric ID] = {"Z_CC_OVERALL"}, YearEnd={2016}>} [Percent Earned]) > 0, 1, 0), [%SchoolReportKey]))       
+									)
+								)
+					        )
+				       	),
+						IF (GetSelectedCount([Metric Name]) = 1, 
+							Sum(Aggr(If(Only(distinct {<YearEnd={2017}>} [Percent Earned]) - Only(distinct {<YearEnd={2016}>} [Percent Earned]) > 0, 1, 0), [%SchoolReportKey]))
+						)
+					)
+				),
+				'##0');
+
+			let vLab_Count_Reports_Increase_2017 = '# of Schools that Increased their SPR Score';
+
+		/// Measure 2:
+			// The % of schools that increased their SPR score.
+			let vMM_Ratio_Reports_Increase_2017 =  Num(
+				$(vMM_Count_Reports_Increase_2017) / $(vMM_Count_Reports_2017)				
+				, '#0.#%');
+
+			let vLab_Ratio_Reports_Increase_2017 = '% of Schools that Increased their SPR Score';
+	
+	/// KPI 3: 
+
+		/// Measure 1:
+			// The # of schools that increased their SPR Tier level (such as Watch to Reinforce or Model).
+			let vMM_Count_Reports_IncreaseTier_2017 =  Num(
+				IF ((GetSelectedCount([Domain Name]) = 0 or Only( GetFieldSelections([Domain Name])) = 'Overall') and (GetSelectedCount([Metric Name]) = 0 or Only( GetFieldSelections([Metric Name])) = 'Overall Score'), 
+					Sum(Aggr(If(Div(100 * Only( distinct {<[Metric ID] = {"Z_OVERALL_OVERALL"}, YearEnd={2017}>} [Percent Earned]), 25) - Div(100 * Only( distinct {<[Metric ID] = {"Z_OVERALL_OVERALL"}, YearEnd={2016}>} [Percent Earned]), 25) > 0, 1, 0), [%SchoolReportKey])),
+					IF ((GetSelectedCount([Domain Name]) = 1 and Only( GetFieldSelections([Domain Name])) <> 'Overall') and (GetSelectedCount([Metric Name]) = 0), 
+						If(Only( GetFieldSelections([Domain Name])) = 'Achievement', 
+				        	Sum(Aggr(If(Div(100 * Only( distinct {<[Metric ID] = {"Z_ACH_OVERALL"}, YearEnd={2017}>} [Percent Earned]), 25) - Div(100 * Only( distinct {<[Metric ID] = {"Z_ACH_OVERALL"}, YearEnd={2016}>} [Percent Earned]), 25) > 0, 1, 0), [%SchoolReportKey])),
+					        If(Only( GetFieldSelections([Domain Name])) = 'Progress', 
+					        	Sum(Aggr(If(Div(100 * Only( distinct {<[Metric ID] = {"Z_PROG_OVERALL"}, YearEnd={2017}>} [Percent Earned]), 25) - Div(100 * Only( distinct {<[Metric ID] = {"Z_PROG_OVERALL"}, YearEnd={2016}>} [Percent Earned]), 25) > 0, 1, 0), [%SchoolReportKey])),
+						        If(Only( GetFieldSelections([Domain Name])) = 'Climate', 
+						        	Sum(Aggr(If(Div(100 * Only( distinct {<[Metric ID] = {"Z_CLIM_OVERALL"}, YearEnd={2017}>} [Percent Earned]), 25) - Div(100 * Only( distinct {<[Metric ID] = {"Z_CLIM_OVERALL"}, YearEnd={2016}>} [Percent Earned]), 25) > 0, 1, 0), [%SchoolReportKey])),
+					   			    If(Only( GetFieldSelections([Domain Name])) = 'College & Career', 
+					        			Sum(Aggr(If(Div(100 * Only( distinct {<[Metric ID] = {"Z_CC_OVERALL"}, YearEnd={2017}>} [Percent Earned]), 25) - Div(100 * Only( distinct {<[Metric ID] = {"Z_CC_OVERALL"}, YearEnd={2016}>} [Percent Earned]), 25) > 0, 1, 0), [%SchoolReportKey]))       
+									)									
+						        )
+					        )
+					    ),    
+						IF (GetSelectedCount([Metric Name]) = 1, 
+							Sum(Aggr(If(Div(100 * Only( distinct {<YearEnd={2017}>} [Percent Earned]), 25) - Div(100 * Only( distinct {<YearEnd={2016}>} [Percent Earned]), 25) > 0, 1, 0), [%SchoolReportKey]))
+						)
+					)
+				),
+				'##0');
+
+			let vLab_Count_Reports_IncreaseTier_2017 = '# of Schools that Increased their SPR Tier';
+
+		/// Measure 2:
+			// The % of schools that increased their SPR Tier level (such as Watch to Reinforce or Model).
+			let vMM_Ratio_Reports_IncreaseTier_2017 =  Num(
+				$(vMM_Count_Reports_IncreaseTier_2017) / $(vMM_Count_Reports_2017)				
+				, '#0.#%');
+
+			let vLab_Ratio_Reports_IncreaseTier_2017 = '% of Schools that Increased their SPR Tier';
+
+	/// KPI 4: 
+
+		/// Measure 1:
+			// The # of schools that moved from Intervene or Watch to Reinforce or Model.
+			let vMM_Count_Reports_MovedToUpperTier_2017 =  Num(
+				IF ((GetSelectedCount([Domain Name]) = 0 or Only( GetFieldSelections([Domain Name])) = 'Overall') and (GetSelectedCount([Metric Name]) = 0 or Only( GetFieldSelections([Metric Name])) = 'Overall Score'), 
+					Sum(Aggr(If(Div(100 * Only( distinct {<[Metric ID] = {"Z_OVERALL_OVERALL"}, YearEnd={2017}>} [Percent Earned]), 25) > 1 and Div(100 * Only( distinct {<[Metric ID] = {"Z_OVERALL_OVERALL"}, YearEnd={2016}>} [Percent Earned]), 25) <= 1, 1, 0), [%SchoolReportKey])),
+					IF ((GetSelectedCount([Domain Name]) = 1 and Only( GetFieldSelections([Domain Name])) <> 'Overall') and (GetSelectedCount([Metric Name]) = 0), 
+						If(Only( GetFieldSelections([Domain Name])) = 'Achievement', 
+				        	Sum(Aggr(If(Div(100 * Only( distinct {<[Metric ID] = {"Z_ACH_OVERALL"}, YearEnd={2017}>} [Percent Earned]), 25) > 1 and Div(100 * Only( distinct {<[Metric ID] = {"Z_ACH_OVERALL"}, YearEnd={2016}>} [Percent Earned]), 25) <= 1, 1, 0), [%SchoolReportKey])),
+					        If(Only( GetFieldSelections([Domain Name])) = 'Progress', 
+					        	Sum(Aggr(If(Div(100 * Only( distinct {<[Metric ID] = {"Z_PROG_OVERALL"}, YearEnd={2017}>} [Percent Earned]), 25) > 1 and Div(100 * Only( distinct {<[Metric ID] = {"Z_PROG_OVERALL"}, YearEnd={2016}>} [Percent Earned]), 25) <= 1, 1, 0), [%SchoolReportKey])),
+						        If(Only( GetFieldSelections([Domain Name])) = 'Climate', 
+						        	Sum(Aggr(If(Div(100 * Only( distinct {<[Metric ID] = {"Z_CLIM_OVERALL"}, YearEnd={2017}>} [Percent Earned]), 25) > 1 and Div(100 * Only( distinct {<[Metric ID] = {"Z_CLIM_OVERALL"}, YearEnd={2016}>} [Percent Earned]), 25) <= 1, 1, 0), [%SchoolReportKey])),
+					   			    If(Only( GetFieldSelections([Domain Name])) = 'College & Career', 
+					        			Sum(Aggr(If(Div(100 * Only( distinct {<[Metric ID] = {"Z_CC_OVERALL"}, YearEnd={2017}>} [Percent Earned]), 25) > 1 and Div(100 * Only( distinct {<[Metric ID] = {"Z_CC_OVERALL"}, YearEnd={2016}>} [Percent Earned]), 25) <= 1, 1, 0), [%SchoolReportKey]))       
+									)
+								)
+							)
+					    ),
+						IF (GetSelectedCount([Metric Name]) = 1, 
+							Sum(Aggr(If(Div(100 * Only( distinct {<YearEnd={2017}>} [Percent Earned]), 25) > 1 and Div(100 * Only( distinct {<YearEnd={2016}>} [Percent Earned]), 25) <= 1, 1, 0), [%SchoolReportKey]))
+						)
+					)
+				),
+				'##0');
+
+			let vLab_Count_Reports_MovedToUpperTier_2017 = '# of Schools that Moved to Highest 2 Tiers from Lowest 2';
+	
+		/// Measure 2:
+			// The % of schools that moved from Intervene or Watch to Reinforce or Model.
+			let vMM_Ratio_Reports_MovedToUpperTier_2017 =  Num(
+				$(vMM_Count_Reports_MovedToUpperTier_2017) / $(vMM_Count_Reports_2017)				
+				, '#0.#%');
+
+			let vLab_Ratio_Reports_MovedToUpperTier_2017 = '% of Schools that Moved to Highest 2 Tiers from Lowest 2';
+
+		
+
+	//// Sankey (bottom-left)
+
+		/// Variables for selecting the appropriate year
+			let v_Sankey_Current = If($(v_Max_YearEnd) = 2017, 'Tier (2016-2017)',
+    				If($(v_Max_YearEnd) = 2016, 'Tier (2015-2016)',
+    				If($(v_Max_YearEnd) = 2015, 'Tier (2014-2015)',
+    				If($(v_Max_YearEnd) = 2014, 'Tier (2013-2014)',
+    				If($(v_Max_YearEnd) = 2013, 'Tier (2012-2013)'
+    			)))));
+
+    		let v_Sankey_Previous = If($(v_Last_YearEnd) = 2016, 'Tier (2015-2016)',
+    				If($(v_Last_YearEnd) = 2015, 'Tier (2014-2015)',
+    				If($(v_Last_YearEnd) = 2014, 'Tier (2013-2014)',
+    				If($(v_Last_YearEnd) = 2013, 'Tier (2012-2013)'
+    			))));
+
+		/// Measure (for size)
+			let vMM_Count_Tier_OverallToDomainToMetric = Num(
+				IF ((GetSelectedCount([Domain Name]) = 0 or Only(GetFieldSelections([Domain Name])) = 'Overall') and (GetSelectedCount([Metric Name]) = 0 or Only(GetFieldSelections([Metric Name])) = 'Overall Score'), 
+					Count(distinct {<[Points Possible] = {">0"}, [Metric ID] = {"Z_OVERALL_OVERALL"}, YearEnd={2017}>} [%SchoolReportMetricKey]),
+					IF ((GetSelectedCount([Domain Name]) = 1 and Only(GetFieldSelections([Domain Name])) <> 'Overall') and (GetSelectedCount([Metric Name]) = 0), 
+						If(Only(GetFieldSelections([Domain Name])) = 'Achievement', 
+				        	Count(distinct {<[Points Possible] = {">0"}, [Metric ID] = {"Z_ACH_OVERALL"}, YearEnd={2017}>} [%SchoolReportMetricKey]),
+					        If(Only(GetFieldSelections([Domain Name])) = 'Progress', 
+					        	Count(distinct {<[Points Possible] = {">0"}, [Metric ID] = {"Z_PROG_OVERALL"}, YearEnd={2017}>} [%SchoolReportMetricKey]),
+						        If(Only(GetFieldSelections([Domain Name])) = 'Climate', 
+						        	Count(distinct {<[Points Possible] = {">0"}, [Metric ID] = {"Z_CLIM_OVERALL"}, YearEnd={2017}>} [%SchoolReportMetricKey]),
+					   			    If(Only(GetFieldSelections([Domain Name])) = 'College & Career', 
+					        			Count(distinct {<[Points Possible] = {">0"}, [Metric ID] = {"Z_CC_OVERALL"}, YearEnd={2017}>} [%SchoolReportMetricKey])            
+									)
+						        )
+					        )
+						),
+						IF (GetSelectedCount([Metric Name]) = 1, 
+							Count(distinct {<[Points Possible] = {">0"}, YearEnd={2017}>} [%SchoolReportMetricKey])
+						)
+					)
+				),
+				'##0');
+
+		/// Color Nodes (2016-2017)
+			let vCol_OverallTier_2017 =  IF([Tier (2016-2017)] = 'Intervene', 'rgb(192,80,77)',
+				IF([Tier (2016-2017)] = 'Watch', 'rgb(247,150,70)',
+				IF([Tier (2016-2017)] = 'Reinforce', 'rgb(0,176,80)',
+				IF([Tier (2016-2017)] = 'Model', 'rgb(0,112,192)'))));
+			
+
+		/// Color Nodes (2015-2016)
+			let vCol_OverallTier_2016 =  IF([Tier (2015-2016)] = 'Intervene', 'rgb(192,80,77)',
+				IF([Tier (2015-2016)] = 'Watch', 'rgb(247,150,70)',
+				IF([Tier (2015-2016)] = 'Reinforce', 'rgb(0,176,80)',
+				IF([Tier (2015-2016)] = 'Model', 'rgb(0,112,192)'))));
+
+		/// Color Nodes (2014-2015)
+			let vCol_OverallTier_2015 =  IF([Tier (2014-2015)] = 'Intervene', 'rgb(192,80,77)',
+				IF([Tier (2014-2015)] = 'Watch', 'rgb(247,150,70)',
+				IF([Tier (2014-2015)] = 'Reinforce', 'rgb(0,176,80)',
+				IF([Tier (2014-2015)] = 'Model', 'rgb(0,112,192)'))));
+
+
+		/// Color Flow (2016-2017)
+			let vCol_TierYOY_2016 = $(vCol_OverallTier_2017);
+			let vCol_TierYOY_2015 = $(vCol_OverallTier_2016);
+
+		/// Sort (2016-2017)
+			let vSort_OverallTier_2017 =  IF([Tier (2016-2017)] = 'Intervene', 1,
+				IF([Tier (2016-2017)] = 'Watch', 2,
+				IF([Tier (2016-2017)] = 'Reinforce', 3,
+				IF([Tier (2016-2017)] = 'Model', 4))));
+
+		/// Sort (2015-2016)
+			let vSort_OverallTier_2016 =  IF([Tier (2015-2016)] = 'Intervene', 1,
+				IF([Tier (2015-2016)] = 'Watch', 2,
+				IF([Tier (2015-2016)] = 'Reinforce', 3,
+				IF([Tier (2015-2016)] = 'Model', 4))));
+
+		/// Sort (2014-2015)
+			let vSort_OverallTier_2015 =  IF([Tier (2014-2015)] = 'Intervene', 1,
+				IF([Tier (2014-2015)] = 'Watch', 2,
+				IF([Tier (2014-2015)] = 'Reinforce', 3,
+				IF([Tier (2014-2015)] = 'Model', 4))));
+
+	//// Table
+
+		/// Measure 1 - Score 2015-2016
+			// SPR Score for the 2015-2016. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
+			let vMM_Avg_PercScore_OverallToDomainToMetric_2016 = Num(
+				IF ((GetSelectedCount([Domain Name]) = 0 or Only(GetFieldSelections([Domain Name])) = 'Overall') and (GetSelectedCount([Metric Name]) = 0 or Only(GetFieldSelections([Metric Name])) = 'Overall Score'), 
+					Avg( {<[Metric ID] = {"Z_OVERALL_OVERALL"}, YearEnd={2016}>} [Percent Earned]),
+					IF ((GetSelectedCount([Domain Name]) = 1 and Only(GetFieldSelections([Domain Name])) <> 'Overall') and (GetSelectedCount([Metric Name]) = 0), 
+						If(Only(GetFieldSelections([Domain Name])) = 'Achievement', 
+				        	Avg( {<[Metric ID] = {"Z_ACH_OVERALL"}, YearEnd={2016}>} [Percent Earned]),
+					        If(Only(GetFieldSelections([Domain Name])) = 'Progress', 
+					        	Avg( {<[Metric ID] = {"Z_PROG_OVERALL"}, YearEnd={2016}>} [Percent Earned]),
+						        If(Only(GetFieldSelections([Domain Name])) = 'Climate', 
+						        	Avg( {<[Metric ID] = {"Z_CLIM_OVERALL"}, YearEnd={2016}>} [Percent Earned]),
+							        If(Only(GetFieldSelections([Domain Name])) = 'College & Career', 
+							        	Avg( {<[Metric ID] = {"Z_CC_OVERALL"}, YearEnd={2016}>} [Percent Earned])           
+									)
+								)
+							)
+						),
+						IF (GetSelectedCount([Metric Name]) = 1, 
+							Avg( {<YearEnd={2016}>} [Percent Earned])
+						)
+					)
+				)
+				, '#0%');
+
+			let vLab_Avg_PercScore_OverallToDomainToMetric_2016 = $(vTitle_Avg_PercScore_OverallToDomainToMetric) & ' (2015-2016)';
+
+			// background coloring
+			let vCol_Avg_PercScore_OverallToDomainToMetric_2016 = If($(vMM_Avg_PercScore_OverallToDomainToMetric_2016) < 0.25, 'rgb(192,80,77)',
+				If($(vMM_Avg_PercScore_OverallToDomainToMetric_2016) < 0.5, 'rgb(247,150,70)',
+				If($(vMM_Avg_PercScore_OverallToDomainToMetric_2016) < 0.75, 'rgb(0,176,80)',
+				If($(vMM_Avg_PercScore_OverallToDomainToMetric_2016) >= 0.75, 'rgb(0,112,192)'))));
+		
+		/// Measure 2 - Score 2015-2016
+			// SPR Score for the 2016-2017. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.	
+			let vMM_Avg_PercScore_OverallToDomainToMetric_2017 = Num(
+				IF ((GetSelectedCount([Domain Name]) = 0 or Only(GetFieldSelections([Domain Name])) = 'Overall') and (GetSelectedCount([Metric Name]) = 0 or Only(GetFieldSelections([Metric Name])) = 'Overall Score'), 
+					Avg( {<[Metric ID] = {"Z_OVERALL_OVERALL"}, YearEnd={2017}>} [Percent Earned]),
+					IF ((GetSelectedCount([Domain Name]) = 1 and Only(GetFieldSelections([Domain Name])) <> 'Overall') and (GetSelectedCount([Metric Name]) = 0), 
+						If(Only(GetFieldSelections([Domain Name])) = 'Achievement', 
+					       	Avg( {<[Metric ID] = {"Z_ACH_OVERALL"}, YearEnd={2017}>} [Percent Earned]),
+					        If(Only(GetFieldSelections([Domain Name])) = 'Progress', 
+					        	Avg( {<[Metric ID] = {"Z_PROG_OVERALL"}, YearEnd={2017}>} [Percent Earned]),
+						        If(Only(GetFieldSelections([Domain Name])) = 'Climate', 
+						        	Avg( {<[Metric ID] = {"Z_CLIM_OVERALL"}, YearEnd={2017}>} [Percent Earned]),
+							        If(Only(GetFieldSelections([Domain Name])) = 'College & Career', 
+							        	Avg( {<[Metric ID] = {"Z_CC_OVERALL"}, YearEnd={2017}>} [Percent Earned])
+							        )
+							    )
+							)                
+						),
+						IF (GetSelectedCount([Metric Name]) = 1, 
+							Avg( {<YearEnd={2017}>} [Percent Earned])
+						)
+					)
+				)	
+				, '#0%');
+
+			let vLab_Avg_PercScore_OverallToDomainToMetric_2017 = $(vTitle_Avg_PercScore_OverallToDomainToMetric) & ' (2016-2017)';
+
+			// background coloring
+			let vCol_Avg_PercScore_OverallToDomainToMetric_2017 = If($(vMM_Avg_PercScore_OverallToDomainToMetric_2017) < 0.25, 'rgb(192,80,77)',
+				If($(vMM_Avg_PercScore_OverallToDomainToMetric_2017) < 0.5, 'rgb(247,150,70)',
+				If($(vMM_Avg_PercScore_OverallToDomainToMetric_2017) < 0.75, 'rgb(0,176,80)',
+				If($(vMM_Avg_PercScore_OverallToDomainToMetric_2017) >= 0.75, 'rgb(0,112,192)'))));
+
+		/// Measure 3 - Score Change from 2015-2016 to 2016-2017
+			// Change in SPR Score from 2015-2016 to 2016-2017. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.	
+			let vMM_Avg_PercScore_OverallToDomainToMetric_2016_to_2017 = Num(
+				$(vMM_Avg_PercScore_OverallToDomainToMetric_2017) - $(vMM_Avg_PercScore_OverallToDomainToMetric_2016)
+				, '#0%');
+
+			let vLab_Avg_PercScore_OverallToDomainToMetric_2016_to_2017 = 'YOY:' & $(vTitle_Avg_PercScore_OverallToDomainToMetric) & ' (15-16 to 16-17)';
+
+			// background coloring
+			let vCol_Avg_PercScore_OverallToDomainToMetric_2016_to_2017 = If($(vMM_Avg_PercScore_OverallToDomainToMetric_2016_to_2017) < -0.2, '#AE1C3E',
+				If($(vMM_Avg_PercScore_OverallToDomainToMetric_2016_to_2017) < -0.1, '#ED875E',
+				If($(vMM_Avg_PercScore_OverallToDomainToMetric_2016_to_2017) < 0, '#F2D2AE',
+				If($(vMM_Avg_PercScore_OverallToDomainToMetric_2016_to_2017) < 0.1, '#D1EBFB',
+				If($(vMM_Avg_PercScore_OverallToDomainToMetric_2016_to_2017) < 0.2, '#5EA4D9',
+				If($(vMM_Avg_PercScore_OverallToDomainToMetric_2016_to_2017) >= 0.2, '#3C52A1'
+				))))));
+
+		/// Measure 4 - Tier for 2016-2017 [NOT IN USE]
+		
+			// SPR Tier for the 2015-2016 ('Intervene', 'Watch', 'Reinforce', 'Model'). If multiple metrics are selected, this is equal to overall tier. If a selection on Domain is made and there are no selections on metric, this is equal to the tier for the domain. If a single metric is selected, this is equal to the metric tier.
+			let vMM_Avg_Tier_OverallToDomainToMetric_2016 = If($(vMM_Avg_PercScore_OverallToDomainToMetric_2016) < 0.25, 'Intervene',
+				If($(vMM_Avg_PercScore_OverallToDomainToMetric_2016) < 0.5, 'Watch',
+				If($(vMM_Avg_PercScore_OverallToDomainToMetric_2016) < 0.75, 'Reinforce',
+				If($(vMM_Avg_PercScore_OverallToDomainToMetric_2016) >= 0.75, 'Model'))));
+
+			let vLab_Avg_Tier_OverallToDomainToMetric_2016 = $(vTitle_Avg_Tier_OverallToDomainToMetric) & ' (2015-2016)';
+		
+		/// Measure 5 - Tier for 2016-2017 [NOT IN USE]
+			// SPR Tier for the 2016-2017 ('Intervene', 'Watch', 'Reinforce', 'Model'). If multiple metrics are selected, this is equal to overall tier. If a selection on Domain is made and there are no selections on metric, this is equal to the tier for the domain. If a single metric is selected, this is equal to the metric tier.
+			let vMM_Avg_Tier_OverallToDomainToMetric_2017 = If($(vMM_Avg_PercScore_OverallToDomainToMetric_2017) < 0.25, 'Intervene',
+				If($(vMM_Avg_PercScore_OverallToDomainToMetric_2017) < 0.5, 'Watch',
+				If($(vMM_Avg_PercScore_OverallToDomainToMetric_2017) < 0.75, 'Reinforce',
+				If($(vMM_Avg_PercScore_OverallToDomainToMetric_2017) >= 0.75, 'Model'))));
+
+
+			let vLab_Avg_Tier_OverallToDomainToMetric_2017 = $(vTitle_Avg_Tier_OverallToDomainToMetric) & ' (2016-2017)';
