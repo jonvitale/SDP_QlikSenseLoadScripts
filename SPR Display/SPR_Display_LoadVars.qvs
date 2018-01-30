@@ -16,21 +16,28 @@
 **/
 
 ///// Universal Variables
+	// NOTE COLORS
+		// Intervene: rgb(192,80,77) #c0504d
+		// Watch: rgb(247,150,70) #f79646
+		// Reinforce: rgb(0,176,80) #00b050
+		// Model: rgb(0,112,192) #0070c0
+
 	//// Expressions
 
-		let vExpr_AllDomainsPossible = GetPossibleCount([Domain Name]) > 1 and GetSelectedCount([Domain Name]) = 0;
-		let vExpr_MultipleDomainsSelected = GetSelectedCount([Domain Name]) > 1;
-		let vExpr_MultipleMetricsSelected = GetSelectedCount([Metric Name]) > 1;
-		let vExpr_SomeDomainsSelected = GetSelectedCount([Domain Name]) > 0;
-		let vExpr_SingleDomainSelected = GetSelectedCount([Domain Name]) = 1;
-		let vExpr_SingleDomainSelected_AllMetricsPossible  = $(vExpr_SingleDomainSelected) and GetSelectedCount([Metric Name]) = 0;
-		let vExpr_SingleDomainPossible_SomeMetricsSelected = $(vExpr_SingleDomainSelected) and GetSelectedCount([Metric Name]) > 0;
-		let vExpr_MultipleDomainsPossible = GetPossibleCount([Domain Name]) > 1;
-		let vExpr_MultipleDomainsPossible_AllMetricsPossible = $(vExpr_MultipleDomainsPossible) and GetSelectedCount([Metric Name]) = 0;
-		let vExpr_MultipleDomainsPossible_SomeMetricsSelected = $(vExpr_MultipleDomainsPossible) and GetSelectedCount([Metric Name]) > 0;
-		let vExpr_SomeMetricsSelected = GetSelectedCount([Metric Name]) > 0;
-		let vExpr_SingleMetricSelected = GetSelectedCount([Metric Name]) = 1;
-		let vExpr_NoMetricSelected = GetSelectedCount([Metric Name]) = 0;
+		let vExpr_AllDomainsPossible = GetPossibleCount([Domain_Name]) > 1 and GetSelectedCount([Domain_Name]) = 0;
+		let vExpr_MultipleDomainsSelected = GetSelectedCount([Domain_Name]) > 1;
+		let vExpr_MultipleMetricsSelected = GetSelectedCount([Metric_Name]) > 1;
+		let vExpr_SomeDomainsSelected = GetSelectedCount([Domain_Name]) > 0;
+		let vExpr_SingleDomainSelected = GetSelectedCount([Domain_Name]) = 1;
+		let vExpr_SingleDomainSelected_AllMetricsPossible  = $(vExpr_SingleDomainSelected) and GetSelectedCount([Metric_Name]) = 0;
+		let vExpr_SomeDomainsSelected_AllMetricsPossible = GetSelectedCount([Domain_Name]) > 0 and GetSelectedCount([Metric_Name]) = 0;
+		let vExpr_SingleDomainPossible_SomeMetricsSelected = $(vExpr_SingleDomainSelected) and GetSelectedCount([Metric_Name]) > 0;
+		let vExpr_MultipleDomainsPossible = GetPossibleCount([Domain_Name]) > 1;
+		let vExpr_MultipleDomainsPossible_AllMetricsPossible = $(vExpr_MultipleDomainsPossible) and GetSelectedCount([Metric_Name]) = 0;
+		let vExpr_MultipleDomainsPossible_SomeMetricsSelected = $(vExpr_MultipleDomainsPossible) and GetSelectedCount([Metric_Name]) > 0;
+		let vExpr_SomeMetricsSelected = GetSelectedCount([Metric_Name]) > 0;
+		let vExpr_SingleMetricSelected = GetSelectedCount([Metric_Name]) = 1;
+		let vExpr_NoMetricSelected = GetSelectedCount([Metric_Name]) = 0;
 		let vExpr_SingleDomainSelected_or_SingleMetricSelected = $(vExpr_SingleDomainSelected) or $(vExpr_SingleMetricSelected);
 
 	//// Date
@@ -39,6 +46,7 @@
 		 let v_LastLast_YearEnd = Num#(Max(YearEnd)-2);
 		 let v_LastLastLast_YearEnd = Num#(Max(YearEnd)-3);
 		 let v_Max_Year = (max(left(Year,4))) & '-' & (max(right(Year,4)));
+		 let v_Max_Year_Short = right((max(left(Year,4))),2) & '-' & (max(right(Year,2)));
 		 let v_Last_Year = (max(left(Year,4))-1) & '-' & (max(right(Year,4))-1);
 		 let v_LastLast_Year = (max(left(Year,4))-2) & '-' & (max(right(Year,4))-2);
 		 let v_LastLastLast_Year = (max(left(Year,4))-3) & '-' & (max(right(Year,4))-3);
@@ -47,7 +55,7 @@
 		let vMM_Count_Reports = Num(
 			IF ($(vExpr_AllDomainsPossible), 
 				Count(distinct {<[Points Possible Overall] = {">0"}, [Overall Tier] = {"*"}>}%SchoolReportYearKey),
-			    IF ($(vExpr_SomeDomainsSelected), 
+			    IF ($(vExpr_SomeDomainsSelected_AllMetricsPossible), 
 			    	Count(distinct {<[Points Possible in Domain] = {">0"}, [Metric ID] = {"Z_ACH_OVERALL", "Z_PROG_OVERALL", "Z_CLIM_OVERALL", "Z_CC_OVERALL"}>}%SchoolReportYearKey),
 			        IF ($(vExpr_SomeMetricsSelected), 
 			          Count(distinct {<[Points Possible for Metric] = {">0"}, [Tier for Metric] = {"*"}>}%SchoolReportYearKey),
@@ -59,7 +67,7 @@
 		let vMM_Count_Reports_Current = Num(
 			IF ($(vExpr_AllDomainsPossible), 
 				Count(distinct {<[Points Possible Overall] = {">0"}, [Overall Tier] = {"*"}, YearEnd={$(=$(v_Max_YearEnd))}>}%SchoolReportYearKey),
-			    IF ($(vExpr_SomeDomainsSelected), 
+			    IF ($(vExpr_SomeDomainsSelected_AllMetricsPossible), 
 			    	Count(distinct {<[Points Possible in Domain] = {">0"}, [Metric ID] = {"Z_ACH_OVERALL", "Z_PROG_OVERALL", "Z_CLIM_OVERALL", "Z_CC_OVERALL"}, YearEnd={$(=$(v_Max_YearEnd))}>}%SchoolReportYearKey),
 			        IF ($(vExpr_SomeMetricsSelected), 
 			          Count(distinct {<[Points Possible for Metric] = {">0"}, [Tier for Metric] = {"*"}, YearEnd={$(=$(v_Max_YearEnd))}>}%SchoolReportYearKey),
@@ -67,13 +75,14 @@
 			    )
 			)
 			, '#,##0');
-		let vLab_Count_Reports_Current = '# of School Reports (' & $(v_Max_Year) & ')';
+		let vLab_Count_Reports_Current = '# of ' & $(vText_Level_OverallToDomainToMetric) & 'Reports (' & $(v_Max_Year) & ')';
+		
 		
 		// The number of schools in the previous year.
 		let vMM_Count_Reports_Previous = Num(
 			IF ($(vExpr_AllDomainsPossible), 
 				Count(distinct {<[Points Possible Overall] = {">0"}, [Overall Tier] = {"*"}, YearEnd={$(=$(v_Last_YearEnd))}>}%SchoolReportYearKey),
-			    IF ($(vExpr_SomeDomainsSelected), 
+			    IF ($(vExpr_SomeDomainsSelected_AllMetricsPossible), 
 			    	Count(distinct {<[Points Possible in Domain] = {">0"}, [Metric ID] = {"Z_ACH_OVERALL", "Z_PROG_OVERALL", "Z_CLIM_OVERALL", "Z_CC_OVERALL"}, YearEnd={$(=$(v_Last_YearEnd))}>}%SchoolReportYearKey),
 			        IF ($(vExpr_SomeMetricsSelected), 
 			          Count(distinct {<[Points Possible for Metric] = {">0"}, [Tier for Metric] = {"*"}, YearEnd={$(=$(v_Last_YearEnd))}>}%SchoolReportYearKey),
@@ -81,12 +90,12 @@
 			    )
 			)
 			, '#,##0');
-		let vLab_Count_Reports_Previous = '# of School Reports (' & $(v_Last_Year) & ')';
+		let vLab_Count_Reports_Previous = '# of ' & $(vText_Level_OverallToDomainToMetric) & 'Reports (' & $(v_Last_Year) & ')';
 
 		let vMM_Count_Reports_Previous2 = Num(
 			IF ($(vExpr_AllDomainsPossible), 
 				Count(distinct {<[Points Possible Overall] = {">0"}, [Overall Tier] = {"*"}, YearEnd={$(=$(v_LastLast_YearEnd))}>}%SchoolReportYearKey),
-			    IF ($(vExpr_SomeDomainsSelected), 
+			    IF ($(vExpr_SomeDomainsSelected_AllMetricsPossible), 
 			    	Count(distinct {<[Points Possible in Domain] = {">0"}, [Metric ID] = {"Z_ACH_OVERALL", "Z_PROG_OVERALL", "Z_CLIM_OVERALL", "Z_CC_OVERALL"}, YearEnd={$(=$(v_LastLast_YearEnd))}>}%SchoolReportYearKey),
 			        IF ($(vExpr_SomeMetricsSelected), 
 			          Count(distinct {<[Points Possible for Metric] = {">0"}, [Tier for Metric] = {"*"}, YearEnd={$(=$(v_LastLast_YearEnd))}>}%SchoolReportYearKey),
@@ -98,7 +107,7 @@
 		let vMM_Count_Reports_3Year_Current = Num(
 			IF ($(vExpr_AllDomainsPossible), 
 				Count(distinct {<[Points Possible Overall] = {">0"}, [Overall Tier] = {"*"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearKey),
-			    IF ($(vExpr_SomeDomainsSelected), 
+			    IF ($(vExpr_SomeDomainsSelected_AllMetricsPossible), 
 			    	Count(distinct {<[Points Possible in Domain] = {">0"}, [Metric ID] = {"Z_ACH_OVERALL", "Z_PROG_OVERALL", "Z_CLIM_OVERALL", "Z_CC_OVERALL"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearKey),
 			        IF ($(vExpr_SomeMetricsSelected), 
 			          Count(distinct {<[Points Possible for Metric] = {">0"}, [Tier for Metric] = {"*"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearKey),
@@ -106,12 +115,42 @@
 			    )
 			)
 			, '#,##0');
-		let vLab_Count_Reports_3Year_Current = '# of School Reports (3 Years)';
+		let vLab_Count_Reports_3Year_Current = '# of ' & $(vText_Level_OverallToDomainToMetric) & 'Reports (3 Years)';
+
+		// The number of schools with exceptions (not including 999) in the most recent year.
+		let vMM_Count_Exceptions_Current = Num(
+			IF ($(vExpr_AllDomainsPossible), 
+				Count(distinct {<[Exception Overall] = {">900 <999"}, YearEnd={$(=$(v_Max_YearEnd))}>}%SchoolReportYearKey),
+			    IF ($(vExpr_SomeDomainsSelected_AllMetricsPossible), 
+			    	Count(distinct {<[Exception in Domain] = {">900 <999"}, YearEnd={$(=$(v_Max_YearEnd))}>}%SchoolReportYearKey),
+			        IF ($(vExpr_SomeMetricsSelected), 
+			          Count(distinct {<[Exception for Metric] = {">900 <999"}, YearEnd={$(=$(v_Max_YearEnd))}>}%SchoolReportYearKey),
+			        )
+			    )
+			)
+			, '#,##0');
+		let vLab_Count_Exceptions_Current = '# of ' & $(vText_Level_OverallToDomainToMetric) & 'Exceptions (' & $(v_Max_Year) & ')';
+		
+		// The number of schools with exceptions (not including 999) in the most recent year.
+		let vMM_Count_Exceptions_Previous = Num(
+			IF ($(vExpr_AllDomainsPossible), 
+				Count(distinct {<[Exception Overall] = {">900 <999"}, YearEnd={$(=$(v_Last_YearEnd))}>}%SchoolReportYearKey),
+			    IF ($(vExpr_SomeDomainsSelected_AllMetricsPossible), 
+			    	Count(distinct {<[Exception in Domain] = {">900 <999"}, YearEnd={$(=$(v_Last_YearEnd))}>}%SchoolReportYearKey),
+			        IF ($(vExpr_SomeMetricsSelected), 
+			          Count(distinct {<[Exception for Metric] = {">900 <999"}, YearEnd={$(=$(v_Last_YearEnd))}>}%SchoolReportYearKey),
+			        )
+			    )
+			)
+			, '#,##0');
+		let vLab_Count_Exceptions_Previous = '# of ' & $(vText_Level_OverallToDomainToMetric) & 'Exceptions (' & $(v_Last_Year) & ')';
+		
+
 
 		let vMM_Count_Reports_ModelReinforce = Num(
 			IF ($(vExpr_AllDomainsPossible), 
 				Count(distinct {<[Overall Tier] = {"Model", "Reinforce"}>}%SchoolReportYearKey),
-			    IF ($(vExpr_SomeDomainsSelected), 
+			    IF ($(vExpr_SomeDomainsSelected_AllMetricsPossible), 
 			    	Count(distinct {<[Tier in Domain] = {"Model", "Reinforce"}>}%SchoolReportYearKey),
 			        IF ($(vExpr_SomeMetricsSelected), 
 			          Count(distinct {<[Tier for Metric] = {"Model", "Reinforce"}>}%SchoolReportYearKey),
@@ -122,7 +161,7 @@
 		let vMM_Count_Reports_ModelReinforce_Current = Num(
 			IF ($(vExpr_AllDomainsPossible), 
 				Count(distinct {<[Overall Tier] = {"Model", "Reinforce"}, YearEnd={$(=$(v_Max_YearEnd))}>}%SchoolReportYearKey),
-			    IF ($(vExpr_SomeDomainsSelected), 
+			    IF ($(vExpr_SomeDomainsSelected_AllMetricsPossible), 
 			    	Count(distinct {<[Tier in Domain] = {"Model", "Reinforce"}, YearEnd={$(=$(v_Max_YearEnd))}>}%SchoolReportYearKey),
 			        IF ($(vExpr_SomeMetricsSelected), 
 			          Count(distinct {<[Tier for Metric] = {"Model", "Reinforce"}, YearEnd={$(=$(v_Max_YearEnd))}>}%SchoolReportYearKey),
@@ -133,7 +172,7 @@
 		let vMM_Count_Reports_ModelReinforce_Previous = Num(
 			IF ($(vExpr_AllDomainsPossible), 
 				Count(distinct {<[Overall Tier] = {"Model", "Reinforce"}, YearEnd={$(=$(v_Last_YearEnd))}>}%SchoolReportYearKey),
-			    IF ($(vExpr_SomeDomainsSelected), 
+			    IF ($(vExpr_SomeDomainsSelected_AllMetricsPossible), 
 			    	Count(distinct {<[Tier in Domain] = {"Model", "Reinforce"}, YearEnd={$(=$(v_Last_YearEnd))}>}%SchoolReportYearKey),
 			        IF ($(vExpr_SomeMetricsSelected), 
 			          Count(distinct {<[Tier for Metric] = {"Model", "Reinforce"}, YearEnd={$(=$(v_Last_YearEnd))}>}%SchoolReportYearKey),
@@ -144,10 +183,13 @@
 		let vMM_Count_Reports_ModelReinforce_YOY = Num(
 			$(vMM_Count_Reports_ModelReinforce_Current)-$(vMM_Count_Reports_ModelReinforce_Previous)
 			, '#,##0');
+
+
+
 		let vMM_Count_Reports_WatchIntervene_Current = Num(
 			IF ($(vExpr_AllDomainsPossible), 
 				Count(distinct {<[Overall Tier] = {"Watch", "Intervene"}, YearEnd={$(=$(v_Max_YearEnd))}>}%SchoolReportYearKey),
-			    IF ($(vExpr_SomeDomainsSelected), 
+			    IF ($(vExpr_SomeDomainsSelected_AllMetricsPossible), 
 			    	Count(distinct {<[Tier in Domain] = {"Watch", "Intervene"}, YearEnd={$(=$(v_Max_YearEnd))}>}%SchoolReportYearKey),
 			        IF ($(vExpr_SomeMetricsSelected), 
 			          Count(distinct {<[Tier for Metric] = {"Watch", "Intervene"}, YearEnd={$(=$(v_Max_YearEnd))}>}%SchoolReportYearKey),
@@ -158,7 +200,7 @@
 		let vMM_Count_Reports_WatchIntervene_Previous = Num(
 			IF ($(vExpr_AllDomainsPossible), 
 				Count(distinct {<[Overall Tier] = {"Watch", "Intervene"}, YearEnd={$(=$(v_Last_YearEnd))}>}%SchoolReportYearKey),
-			    IF ($(vExpr_SomeDomainsSelected), 
+			    IF ($(vExpr_SomeDomainsSelected_AllMetricsPossible), 
 			    	Count(distinct {<[Tier in Domain] = {"Watch", "Intervene"}, YearEnd={$(=$(v_Last_YearEnd))}>}%SchoolReportYearKey),
 			        IF ($(vExpr_SomeMetricsSelected), 
 			          Count(distinct {<[Tier for Metric] = {"Watch", "Intervene"}, YearEnd={$(=$(v_Last_YearEnd))}>}%SchoolReportYearKey),
@@ -246,34 +288,126 @@
 			, '#,##0');
 
 	//// Titles and labels
-		let vTitle_Avg_PercScore_OverallToDomainToMetric = 
+		let vText_AverageOrSingle = 
+			IF(GetPossibleCount([School Name]) > 1, 'Average ', '');
+
+		let vText_AvgOrSingle = 
+			IF(GetPossibleCount([School Name]) > 1, 'Avg ', '');
+
+		let vText_Level_OverallToDomainToMetric = 
 			IF($(vExpr_SingleDomainSelected_or_SingleMetricSelected),
-		    	IF($(vExpr_SingleDomainSelected_AllMetricsPossible), 'Average Score for ' & Only(GetFieldSelections([Domain Name])),
-		        IF($(vExpr_MultipleDomainsPossible_AllMetricsPossible), 'Average Score for Available Domains',
-		        IF($(vExpr_MultipleMetricsSelected), 'Average Score for Selected Metrics',
-                IF($(vExpr_SingleMetricSelected), 'Average Score in ' & Only(GetFieldSelections([Metric Name]))
-		        )))),
-				'Average Overall Score'
+		    	IF($(vExpr_SingleDomainSelected_AllMetricsPossible), Only(GetFieldSelections([Domain_Name])),
+		        	IF($(vExpr_MultipleDomainsPossible_AllMetricsPossible), 'Available Domains',
+		        		IF($(vExpr_MultipleMetricsSelected), 'Selected Metrics',
+                		IF($(vExpr_SingleMetricSelected), Only(GetFieldSelections([Metric_Name]))
+		        	)
+                ))),
+				'Overall'
 	    	);
 
-		let vTitle_Avg_Tier_OverallToDomainToMetric = 
+	    let vText_Prep_OverallToDomainToMetric = 
 			IF($(vExpr_SingleDomainSelected_or_SingleMetricSelected),
-		    	IF($(vExpr_SingleDomainSelected_AllMetricsPossible), 'Tier for ' & Only(GetFieldSelections([Domain Name])),
-		        IF($(vExpr_MultipleDomainsPossible_AllMetricsPossible), 'Tier for Available Domains',
-		        IF($(vExpr_MultipleMetricsSelected), 'Tier for Selected Metrics',
-                IF($(vExpr_SingleMetricSelected), 'Tier in ' & Only(GetFieldSelections([Metric Name]))
+		    	IF($(vExpr_SingleDomainSelected_AllMetricsPossible), 'in',
+		        IF($(vExpr_MultipleDomainsPossible_AllMetricsPossible), 'for',
+		        IF($(vExpr_MultipleMetricsSelected), 'for',
+                IF($(vExpr_SingleMetricSelected), 'in'
 		        )))),
-				'Overall Tier'
+				''
 	    	);
 
+		
+		let vTitle_Avg_PercScore_OverallToDomainToMetric = $(vText_AverageOrSingle) & 'Percent Earned ' & $(vText_Prep_OverallToDomainToMetric) & ' ' & $(vText_Level_OverallToDomainToMetric);
+
+		let vTitle_Avg_PercScore_OverallToDomainToMetric_CompareYears = 'Compare ' & $(vText_AverageOrSingle) & 'Percent Earned ' & $(vText_Prep_OverallToDomainToMetric) & ' ' & $(vText_Level_OverallToDomainToMetric) & ' between ' & $(v_Last_Year) & ' and ' & $(v_Max_Year);
+
+		
+
+		let vTitle_Avg_Tier_OverallToDomainToMetric = $(vText_AverageOrSingle) & 'Tier ' & $(vText_Prep_OverallToDomainToMetric) & ' ' & $(vText_Level_OverallToDomainToMetric);
+
+		let vTitle_Avg_PointsEarned_OverallToDomainToMetric_Current = $(vText_AverageOrSingle) & 'Points Earned ' & $(vText_Prep_OverallToDomainToMetric) & ' ' & $(vText_Level_OverallToDomainToMetric);
+
+		let vTitle_Avg_PointsPossible_OverallToDomainToMetric_Current = $(vText_AverageOrSingle) & 'Points Possible ' & $(vText_Prep_OverallToDomainToMetric) & ' ' & $(vText_Level_OverallToDomainToMetric);
+
+		let vTitle_Avg_PercScore_DomainToMetric_3Year_Current = $(vTitle_Avg_PercScore_OverallToDomainToMetric);
+				
+		let vText_Level_DomainToMetric = 
+			If($(vExpr_MultipleDomainsPossible_AllMetricsPossible), 
+				'Domain',
+				If($(vExpr_SingleDomainSelected),
+					'Metric in ' & Only(GetFieldSelections([Domain_Name])),
+					'Metric'
+				)
+			);
+
+		let vText_Prep_DomainToMetric = 
+			If($(vExpr_MultipleDomainsPossible_AllMetricsPossible), 
+				'for each',
+				If($(vExpr_SingleDomainSelected),
+					'for each',
+					'for each'
+				)
+			);
+
+
+
+		let vTitle_Avg_PercScore_DomainToMetric = $(vText_AverageOrSingle) & 'Percent Earned ' & $(vText_Prep_DomainToMetric) & ' ' & $(vText_Level_DomainToMetric);
+
+		let vTitle_Avg_Tier_DomainToMetric = $(vText_AverageOrSingle) & 'Tier ' & $(vText_Prep_DomainToMetric) & ' ' & $(vText_Level_DomainToMetric);
+
+		let vTitle_MaxScore_DomainToMetric = 'Max Points ' & $(vText_Prep_DomainToMetric) & ' ' & $(vText_Level_DomainToMetric);
+
+		/*
+		let vTitle_MaxScore_DomainToMetric = 
+			If($(vExpr_SingleDomainSelected), 
+				'Max Points for Metric in ' & Only(GetFieldSelections([Domain_Name]))
+				'Max Points in Domain'
+			);
 	
+		let vTitle_Avg_PercScore_DomainToMetric = 
+			$(vText_AverageOrSingle) & 
+			If($(vExpr_SingleDomainSelected), 
+				'Percent Earned for Metrics in ' & Only(GetFieldSelections([Domain_Name])), 
+				'Percent Earned for Domains'
+			);
+		*/
+		let vTitle_Avg_PercScore_NetworkToDomainToMetric = 
+			If(GetPossibleCount([Learning Network]) = 1, 
+				$(vTitle_Avg_PercScore_DomainToMetric)  &
+					If(GetSelectedCount([Learning Network]) = 1, ' in ' & Only(GetFieldSelections([Learning Network])),
+					If(GetSelectedCount([School Abbrev Name (Reporting Category)]) = 1, ' at ' & Only(GetFieldSelections([School Abbrev Name (Reporting Category)])),	
+					If(GetSelectedCount([School Name]) = 1, ' at ' & Only(GetFieldSelections([School Name])),
+					If(GetSelectedCount([Publication Name]) = 1, ' at ' & Only(GetFieldSelections([Publication Name])),
+					If(GetSelectedCount([School Name]) = 1, ' at ' & Only(GetFieldSelections([School Name])),
+					If(GetSelectedCount([Abbreviated Name]) = 1, ' at ' & Only(GetFieldSelections([Abbreviated Name])),
+					If(GetSelectedCount([School Name (Reporting Category)]) = 1, ' at ' & Only(GetFieldSelections([School Name (Reporting Category)])),
+					'')))))))
+				,
+		        $(vTitle_Avg_PercScore_OverallToDomainToMetric)
+			);
+
+		let vTitle_Avg_PercScore_SchoolToDomainToMetric = 
+			If(GetPossibleCount([School Abbrev Name (Reporting Category)]) = 1, 
+				$(vTitle_Avg_PercScore_DomainToMetric)  &
+					If(GetSelectedCount([School Abbrev Name (Reporting Category)]) = 1, ' at ' & Only(GetFieldSelections([School Abbrev Name (Reporting Category)])),	
+					If(GetSelectedCount([School Name]) = 1, ' at ' & Only(GetFieldSelections([School Name])),
+					If(GetSelectedCount([Publication Name]) = 1, ' at ' & Only(GetFieldSelections([Publication Name])),
+					If(GetSelectedCount([School Name]) = 1, ' at ' & Only(GetFieldSelections([School Name])),
+					If(GetSelectedCount([Abbreviated Name]) = 1, ' at ' & Only(GetFieldSelections([Abbreviated Name])),
+					If(GetSelectedCount([School Name (Reporting Category)]) = 1, ' at ' & Only(GetFieldSelections([School Name (Reporting Category)])),
+					''))))))
+				,
+		        $(vTitle_Avg_PercScore_OverallToDomainToMetric)
+			);
+
+
+		
 ///// Universal Dimensions and Sorts
 	let vDim_DomainToMetric = IF($(vExpr_SingleDomainSelected),
-		IF(GetFieldSelections([Domain Name]) = [Domain Name],
-			[Metric Name],
+		IF(GetFieldSelections([Domain_Name]) = [Domain_Name],
+			[Metric_Name],
 	        Null()
 	    ),
-	    [Domain Name]
+	    [Domain_Name]
 	);
 
 	let vSort_PeerGroup = 
@@ -285,8 +419,16 @@
 		 23 + Match([Peer Group], 'ES', 'K8', 'MS', 'HS')   
 		);
 
+	let vSort_Report = match([SPR Report Type],
+				'ES','K8','MS','HS');
+	
 	//// Calculation Condition
 		/// 
+			let vCalc_ZeroOrOne_Metrics = If($(vExpr_NoMetricSelected) or $(vExpr_SingleMetricSelected), 1, 0);
+
+			let vCalcDisplay_ZeroOrOne_Metrics = 
+				If($(vExpr_MultipleMetricsSelected), 'You have multiple metrics selected. Please select only one.');
+
 			let vCalc_ZeroOrOne_Domains_Metrics = If($(vExpr_AllDomainsPossible) or $(vExpr_SingleDomainSelected_AllMetricsPossible) or $(vExpr_SingleMetricSelected), 1, 0);
 
 			let vCalcDisplay_ZeroOrOne_Domains_Metrics = 
@@ -294,12 +436,36 @@
 					If($(vExpr_MultipleMetricsSelected), 'You have multiple metrics selected. Please select only one.',
 				));
 
+			let vCalc_ZeroOrOne_Domains_Metrics_TwoConsecYears = 
+				If(($(vExpr_AllDomainsPossible) or $(vExpr_SingleDomainSelected_AllMetricsPossible) or $(vExpr_SingleMetricSelected)) and
+					(GetSelectedCount(Year) = 0 or GetSelectedCount(Year) > 1 and WildMatch(Concat(GetFieldSelections([Year])),'*$(=$(v_Last_Year))*'))
+					, 1, 0);
+
+			let vCalcDisplay_ZeroOrOne_Domains_Metrics_TwoConsecYears = 
+				If (GetSelectedCount(Year) > 0 and Not(WildMatch(Concat(GetFieldSelections([Year])),'*$(=$(v_Last_Year))*')), 'Please select two consecutive school years for comparison.',
+					If($(vExpr_MultipleDomainsSelected), 'You have multiple domains selected. Please select only one.',
+						If($(vExpr_MultipleMetricsSelected), 'You have multiple metrics selected. Please select only one.',
+				)));
+
+
+			let vCalc_ZeroOrOne_Domains_Metrics_After2012 = 
+				If(($(vExpr_AllDomainsPossible) or $(vExpr_SingleDomainSelected_AllMetricsPossible) or $(vExpr_SingleMetricSelected)) and
+					(GetPossibleCount(Year) > 1 or GetSelectedCount(Year) = 1 and Not(WildMatch(Concat(GetFieldSelections([Year])),'*2012-2013*')))
+					, 1, 0);
+
+			let vCalcDisplay_ZeroOrOne_Domains_Metrics_After2012 = 
+				If(GetSelectedCount(Year) = 1 and WildMatch(Concat(GetFieldSelections([Year])),'*2012-2013*'), '2012-2013 enrollment data is not available, please select another year.' ,
+					If (GetSelectedCount(Year) > 0 and Not(WildMatch(Concat(GetFieldSelections([Year])),'*$(=$(v_Last_Year))*')), 'Please select two consecutive school years for comparison.',
+						If($(vExpr_MultipleDomainsSelected), 'You have multiple domains selected. Please select only one.',
+							If($(vExpr_MultipleMetricsSelected), 'You have multiple metrics selected. Please select only one.',
+				))));
+					
 
 ///// Landing Page
 
 	
 
-	//// KPI (top-left): Avg Score - drill from overall to selected domain/metric
+	//// KPI (top-left): Avg Percent Earned - drill from overall to selected domain/metric
 
 		/// Title
 			// vTitle_Avg_PercScore_OverallToDomainToMetric
@@ -307,9 +473,12 @@
 		/// SubTitle
 			let vSubTitle_Avg_PercScore_OverallToDomainToMetric = '# of reports: ' & $(vMM_Count_Reports_Current) & ' (' & $(v_Max_Year) & '), ' & $(vMM_Count_Reports_Previous) & ' (' & $(v_Last_Year) & ')';
 
-		/// Measure 1: Average Score in the Current Year (drill from overall to selected domain to selected metric)
+		/// Footnote:
+			let vFootnote_Avg_PercScore_OverallToDomainToMetric = 'Note: ' & $(vMM_Count_Exceptions_Current) & ' reports are excluded in ' & $(v_Max_Year) & ' due to exceptions. ' & $(vMM_Count_Exceptions_Previous) & ' reports are excluded in ' & $(v_Last_Year) & ' due to exceptions.';
+
+		/// Measure 1: Average Percent Earned in the Current Year (drill from overall to selected domain to selected metric)
 			// Description:
-			// SPR Score for the current year. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
+			// SPR Percent Earned for the current year. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
 			let vMM_Avg_PercScore_OverallToDomainToMetric_Current = Num(
 				IF ($(vExpr_AllDomainsPossible),
 					Avg({<YearEnd={$(=$(v_Max_YearEnd))}>}[Percent Earned Overall]),
@@ -324,9 +493,9 @@
 				, '#0%');
 
 			let vLab_Avg_PercScore_OverallToDomainToMetric_Current = $(vTitle_Avg_PercScore_OverallToDomainToMetric) & ' (' & $(v_Max_Year) &')';
-
+			
 		/// Measure 2: YOY 
-			// Average SPR Score in the previous year. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
+			// Average SPR Percent Earned in the previous year. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
 			let vMM_Avg_PercScore_OverallToDomainToMetric_Previous = Num(
 				IF ($(vExpr_AllDomainsPossible),
 					Avg({<YearEnd={$(=$(v_Last_YearEnd))}>}[Percent Earned Overall]),
@@ -342,14 +511,14 @@
 
 			let vLab_Avg_PercScore_OverallToDomainToMetric_Previous = $(vTitle_Avg_PercScore_OverallToDomainToMetric) & ' ('& $(v_Last_Year) &')';	
 
-			// Change in SPR Score from the previous year to the current year. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
+			// Change in SPR Percent Earned from the previous year to the current year. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
 			let vMM_Avg_PercScore_OverallToDomainToMetric_YOY = Num(
 				Round($(vMM_Avg_PercScore_OverallToDomainToMetric_Current) - $(vMM_Avg_PercScore_OverallToDomainToMetric_Previous), 0.01)
 				, '#0%');
 
 			let vLab_Avg_PercScore_OverallToDomainToMetric_YOY = 'YOY: ' & $(vTitle_Avg_PercScore_OverallToDomainToMetric);	
 
-	//// KPI (top-left-middle): 3 Year Runniing Average Score - drill from overall to selected domain/metric
+	//// KPI (top-left-middle): 3 Year Runniing Average Percent Earned - drill from overall to selected domain/metric
 		/// Title
 			let vTitle_Avg_PercScore_OverallToDomainToMetric_3Year_Current = '3 Year ' & $(vTitle_Avg_PercScore_OverallToDomainToMetric);
 
@@ -360,28 +529,44 @@
 			// The average percent of possible points earned in the most recent three years. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
 			let vMM_Avg_PercScore_OverallToDomainToMetric_3Year_Current = Num(
 				IF ($(vExpr_AllDomainsPossible),
-					RangeAvg(
+					If( Avg({<YearEnd={$(=$(v_Max_YearEnd))}>}[Percent Earned Overall]) >= 0 and 
+			           	Avg({<YearEnd={$(=$(v_Last_YearEnd))}>}[Percent Earned Overall]) >= 0 and
+			           	Avg({<YearEnd={$(=$(v_LastLast_YearEnd))}>}[Percent Earned Overall]) >= 0
+						,
+						RangeAvg(
 			           	Avg({<YearEnd={$(=$(v_Max_YearEnd))}>}[Percent Earned Overall]) ,
 			           	Avg({<YearEnd={$(=$(v_Last_YearEnd))}>}[Percent Earned Overall]) ,
 			           	Avg({<YearEnd={$(=$(v_LastLast_YearEnd))}>}[Percent Earned Overall]) 
-			        ),
+			        )),
 				    IF ($(vExpr_SingleDomainSelected_AllMetricsPossible),
-				    	RangeAvg(
+				    	If(Avg({<[Metric ID] = {"Z_ACH_OVERALL", "Z_PROG_OVERALL", "Z_CLIM_OVERALL", "Z_CC_OVERALL"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Percent Earned in Domain]) >= 0 and
+			              	Avg({<[Metric ID] = {"Z_ACH_OVERALL", "Z_PROG_OVERALL", "Z_CLIM_OVERALL", "Z_CC_OVERALL"}, YearEnd={$(=$(v_Last_YearEnd))}>}[Percent Earned in Domain]) >= 0 and
+			              	Avg({<[Metric ID] = {"Z_ACH_OVERALL", "Z_PROG_OVERALL", "Z_CLIM_OVERALL", "Z_CC_OVERALL"}, YearEnd={$(=$(v_LastLast_YearEnd))}>}[Percent Earned in Domain]) >= 0
+			          		 ,
+				    		RangeAvg(
 			              	Avg({<[Metric ID] = {"Z_ACH_OVERALL", "Z_PROG_OVERALL", "Z_CLIM_OVERALL", "Z_CC_OVERALL"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Percent Earned in Domain]) ,
 			              	Avg({<[Metric ID] = {"Z_ACH_OVERALL", "Z_PROG_OVERALL", "Z_CLIM_OVERALL", "Z_CC_OVERALL"}, YearEnd={$(=$(v_Last_YearEnd))}>}[Percent Earned in Domain]) ,
 			              	Avg({<[Metric ID] = {"Z_ACH_OVERALL", "Z_PROG_OVERALL", "Z_CLIM_OVERALL", "Z_CC_OVERALL"}, YearEnd={$(=$(v_LastLast_YearEnd))}>}[Percent Earned in Domain]) 
-			          	),
+			          	)),
 				        IF ($(vExpr_SingleMetricSelected),
-				        	RangeAvg(
+				        	If( Avg({<YearEnd={$(=$(v_Max_YearEnd))}>}[Percent Earned for Metric]) >= 0 and
+				              	Avg({<YearEnd={$(=$(v_Last_YearEnd))}>}[Percent Earned for Metric]) >= 0 and
+				              	Avg({<YearEnd={$(=$(v_LastLast_YearEnd))}>}[Percent Earned for Metric]) >= 0
+				              	,
+				        		RangeAvg(
 				              	Avg({<YearEnd={$(=$(v_Max_YearEnd))}>}[Percent Earned for Metric]) ,
 				              	Avg({<YearEnd={$(=$(v_Last_YearEnd))}>}[Percent Earned for Metric]) ,
 				              	Avg({<YearEnd={$(=$(v_LastLast_YearEnd))}>}[Percent Earned for Metric]) 
-				          	  ),
-				            RangeAvg(
+				          	)),
+				            If( Avg(Aggr(Sum({<YearEnd={$(=$(v_Max_YearEnd))}>}[Points Earned for Metric]) / Sum({<YearEnd={$(=$(v_Max_YearEnd))}>}[Points Possible for Metric]), [%SchoolReportYearKey])) >= 0 and
+				              	Avg(Aggr(Sum({<YearEnd={$(=$(v_Last_YearEnd))}>}[Points Earned for Metric]) / Sum({<YearEnd={$(=$(v_Last_YearEnd))}>}[Points Possible for Metric]), [%SchoolReportYearKey])) >= 0 and
+				              	Avg(Aggr(Sum({<YearEnd={$(=$(v_LastLast_YearEnd))}>}[Points Earned for Metric]) / Sum({<YearEnd={$(=$(v_LastLast_YearEnd))}>}[Points Possible for Metric]), [%SchoolReportYearKey])) >= 0
+				              ,
+				            	RangeAvg(
 				              	Avg(Aggr(Sum({<YearEnd={$(=$(v_Max_YearEnd))}>}[Points Earned for Metric]) / Sum({<YearEnd={$(=$(v_Max_YearEnd))}>}[Points Possible for Metric]), [%SchoolReportYearKey])),
 				              	Avg(Aggr(Sum({<YearEnd={$(=$(v_Last_YearEnd))}>}[Points Earned for Metric]) / Sum({<YearEnd={$(=$(v_Last_YearEnd))}>}[Points Possible for Metric]), [%SchoolReportYearKey])),
 				              	Avg(Aggr(Sum({<YearEnd={$(=$(v_LastLast_YearEnd))}>}[Points Earned for Metric]) / Sum({<YearEnd={$(=$(v_LastLast_YearEnd))}>}[Points Possible for Metric]), [%SchoolReportYearKey]))
-				            )
+				            ))
 				        )
 				    )
 				)
@@ -394,32 +579,48 @@
 			// The average percent of possible points earned in the most recent three years prior to the current year. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
 			let vMM_Avg_PercScore_OverallToDomainToMetric_3Year_Previous = Num(
 				IF ($(vExpr_AllDomainsPossible),
-					RangeAvg(
+					If( Avg({<YearEnd={$(=$(v_Last_YearEnd))}>}[Percent Earned Overall]) >= 0 and 
+			           	Avg({<YearEnd={$(=$(v_LastLast_YearEnd))}>}[Percent Earned Overall]) >= 0 and
+			           	Avg({<YearEnd={$(=$(v_LastLastLast_YearEnd))}>}[Percent Earned Overall]) >= 0
+						,
+						RangeAvg(
 			           	Avg({<YearEnd={$(=$(v_Last_YearEnd))}>}[Percent Earned Overall]) ,
 			           	Avg({<YearEnd={$(=$(v_LastLast_YearEnd))}>}[Percent Earned Overall]) ,
 			           	Avg({<YearEnd={$(=$(v_LastLastLast_YearEnd))}>}[Percent Earned Overall]) 
-			        ),
+			        )),
 				    IF ($(vExpr_SingleDomainSelected_AllMetricsPossible),
-				    	RangeAvg(
+				    	If(Avg({<[Metric ID] = {"Z_ACH_OVERALL", "Z_PROG_OVERALL", "Z_CLIM_OVERALL", "Z_CC_OVERALL"}, YearEnd={$(=$(v_Last_YearEnd))}>}[Percent Earned in Domain]) >= 0 and
+			              	Avg({<[Metric ID] = {"Z_ACH_OVERALL", "Z_PROG_OVERALL", "Z_CLIM_OVERALL", "Z_CC_OVERALL"}, YearEnd={$(=$(v_LastLast_YearEnd))}>}[Percent Earned in Domain]) >= 0 and
+			              	Avg({<[Metric ID] = {"Z_ACH_OVERALL", "Z_PROG_OVERALL", "Z_CLIM_OVERALL", "Z_CC_OVERALL"}, YearEnd={$(=$(v_LastLastLast_YearEnd))}>}[Percent Earned in Domain]) >= 0
+			          		 ,
+				    		RangeAvg(
 			              	Avg({<[Metric ID] = {"Z_ACH_OVERALL", "Z_PROG_OVERALL", "Z_CLIM_OVERALL", "Z_CC_OVERALL"}, YearEnd={$(=$(v_Last_YearEnd))}>}[Percent Earned in Domain]) ,
 			              	Avg({<[Metric ID] = {"Z_ACH_OVERALL", "Z_PROG_OVERALL", "Z_CLIM_OVERALL", "Z_CC_OVERALL"}, YearEnd={$(=$(v_LastLast_YearEnd))}>}[Percent Earned in Domain]) ,
-			              	Avg({<YearEnd={$(=$(v_LastLastLast_YearEnd))}>}[Percent Earned in Domain]) 
-			          	),
+			              	Avg({<[Metric ID] = {"Z_ACH_OVERALL", "Z_PROG_OVERALL", "Z_CLIM_OVERALL", "Z_CC_OVERALL"}, YearEnd={$(=$(v_LastLastLast_YearEnd))}>}[Percent Earned in Domain]) 
+			          	)),
 				        IF ($(vExpr_SingleMetricSelected),
-				        	RangeAvg(
+				        	If( Avg({<YearEnd={$(=$(v_Last_YearEnd))}>}[Percent Earned for Metric]) >= 0 and
+				              	Avg({<YearEnd={$(=$(v_LastLast_YearEnd))}>}[Percent Earned for Metric]) >= 0 and
+				              	Avg({<YearEnd={$(=$(v_LastLastLast_YearEnd))}>}[Percent Earned for Metric]) >= 0
+				              	,
+				        		RangeAvg(
 				              	Avg({<YearEnd={$(=$(v_Last_YearEnd))}>}[Percent Earned for Metric]) ,
 				              	Avg({<YearEnd={$(=$(v_LastLast_YearEnd))}>}[Percent Earned for Metric]) ,
 				              	Avg({<YearEnd={$(=$(v_LastLastLast_YearEnd))}>}[Percent Earned for Metric]) 
-				          	  ),
-				            RangeAvg(
+				          	)),
+				            If( Avg(Aggr(Sum({<YearEnd={$(=$(v_Last_YearEnd))}>}[Points Earned for Metric]) / Sum({<YearEnd={$(=$(v_Last_YearEnd))}>}[Points Possible for Metric]), [%SchoolReportYearKey])) >= 0 and
+				              	Avg(Aggr(Sum({<YearEnd={$(=$(v_LastLast_YearEnd))}>}[Points Earned for Metric]) / Sum({<YearEnd={$(=$(v_LastLast_YearEnd))}>}[Points Possible for Metric]), [%SchoolReportYearKey])) >= 0 and
+				              	Avg(Aggr(Sum({<YearEnd={$(=$(v_LastLastLast_YearEnd))}>}[Points Earned for Metric]) / Sum({<YearEnd={$(=$(v_LastLastLast_YearEnd))}>}[Points Possible for Metric]), [%SchoolReportYearKey])) >= 0
+				              ,
+				            	RangeAvg(
 				              	Avg(Aggr(Sum({<YearEnd={$(=$(v_Last_YearEnd))}>}[Points Earned for Metric]) / Sum({<YearEnd={$(=$(v_Last_YearEnd))}>}[Points Possible for Metric]), [%SchoolReportYearKey])),
 				              	Avg(Aggr(Sum({<YearEnd={$(=$(v_LastLast_YearEnd))}>}[Points Earned for Metric]) / Sum({<YearEnd={$(=$(v_LastLast_YearEnd))}>}[Points Possible for Metric]), [%SchoolReportYearKey])),
 				              	Avg(Aggr(Sum({<YearEnd={$(=$(v_LastLastLast_YearEnd))}>}[Points Earned for Metric]) / Sum({<YearEnd={$(=$(v_LastLastLast_YearEnd))}>}[Points Possible for Metric]), [%SchoolReportYearKey]))
-				            )
+				            ))
 				        )
 				    )
 				)
-				, '#0.#%');
+				+ 0.0001, '#0.#%');
 
 
 			let vLab_Avg_PercScore_OverallToDomainToMetric_3Year_Previous = $(vTitle_Avg_PercScore_OverallToDomainToMetric_3Year_Current)  & ' (up to '& $(v_Last_Year) &')';
@@ -472,13 +673,8 @@
 
 	//// Combo Chart (bottom-left): Average by Domain, drill to metric
 		/// Title
-			let vTitle_Avg_PercScore_DomainToMetric = 
-				If($(vExpr_MultipleDomainsPossible_AllMetricsPossible), 
-					'Average Score, by each Domain',
-					If($(vExpr_SingleDomainSelected),
-						'Average Score, by each Metric in ' & Only(GetFieldSelections([Domain Name])),
-						'Average Score, by each Metric'
-				));
+			// vTitle_Avg_PercScore_DomainToMetric
+			
 
 		/// SubTitle
 
@@ -492,7 +688,7 @@
 			        )
 					+ 0.0001, '#0%');
 
-			let vLab_Avg_PercScore_DomainToMetric_Current = If($(vExpr_SingleDomainSelected), 'Average Score for Metrics in ' & Only(GetFieldSelections([Domain Name])), 'Average Score for Domains') &
+			let vLab_Avg_PercScore_DomainToMetric_Current = If($(vExpr_SingleDomainSelected), $(vText_AverageOrSingle) & 'Percent Earned for Metrics in ' & Only(GetFieldSelections([Domain_Name])), $(vText_AverageOrSingle) & 'Percent Earned for Domains') &
 				' ('& $(v_Max_Year) &')';
 
 		/// Measure 2
@@ -504,7 +700,7 @@
 			        )
 					+ 0.0001, '#0%');
 
-			let vLab_Avg_PercScore_DomainToMetric_Previous = If($(vExpr_SingleDomainSelected), 'Average Score for Metrics in ' & Only(GetFieldSelections([Domain Name])), 'Average Score for Domains') &
+			let vLab_Avg_PercScore_DomainToMetric_Previous = If($(vExpr_SingleDomainSelected), $(vText_AverageOrSingle) & 'Percent Earned for Metrics in ' & Only(GetFieldSelections([Domain_Name])), $(vText_AverageOrSingle) & 'Percent Earned for Domains') &
 				' ('& $(v_Last_Year) &')';
 
 		/// Color
@@ -516,28 +712,41 @@
 
 	//// Line Chart (bottom-left-middle): 3 Year Average by Domain, drill to metric
 		/// Title
-			let vTitle_Avg_PercScore_DomainToMetric_3Year_Current = 
-				If($(vExpr_MultipleDomainsPossible_AllMetricsPossible), 
-					'Average Score, Overall',
-					If($(vExpr_SingleDomainSelected),
-						'Average Score, ' & Only(GetFieldSelections([Domain Name])),
-						If($(vExpr_SingleMetricSelected),
-							'Average Score, ' & Only(GetFieldSelections([Metric Name])),
-							'Average Score, Selected Metrics'
-						)
-				));
+			let vTitle_Avg_PercScore_OverallToDomainToMetric_3Year = $(vTitle_Avg_PercScore_OverallToDomainToMetric) & ' for Previous 3 Years';
+			
 
 		/// SubTitle
 
 		/// Measure 1
-			// vMM_Avg_PercScore_OverallToDomainToMetric_3Year
+			// Description:
+			// Percent of Points Earned for the previous three years. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
+			let vMM_Avg_PercScore_OverallToDomainToMetric_3Year = Num(
+				IF ($(vExpr_AllDomainsPossible),
+					Avg({<YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Percent Earned Overall]),
+				    IF ($(vExpr_SingleDomainSelected_AllMetricsPossible),
+				    	Avg({<[Metric ID] = {"Z_ACH_OVERALL", "Z_PROG_OVERALL", "Z_CLIM_OVERALL", "Z_CC_OVERALL"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Percent Earned in Domain]),
+				        IF ($(vExpr_SingleMetricSelected),
+				        	Avg({<YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Percent Earned for Metric]),
+				            Avg(Aggr(If(Count({<[Points Possible for Metric]={""}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearKey) = 0, Sum({<YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Earned for Metric]) / Sum({<YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Possible for Metric])), [%SchoolReportYearKey]))
+				        )
+				    )
+				)
+				, '#0%');
+
+			let vLab_Avg_PercScore_OverallToDomainToMetric_3Year = $(vTitle_Avg_PercScore_OverallToDomainToMetric);
+
 			
 		/// Color
-			let vCol_Avg_PercScore_DomainToMetric_3Year_Current = 
-				IF($(vMM_Avg_PercScore_OverallToDomainToMetric_3Year_Current) < 0.25, rgb(192,80,77),
-				IF($(vMM_Avg_PercScore_OverallToDomainToMetric_3Year_Current) < 0.5, rgb(247,150,70),
-				IF($(vMM_Avg_PercScore_OverallToDomainToMetric_3Year_Current)  < 0.75, rgb(0,176,80),
-				IF($(vMM_Avg_PercScore_OverallToDomainToMetric_3Year_Current) >= 0.75, rgb(0,112,192)))));
+			let vCol_Avg_PercScore_OverallToDomainToMetric_3Year = 
+				IF($(vMM_Avg_PercScore_OverallToDomainToMetric_3Year) < 0.25, rgb(192,80,77),
+				IF($(vMM_Avg_PercScore_OverallToDomainToMetric_3Year) < 0.5, rgb(247,150,70),
+				IF($(vMM_Avg_PercScore_OverallToDomainToMetric_3Year)  < 0.75, rgb(0,176,80),
+				IF($(vMM_Avg_PercScore_OverallToDomainToMetric_3Year) >= 0.75, rgb(0,112,192)))));
+
+	// #c0504d
+	// #f79646
+	// #00b050
+	// #0070c0
 
 	//// Combo Chart (bottom-right-middle): % of Schools in each Tier
 		/// Title
@@ -573,24 +782,18 @@
 		/// Color
 			// vCol_OverallTier
 
-///// YOY Scores (by Network, Domain, Metric)
+///// YOY Percent Earneds (by Network, Domain, Metric)
 	//// Combo Chart (center): Average Schore by Network, School Report
 
 		/// Title
-			let vTitle_Avg_PercScore_NetworkToDomainToMetric = 
-				If(GetPossibleCount([Learning Network]) = 1, 
-					IF ($(vExpr_MultipleDomainsPossible_AllMetricsPossible),
-		                'Average Score for each Domain in ' & Only(GetFieldSelections([Learning Network])),
-		                'Average Score for each ' & Only(GetFieldSelections([Domain Name])) & ' Metric in ' & Only(GetFieldSelections([Learning Network]))
-		            ),
-		            $(vTitle_Avg_PercScore_OverallToDomainToMetric)
-				);
+			//vTitle_Avg_PercScore_NetworkToDomainToMetric 
+			
 
 		/// SubTitle
 			let vSubTitle_Avg_PercScore_NetworkToDomainToMetric = 'Colored by change from ' & $(v_Last_Year) & ' to ' & $(v_Max_Year);
 
 		/// Measure 1
-			// SPR Score for the current year. If a single network is selected, will display each domain score, separately. If a single network and a single domain score is selected, will display each metric score, separately. If a specific network is not selected, will display either the overall, domain, or metric score selected for each network, based upon domain and metric selections. 
+			// SPR Percent Earned for the current year. If a single network is selected, will display each domain score, separately. If a single network and a single domain score is selected, will display each metric score, separately. If a specific network is not selected, will display either the overall, domain, or metric score selected for each network, based upon domain and metric selections. 
 			let vMM_Avg_PercScore_NetworkToDomainToMetric_Current = Num(
 				IF (GetPossibleCount([Learning Network]) > 1 and $(vExpr_AllDomainsPossible),
 					Avg({<YearEnd={$(=$(v_Max_YearEnd))}>}[Percent Earned Overall]),
@@ -610,18 +813,10 @@
 				)
 				+ 0.0001, '#0%');
 
-			let vLab_Avg_PercScore_NetworkToDomainToMetric_Current = 
-				IF(GetPossibleCount([Learning Network]) = 1,
-					IF ($(vExpr_MultipleDomainsPossible_AllMetricsPossible),
-	                    'Average Score by Domain',
-	                    'Average Score by Metric in ' & Only(GetFieldSelections([Domain Name]))
-	                ),
-					$(vTitle_Avg_PercScore_OverallToDomainToMetric)
-				) & ' (' & $(v_Max_Year) &')';
-
-
+			let vLab_Avg_PercScore_NetworkToDomainToMetric_Current = $(vTitle_Avg_PercScore_NetworkToDomainToMetric) & ' (' & $(v_Max_Year) &')';
+				
 		// Measure 2
-			// SPR Score for the previous year. If a single network is selected, will display each domain score, separately. If a single network and a single domain score is selected, will display each metric score, separately. If a specific network is not selected, will display either the overall, domain, or metric score selected for each network, based upon domain and metric selections. 
+			// SPR Percent Earned for the previous year. If a single network is selected, will display each domain score, separately. If a single network and a single domain score is selected, will display each metric score, separately. If a specific network is not selected, will display either the overall, domain, or metric score selected for each network, based upon domain and metric selections. 
 			let vMM_Avg_PercScore_NetworkToDomainToMetric_Previous = Num(
 				IF (GetPossibleCount([Learning Network]) > 1 and $(vExpr_AllDomainsPossible),
 					Avg({<YearEnd={$(=$(v_Last_YearEnd))}>}[Percent Earned Overall]),
@@ -641,43 +836,49 @@
 				)
 				+ 0.0001, '#0%');
 
-			let vLab_Avg_PercScore_NetworkToDomainToMetric_Previous = 
-				IF(GetPossibleCount([Learning Network]) = 1,
-					IF ($(vExpr_MultipleDomainsPossible_AllMetricsPossible),
-	                    'Average Score by Domain',
-	                    'Average Score by Metric in ' & Only(GetFieldSelections([Domain Name]))
-	                ),
-					$(vTitle_Avg_PercScore_OverallToDomainToMetric)
-				) & ' (' & $(v_Last_Year) &')';
-
-			// Change in SPR Score from the previous to the current year. If a single network is selected, will display each domain score, separately. If a single network and a single domain score is selected, will display each metric score, separately. If a specific network is not selected, will display either the overall, domain, or metric score selected for each network, based upon domain and metric selections. 
+			let vLab_Avg_PercScore_NetworkToDomainToMetric_Previous = $(vTitle_Avg_PercScore_NetworkToDomainToMetric) & ' (' & $(v_Last_Year) &')';
+				
+			// Change in SPR Percent Earned from the previous to the current year. If a single network is selected, will display each domain score, separately. If a single network and a single domain score is selected, will display each metric score, separately. If a specific network is not selected, will display either the overall, domain, or metric score selected for each network, based upon domain and metric selections. 
 			let vMM_Avg_PercScore_NetworkToDomainToMetric_YOY = Num(
 				Round($(vMM_Avg_PercScore_NetworkToDomainToMetric_Current) - $(vMM_Avg_PercScore_NetworkToDomainToMetric_Previous), 0.01)
 				, '#0%');
 
 			let vLab_Avg_PercScore_NetworkToDomainToMetric_YOY = 'YOY: ' & $(vTitle_Avg_PercScore_NetworkToDomainToMetric);	
 
+			let vMax_Avg_PercScore_NetworkToDomainToMetric = RangeMin(1.001, 
+				Ceil(IF (GetPossibleCount([Learning Network]) > 1, // and $(vExpr_AllDomainsPossible),
+					RangeMax(
+						Max(Aggr($(vMM_Avg_PercScore_NetworkToDomainToMetric_Current), [Learning Network])),
+						Max(Aggr($(vMM_Avg_PercScore_NetworkToDomainToMetric_Previous), [Learning Network]))
+					),
+					IF ($(vExpr_MultipleDomainsPossible),
+							RangeMax(
+								Max(Aggr($(vMM_Avg_PercScore_NetworkToDomainToMetric_Current), [Domain_Name])),
+								Max(Aggr($(vMM_Avg_PercScore_NetworkToDomainToMetric_Previous), [Domain_Name]))
+							),
+							RangeMax(
+								Max(Aggr($(vMM_Avg_PercScore_NetworkToDomainToMetric_Current), [Metric_Name])),
+								Max(Aggr($(vMM_Avg_PercScore_NetworkToDomainToMetric_Previous), [Metric_Name]))
+							)
+						)
+				) * 10) / 10
+			);
+
 		/// Color
 			// $(vMM_Avg_PercScore_NetworkToDomainToMetric_YOY);
 
-///// YOY Scores (by School, Domain, Metric)
+///// YOY Percent Earneds (by School, Domain, Metric)
 	//// Combo Chart (center): Average Schore by Network, School Report
 
 		/// Title
-			let vTitle_Avg_PercScore_SchoolToDomainToMetric = 
-				If(GetPossibleCount([School Abbrev Name (Reporting Category)]) = 1, 
-					IF ($(vExpr_MultipleDomainsPossible_AllMetricsPossible),
-		                'Average Score for each Domain in ' & Only(GetFieldSelections([School Abbrev Name (Reporting Category)])),
-		                'Average Score for each ' & Only(GetFieldSelections([Domain Name])) & ' Metric in ' & Only(GetFieldSelections([School Abbrev Name (Reporting Category)]))
-		            ),
-		            $(vTitle_Avg_PercScore_OverallToDomainToMetric)
-				);
+			// vTitle_Avg_PercScore_SchoolToDomainToMetric
+			
 
 		/// SubTitle
 			let vSubTitle_Avg_PercScore_SchoolToDomainToMetric = 'Colored by change from ' & $(v_Last_Year) & ' to ' & $(v_Max_Year);
 
 		/// Measure 1
-			// SPR Score for the current year. If a single school is selected, will display each domain score, separately. If a single school and a single domain score is selected, will display each metric score, separately. If a specific network is not selected, will display either the overall, domain, or metric score selected for each network, based upon domain and metric selections. 
+			// SPR Percent Earned for the current year. If a single school is selected, will display each domain score, separately. If a single school and a single domain score is selected, will display each metric score, separately. If a specific network is not selected, will display either the overall, domain, or metric score selected for each network, based upon domain and metric selections. 
 			let vMM_Avg_PercScore_SchoolToDomainToMetric_Current = Num(
 				IF (GetPossibleCount([School Abbrev Name (Reporting Category)]) > 1 and $(vExpr_AllDomainsPossible),
 					Avg({<YearEnd={$(=$(v_Max_YearEnd))}>}[Percent Earned Overall]),
@@ -697,18 +898,11 @@
 				)
 				+ 0.0001, '#0%');
 
-			let vLab_Avg_PercScore_SchoolToDomainToMetric_Current = 
-				IF(GetPossibleCount([School Abbrev Name (Reporting Category)]) = 1,
-					IF ($(vExpr_MultipleDomainsPossible_AllMetricsPossible),
-	                    'Average Score by Domain',
-	                    'Average Score by Metric in ' & Only(GetFieldSelections([Domain Name]))
-	                ),
-					$(vTitle_Avg_PercScore_OverallToDomainToMetric)
-				) & ' (' & $(v_Max_Year) &')';
-
+			let vLab_Avg_PercScore_SchoolToDomainToMetric_Current = $(vTitle_Avg_PercScore_SchoolToDomainToMetric) & ' (' & $(v_Max_Year) &')';
+				
 
 		// Measure 2
-			// SPR Score for the previous year. If a single school is selected, will display each domain score, separately. If a single school and a single domain score is selected, will display each metric score, separately. If a specific network is not selected, will display either the overall, domain, or metric score selected for each network, based upon domain and metric selections. 
+			// SPR Percent Earned for the previous year. If a single school is selected, will display each domain score, separately. If a single school and a single domain score is selected, will display each metric score, separately. If a specific network is not selected, will display either the overall, domain, or metric score selected for each network, based upon domain and metric selections. 
 			let vMM_Avg_PercScore_SchoolToDomainToMetric_Previous = Num(
 				IF (GetPossibleCount([School Abbrev Name (Reporting Category)]) > 1 and $(vExpr_AllDomainsPossible),
 					Avg({<YearEnd={$(=$(v_Last_YearEnd))}>}[Percent Earned Overall]),
@@ -728,188 +922,53 @@
 				)
 				+ 0.0001, '#0%');
 
-			let vLab_Avg_PercScore_SchoolToDomainToMetric_Previous = 
-				IF(GetPossibleCount([School Abbrev Name (Reporting Category)]) = 1,
-					IF ($(vExpr_MultipleDomainsPossible_AllMetricsPossible),
-	                    'Average Score by Domain',
-	                    'Average Score by Metric in ' & Only(GetFieldSelections([Domain Name]))
-	                ),
-					$(vTitle_Avg_PercScore_OverallToDomainToMetric)
-				) & ' (' & $(v_Last_Year) &')';
+			let vLab_Avg_PercScore_SchoolToDomainToMetric_Previous = $(vTitle_Avg_PercScore_SchoolToDomainToMetric) & ' (' & $(v_Last_Year) &')';
 
-			// Change in SPR Score from the previous to the current year. If a single school is selected, will display each domain score, separately. If a single school and a single domain score is selected, will display each metric score, separately. If a specific network is not selected, will display either the overall, domain, or metric score selected for each network, based upon domain and metric selections. 
+			// Change in SPR Percent Earned from the previous to the current year. If a single school is selected, will display each domain score, separately. If a single school and a single domain score is selected, will display each metric score, separately. If a specific network is not selected, will display either the overall, domain, or metric score selected for each network, based upon domain and metric selections. 
 			let vMM_Avg_PercScore_SchoolToDomainToMetric_YOY = Num(
 				Round($(vMM_Avg_PercScore_SchoolToDomainToMetric_Current) - $(vMM_Avg_PercScore_SchoolToDomainToMetric_Previous), 0.01)
 				, '#0%');
 
 			let vLab_Avg_PercScore_SchoolToDomainToMetric_YOY = 'YOY: ' & $(vTitle_Avg_PercScore_SchoolToDomainToMetric);	
 
+			let vMax_Avg_PercScore_SchoolToDomainToMetric = RangeMin(1.001, 
+				Ceil(IF (GetPossibleCount([School Abbrev Name (Reporting Category)]) > 1, // and $(vExpr_AllDomainsPossible),
+					RangeMax(
+						Max(Aggr($(vMM_Avg_PercScore_SchoolToDomainToMetric_Current), [School Abbrev Name (Reporting Category)])),
+						Max(Aggr($(vMM_Avg_PercScore_SchoolToDomainToMetric_Previous), [School Abbrev Name (Reporting Category)]))
+					),
+					IF ($(vExpr_MultipleDomainsPossible),
+							RangeMax(
+								Max(Aggr($(vMM_Avg_PercScore_SchoolToDomainToMetric_Current), [Domain_Name])),
+								Max(Aggr($(vMM_Avg_PercScore_SchoolToDomainToMetric_Previous), [Domain_Name]))
+							),
+							RangeMax(
+								Max(Aggr($(vMM_Avg_PercScore_SchoolToDomainToMetric_Current), [Metric_Name])),
+								Max(Aggr($(vMM_Avg_PercScore_SchoolToDomainToMetric_Previous), [Metric_Name]))
+							)
+						)
+				) * 10) / 10
+			);
 		/// Color
 			// $(vMM_Avg_PercScore_SchoolToDomainToMetric_YOY);
-
-///// Points Possible and Points Earned (Scoring Page)
-
-	let vSheet_Points_Possible_and_Points_Earned = 'Points Possible and Points Earned for ' & $(v_SelectedOrFirst_ReportType) & ' Report'; 
-
-	//// Since this page must default to a specific report type, create a variable to store this
-	let v_SelectedOrFirst_ReportType = FirstSortedValue(distinct [SPR Report Type], [SPR Report Type]);
-
-	//// KPI 1 - # of points possible
-		/// Measure 1
-			// Average Points Possible for the current year for the selected report type. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
-			let vMM_Avg_PointsPossible_Report_OverallToDomainToMetric_Current = Num(
-				IF ($(vExpr_AllDomainsPossible),
-					Avg({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Possible Overall]),
-				    IF ($(vExpr_SingleDomainSelected_AllMetricsPossible),
-				    	Avg({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Possible in Domain]),
-				        IF ($(vExpr_SingleMetricSelected),
-				        	Avg({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Possible for Metric]),
-				            Avg(Aggr(Sum({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Possible for Metric]), [%SchoolReportYearKey]))
-				        )
-				    )
-				)
-				, '#0.#');
-
-			let vLab_Avg_PointsPossible_Report_OverallToDomainToMetric_Current = 
-				IF($(vExpr_SingleDomainSelected_or_SingleMetricSelected),
-			    		IF($(vExpr_SingleDomainSelected_AllMetricsPossible), 'Average Points Possible for ' & Only(GetFieldSelections([Domain Name])),
-				        IF($(vExpr_MultipleDomainsPossible_AllMetricsPossible), 'Average Points Possible for Selected Domains',
-				        IF($(vExpr_MultipleMetricsSelected), 'Average Points Possible for Selected Metrics',
-		                IF($(vExpr_SingleMetricSelected), 'Average Points Possible in ' & Only(GetFieldSelections([Metric Name]))
-			        )))),
-					'Average Overall Points Possible')
-		    		& ' (' & $(v_SelectedOrFirst_ReportType) & ', ' & $(v_Max_Year) &')';
-		/// Measure 2
-
-			let vMM_Max_PointsPossible_OverallToDomainToMetric_Current = Max({<YearEnd={$(=$(v_Max_YearEnd))}, [School Name]=, [Learning Network]=, [Peer Group]= >} Aggr(Sum({<YearEnd={$(=$(v_Max_YearEnd))}, [School Name]=, [Learning Network]=, [Peer Group]= >}[Points Possible for Metric]), [%SchoolReportYearKey]));
-
-	//// KPI 2 - # of points earned
-		// Average Points Earned for the current year for the selected report type. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
-		let vMM_Avg_PointsEarned_Report_OverallToDomainToMetric_Current = Num(
-			IF ($(vExpr_AllDomainsPossible),
-				Avg({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Earned Overall]),
-			    IF ($(vExpr_SingleDomainSelected_AllMetricsPossible),
-			    	Avg({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Earned in Domain]),
-			        IF ($(vExpr_SingleMetricSelected),
-			        	Avg({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Earned for Metric]),
-			            Avg(Aggr(Sum({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Earned for Metric]), [%SchoolReportYearKey]))
-			        )
-			    )
-			)
-			, '#0.#');
-
-		let vLab_Avg_PointsEarned_Report_OverallToDomainToMetric_Current = 
-			IF($(vExpr_SingleDomainSelected_or_SingleMetricSelected),
-		    	IF($(vExpr_SingleDomainSelected_AllMetricsPossible), 'Average Points Earned for ' & Only(GetFieldSelections([Domain Name])),
-			        IF($(vExpr_MultipleDomainsPossible_AllMetricsPossible), 'Average Points Earned for Selected Domains',
-			        	IF($(vExpr_MultipleMetricsSelected), 'Average Points Earned for Selected Metrics',
-	                	IF($(vExpr_SingleMetricSelected), 'Average Points Earned in ' & Only(GetFieldSelections([Metric Name]))
-		        )))),
-				'Average Overall Points Earned')
-	  			& ' (' & $(v_SelectedOrFirst_ReportType) & ', ' & $(v_Max_Year) &')';
-
-	//// KPI 3 - % of points earned
-		// SPR Score for the current year for the selected report type. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
-		let vMM_Avg_PercScore_Report_OverallToDomainToMetric_Current = Num(
-			IF ($(vExpr_AllDomainsPossible),
-				Avg({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Percent Earned Overall]),
-			    IF ($(vExpr_SingleDomainSelected_AllMetricsPossible),
-			    	Avg({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Percent Earned in Domain]),
-			        IF ($(vExpr_SingleMetricSelected),
-			        	Avg({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Percent Earned for Metric]),
-			            Avg(Aggr(Sum({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Earned for Metric]) / Sum({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Possible for Metric]), [%SchoolReportYearKey]))
-			        )
-			    )
-			)
-			, '#0%');
-
-		let vLab_Avg_PercScore_Report_OverallToDomainToMetric_Current = $(vTitle_Avg_PercScore_OverallToDomainToMetric) & ' (' & $(v_SelectedOrFirst_ReportType) & ', ' & $(v_Max_Year) &')';
-
-
-	//// KPI 4 - Current Tier
-		// Aperage Tier for the current year (< 0.25 = 'Intervene', < 0.50 = 'Watch', < .75 = 'Reinforce', >= 'Model'). If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
-		let vMM_Avg_Tier_Report_OverallToDomainToMetric_Current = If($(vMM_Avg_PercScore_Report_OverallToDomainToMetric_Current) < 0.25, 'Intervene',
-			IF ($(vMM_Avg_PercScore_Report_OverallToDomainToMetric_Current) < 0.5, 'Watch',
-			IF ($(vMM_Avg_PercScore_Report_OverallToDomainToMetric_Current) < 0.75, 'Reinforce',
-			IF ($(vMM_Avg_PercScore_Report_OverallToDomainToMetric_Current) >= 0.75, 'Model'))));
-
-		let vLab_Avg_Tier_Report_OverallToDomainToMetric_Current = IF($(vExpr_SingleDomainSelected_or_SingleMetricSelected),
-		    	IF($(vExpr_SingleDomainSelected_AllMetricsPossible), 'Average Tier for ' & Only(GetFieldSelections([Domain Name])),
-		        	IF($(vExpr_MultipleDomainsPossible_AllMetricsPossible), 'Average Tier for Selected Domains',
-		        		IF($(vExpr_MultipleMetricsSelected), 'Average Tier for Selected Metrics',
-                		IF($(vExpr_SingleMetricSelected), 'Average Tier in ' & Only(GetFieldSelections([Metric Name]))
-		        )))),
-				'Average Overall Tier')
-	    		& ' (' & $(v_SelectedOrFirst_ReportType) & ', ' & $(v_Max_Year) &')';
-
-	//// TreeMap (Bottom) - Displays size by number of points, color by tier
-		/// Title
-			let vTitle_Scoring_Report_DomainToMetric =  
-				If($(vExpr_SingleDomainSelected), 
-					'The Distribution of Points across Metrics in' & Only(GetFieldSelections([Domain Name])), 
-					'The Distribution of Points across Domains'
-				) & ' for ' & $(v_SelectedOrFirst_ReportType) & ' Report Type';
-
-		/// Subtitle:
-			let vSubTitle_Scoring_Report_DomainToMetric = 'Size indicates # of possible points in each ' & 
-				If($(vExpr_SingleDomainSelected), 
-					'Metric in ' & Only(GetFieldSelections([Domain Name])), 
-					'Domain'
-				) & '. Color indicates ' & 
-				IF(GetSelectedCount([School Name])=1, ' Tiers achieved by ' & Only(GetFieldSelections([School Name])),
-					IF(GetSelectedCount([School Name])>1, ' average Tiers achieved by Selected Schools',
-						IF(GetSelectedCount([Learning Network])=1, ' average Tier achieved in ' & Only(GetFieldSelections([Learning Network])),
-						IF(GetSelectedCount([Learning Network])>1, ' average Tier achieved in Selected Learning Networks',
-						'average Tier achieved across all schools'))));	
-
-		/// Measure (for size)
-			// Displays the maximum number of points per domain. If a single domain is selected will show the maximum # of points per metric.
-			let vMM_MaxScore_Report_DomainToMetric_Current = Num(
-					If(GetPossibleCount([Domain Name]) = 1, 
-						Max({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, IsSum={0}, YearEnd={$(=$(v_Max_YearEnd))}, [Metric Name]=, [Metric ID]=>}[Points Possible]),  
-						Max({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))},[Domain Name]=, [Metric Name]=, [Metric ID]=>}[Points Possible in Domain])
-					)
-				, '#,##0.#');
-
-			let vLab_MaxScore_Report_DomainToMetric_Current = 
-				If(GetPossibleCount([Domain Name]) = 1, 
-					'Max Points for Metric', 
-					'Max Points in Domain'
-				) & ' for ' & $(v_SelectedOrFirst_ReportType) & ' Report Type';
-		
-
-		/// Color
-			// The percent of possible points earned for all available metrics in the most current year. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
-			let vMM_Avg_PercScore_Report_DomainToMetric_Current = Num(
-					If(GetPossibleCount([Domain Name]) = 1, 
-						Avg({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, IsSum={0}, YearEnd={$(=$(v_Max_YearEnd))}>}[Percent Earned]),  
-						Avg({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))},[Metric Name]=, [Metric ID]=>}[Percent Earned in Domain])
-					)
-					+ 0.0001, '#0%');
-
-			let vLab_Avg_PercScore_Report_DomainToMetric_Current = If($(vExpr_SingleDomainSelected), 'Average Score for Metrics in ' & Only(GetFieldSelections([Domain Name])), 'Average Score for Domains') &
-				' (' & $(v_SelectedOrFirst_ReportType) & ', ' & $(v_Max_Year) &')';
-
-
-			let vCol_Avg_PercScore_Report_DomainToMetric_Current = 
-				IF($(vMM_Avg_PercScore_Report_DomainToMetric_Current) < 0.25, rgb(192,80,77),
-				IF($(vMM_Avg_PercScore_Report_DomainToMetric_Current) < 0.5, rgb(247,150,70),
-				IF($(vMM_Avg_PercScore_Report_DomainToMetric_Current) < 0.75, rgb(0,176,80),
-				IF($(vMM_Avg_PercScore_Report_DomainToMetric_Current) >= 0.75, rgb(0,112,192)))));
 
 ///// Change from 2015-2016 to 2016-2017 (Sankey Page)
 
 	//// Sheet Name
-		let vSheet_Change_from_Previous_to_Current = 'Change from ' & $(v_Last_Year) & ' to ' & $(v_Max_Year);
+		let vSheet_Change_from_Previous_to_Current = 'Tier and Score Change YOY'; //'Change from ' & $(v_Last_Year) & ' to ' & $(v_Max_Year);
 
 	//// KPI  (top-left): # of school reports
 		/// Title			
-			
+			let vTitle_Count_Reports = '# of School Reports';
+			let vSubTitle_Count_Reports = 'With ' & $(vText_Level_OverallToDomainToMetric) & ' Scores (' & $(v_Max_Year) & ')';
 
 		/// Measure 1:
 			// vMM_Count_Reports_Current	
 
 	/// KPI 2: 
+		/// Title			
+			let vTitle_Count_Reports_Increase = 'Increased Percent Earned, ' & $(vText_Level_OverallToDomainToMetric);
+			let vSubTitle_Count_Reports_Increase =  'By # and % of ' & $(vText_Level_OverallToDomainToMetric) & ' Reports (' & $(v_Max_Year) & ')' ;
 
 		/// Measure 1:
 			// The # of schools that increased their SPR score.
@@ -917,13 +976,13 @@
 				IF ($(vExpr_AllDomainsPossible), 
 					Sum(Aggr(If(Only(distinct {<[Metric ID] = {"Z_OVERALL_OVERALL"}, YearEnd={$(=$(v_Max_YearEnd))}>} [Percent Earned]) - Only(distinct {<[Metric ID] = {"Z_OVERALL_OVERALL"}, YearEnd={$(=$(v_Last_YearEnd))}>} [Percent Earned]) > 0, 1, 0), [%SchoolReportKey])),
 					IF ($(vExpr_SingleDomainSelected_AllMetricsPossible), 
-						If(Only(GetFieldSelections([Domain Name])) = 'Achievement', 
+						If(Only(GetFieldSelections([Domain_Name])) = 'Achievement', 
 				       		Sum(Aggr(If(Only(distinct {<[Metric ID] = {"Z_ACH_OVERALL"}, YearEnd={$(=$(v_Max_YearEnd))}>} [Percent Earned]) - Only(distinct {<[Metric ID] = {"Z_ACH_OVERALL"}, YearEnd={$(=$(v_Last_YearEnd))}>} [Percent Earned]) > 0, 1, 0), [%SchoolReportKey])),
-				        	If(Only(GetFieldSelections([Domain Name])) = 'Progress', 
+				        	If(Only(GetFieldSelections([Domain_Name])) = 'Progress', 
 				        		Sum(Aggr(If(Only(distinct {<[Metric ID] = {"Z_PROG_OVERALL"}, YearEnd={$(=$(v_Max_YearEnd))}>} [Percent Earned]) - Only(distinct {<[Metric ID] = {"Z_PROG_OVERALL"}, YearEnd={$(=$(v_Last_YearEnd))}>} [Percent Earned]) > 0, 1, 0), [%SchoolReportKey])),
-					     	    If(Only(GetFieldSelections([Domain Name])) = 'Climate', 
+					     	    If(Only(GetFieldSelections([Domain_Name])) = 'Climate', 
 				    		    	Sum(Aggr(If(Only(distinct {<[Metric ID] = {"Z_CLIM_OVERALL"}, YearEnd={$(=$(v_Max_YearEnd))}>} [Percent Earned]) - Only(distinct {<[Metric ID] = {"Z_CLIM_OVERALL"}, YearEnd={$(=$(v_Last_YearEnd))}>} [Percent Earned]) > 0, 1, 0), [%SchoolReportKey])),
-				       				If(Only(GetFieldSelections([Domain Name])) = 'College & Career', 
+				       				If(Only(GetFieldSelections([Domain_Name])) = 'College & Career', 
 				        				Sum(Aggr(If(Only(distinct {<[Metric ID] = {"Z_CC_OVERALL"}, YearEnd={$(=$(v_Max_YearEnd))}>} [Percent Earned]) - Only(distinct {<[Metric ID] = {"Z_CC_OVERALL"}, YearEnd={$(=$(v_Last_YearEnd))}>} [Percent Earned]) > 0, 1, 0), [%SchoolReportKey]))       
 									)
 								)
@@ -936,7 +995,7 @@
 				),
 				'##0');
 
-			let vLab_Count_Reports_Increase_Current = '# of Schools that Increased their SPR Score';
+			let vLab_Count_Reports_Increase_Current = '# of Schools that Increased their SPR Percent Earned';
 
 		/// Measure 2:
 			// The % of schools that increased their SPR score.
@@ -944,9 +1003,12 @@
 				$(vMM_Count_Reports_Increase_Current) / $(vMM_Count_Reports_Current)				
 				, '#0.#%');
 
-			let vLab_Ratio_Reports_Increase_Current = '% of Schools that Increased their SPR Score';
+			let vLab_Ratio_Reports_Increase_Current = '% of Schools that Increased their SPR Percent Earned';
 	
 	/// KPI 3: 
+		/// Title			
+			let vTitle_Count_Reports_IncreaseTier = 'Increased Tier, ' & $(vText_Level_OverallToDomainToMetric);
+			let vSubTitle_Count_Reports_IncreaseTier =  'By # and % of ' & $(vText_Level_OverallToDomainToMetric) & ' Reports (' & $(v_Max_Year) & ')' ;
 
 		/// Measure 1:
 			// The # of schools that increased their SPR Tier level (such as Watch to Reinforce or Model).
@@ -954,13 +1016,13 @@
 				IF ($(vExpr_AllDomainsPossible), 
 					Sum(Aggr(If(Div(100 * Only( distinct {<[Metric ID] = {"Z_OVERALL_OVERALL"}, YearEnd={$(=$(v_Max_YearEnd))}>} [Percent Earned]), 25) - Div(100 * Only( distinct {<[Metric ID] = {"Z_OVERALL_OVERALL"}, YearEnd={$(=$(v_Last_YearEnd))}>} [Percent Earned]), 25) > 0, 1, 0), [%SchoolReportKey])),
 					IF ($(vExpr_SingleDomainSelected_AllMetricsPossible), 
-						If(Only( GetFieldSelections([Domain Name])) = 'Achievement', 
+						If(Only( GetFieldSelections([Domain_Name])) = 'Achievement', 
 				        	Sum(Aggr(If(Div(100 * Only( distinct {<[Metric ID] = {"Z_ACH_OVERALL"}, YearEnd={$(=$(v_Max_YearEnd))}>} [Percent Earned]), 25) - Div(100 * Only( distinct {<[Metric ID] = {"Z_ACH_OVERALL"}, YearEnd={$(=$(v_Last_YearEnd))}>} [Percent Earned]), 25) > 0, 1, 0), [%SchoolReportKey])),
-					        If(Only( GetFieldSelections([Domain Name])) = 'Progress', 
+					        If(Only( GetFieldSelections([Domain_Name])) = 'Progress', 
 					        	Sum(Aggr(If(Div(100 * Only( distinct {<[Metric ID] = {"Z_PROG_OVERALL"}, YearEnd={$(=$(v_Max_YearEnd))}>} [Percent Earned]), 25) - Div(100 * Only( distinct {<[Metric ID] = {"Z_PROG_OVERALL"}, YearEnd={$(=$(v_Last_YearEnd))}>} [Percent Earned]), 25) > 0, 1, 0), [%SchoolReportKey])),
-						        If(Only( GetFieldSelections([Domain Name])) = 'Climate', 
+						        If(Only( GetFieldSelections([Domain_Name])) = 'Climate', 
 						        	Sum(Aggr(If(Div(100 * Only( distinct {<[Metric ID] = {"Z_CLIM_OVERALL"}, YearEnd={$(=$(v_Max_YearEnd))}>} [Percent Earned]), 25) - Div(100 * Only( distinct {<[Metric ID] = {"Z_CLIM_OVERALL"}, YearEnd={$(=$(v_Last_YearEnd))}>} [Percent Earned]), 25) > 0, 1, 0), [%SchoolReportKey])),
-					   			    If(Only( GetFieldSelections([Domain Name])) = 'College & Career', 
+					   			    If(Only( GetFieldSelections([Domain_Name])) = 'College & Career', 
 					        			Sum(Aggr(If(Div(100 * Only( distinct {<[Metric ID] = {"Z_CC_OVERALL"}, YearEnd={$(=$(v_Max_YearEnd))}>} [Percent Earned]), 25) - Div(100 * Only( distinct {<[Metric ID] = {"Z_CC_OVERALL"}, YearEnd={$(=$(v_Last_YearEnd))}>} [Percent Earned]), 25) > 0, 1, 0), [%SchoolReportKey]))       
 									)									
 						        )
@@ -984,6 +1046,9 @@
 			let vLab_Ratio_Reports_IncreaseTier_Current = '% of Schools that Increased their SPR Tier';
 
 	/// KPI 4: 
+		/// Title			
+			let vTitle_Count_Reports_MovedToUpperTier = 'Moved to Highest 2 Tiers, ' & $(vText_Level_OverallToDomainToMetric);
+			let vSubTitle_Count_Reports_MovedToUpperTier = 'By # and % of ' & $(vText_Level_OverallToDomainToMetric) & ' Reports (' & $(v_Max_Year) & ')' ;
 
 		/// Measure 1:
 			// The # of schools that moved from Intervene or Watch to Reinforce or Model.
@@ -991,13 +1056,13 @@
 				IF ($(vExpr_AllDomainsPossible), 
 					Sum(Aggr(If(Div(100 * Only( distinct {<[Metric ID] = {"Z_OVERALL_OVERALL"}, YearEnd={$(=$(v_Max_YearEnd))}>} [Percent Earned]), 25) > 1 and Div(100 * Only( distinct {<[Metric ID] = {"Z_OVERALL_OVERALL"}, YearEnd={$(=$(v_Last_YearEnd))}>} [Percent Earned]), 25) <= 1, 1, 0), [%SchoolReportKey])),
 					IF ($(vExpr_SingleDomainSelected_AllMetricsPossible), 
-						If(Only( GetFieldSelections([Domain Name])) = 'Achievement', 
+						If(Only( GetFieldSelections([Domain_Name])) = 'Achievement', 
 				        	Sum(Aggr(If(Div(100 * Only( distinct {<[Metric ID] = {"Z_ACH_OVERALL"}, YearEnd={$(=$(v_Max_YearEnd))}>} [Percent Earned]), 25) > 1 and Div(100 * Only( distinct {<[Metric ID] = {"Z_ACH_OVERALL"}, YearEnd={$(=$(v_Last_YearEnd))}>} [Percent Earned]), 25) <= 1, 1, 0), [%SchoolReportKey])),
-					        If(Only( GetFieldSelections([Domain Name])) = 'Progress', 
+					        If(Only( GetFieldSelections([Domain_Name])) = 'Progress', 
 					        	Sum(Aggr(If(Div(100 * Only( distinct {<[Metric ID] = {"Z_PROG_OVERALL"}, YearEnd={$(=$(v_Max_YearEnd))}>} [Percent Earned]), 25) > 1 and Div(100 * Only( distinct {<[Metric ID] = {"Z_PROG_OVERALL"}, YearEnd={$(=$(v_Last_YearEnd))}>} [Percent Earned]), 25) <= 1, 1, 0), [%SchoolReportKey])),
-						        If(Only( GetFieldSelections([Domain Name])) = 'Climate', 
+						        If(Only( GetFieldSelections([Domain_Name])) = 'Climate', 
 						        	Sum(Aggr(If(Div(100 * Only( distinct {<[Metric ID] = {"Z_CLIM_OVERALL"}, YearEnd={$(=$(v_Max_YearEnd))}>} [Percent Earned]), 25) > 1 and Div(100 * Only( distinct {<[Metric ID] = {"Z_CLIM_OVERALL"}, YearEnd={$(=$(v_Last_YearEnd))}>} [Percent Earned]), 25) <= 1, 1, 0), [%SchoolReportKey])),
-					   			    If(Only( GetFieldSelections([Domain Name])) = 'College & Career', 
+					   			    If(Only( GetFieldSelections([Domain_Name])) = 'College & Career', 
 					        			Sum(Aggr(If(Div(100 * Only( distinct {<[Metric ID] = {"Z_CC_OVERALL"}, YearEnd={$(=$(v_Max_YearEnd))}>} [Percent Earned]), 25) > 1 and Div(100 * Only( distinct {<[Metric ID] = {"Z_CC_OVERALL"}, YearEnd={$(=$(v_Last_YearEnd))}>} [Percent Earned]), 25) <= 1, 1, 0), [%SchoolReportKey]))       
 									)
 								)
@@ -1022,6 +1087,9 @@
 
 	//// Sankey (bottom-left)
 
+		/// Footnote:
+			let vFootnote_Count_Tier_OverallToDomainToMetric = 'Note: ' & (Sum(Aggr ( Fabs($(vMM_Count_Reports_Current) - $(vMM_Count_Reports_Previous)), [%SchoolReportKey]))) & 
+			' reports are excluded from the diagram because of missing values in one of two years.'; 
 		/// Variables for selecting the appropriate year
 			let v_Sankey_Current = 
 				If($(v_Max_YearEnd) = 2017, 'Tier (2016-2017)',
@@ -1049,13 +1117,13 @@
 				IF ($(vExpr_AllDomainsPossible), 
 					Count(distinct {<[Points Possible] = {">0"}, [Metric ID] = {"Z_OVERALL_OVERALL"}, YearEnd={$(=$(v_Max_YearEnd))}>} [%SchoolReportMetricKey]),
 					IF ($(vExpr_SingleDomainSelected_AllMetricsPossible), 
-						If(Only(GetFieldSelections([Domain Name])) = 'Achievement', 
+						If(Only(GetFieldSelections([Domain_Name])) = 'Achievement', 
 				        	Count(distinct {<[Points Possible] = {">0"}, [Metric ID] = {"Z_ACH_OVERALL"}, YearEnd={$(=$(v_Max_YearEnd))}>} [%SchoolReportMetricKey]),
-					        If(Only(GetFieldSelections([Domain Name])) = 'Progress', 
+					        If(Only(GetFieldSelections([Domain_Name])) = 'Progress', 
 					        	Count(distinct {<[Points Possible] = {">0"}, [Metric ID] = {"Z_PROG_OVERALL"}, YearEnd={$(=$(v_Max_YearEnd))}>} [%SchoolReportMetricKey]),
-						        If(Only(GetFieldSelections([Domain Name])) = 'Climate', 
+						        If(Only(GetFieldSelections([Domain_Name])) = 'Climate', 
 						        	Count(distinct {<[Points Possible] = {">0"}, [Metric ID] = {"Z_CLIM_OVERALL"}, YearEnd={$(=$(v_Max_YearEnd))}>} [%SchoolReportMetricKey]),
-					   			    If(Only(GetFieldSelections([Domain Name])) = 'College & Career', 
+					   			    If(Only(GetFieldSelections([Domain_Name])) = 'College & Career', 
 					        			Count(distinct {<[Points Possible] = {">0"}, [Metric ID] = {"Z_CC_OVERALL"}, YearEnd={$(=$(v_Max_YearEnd))}>} [%SchoolReportMetricKey])            
 									)
 						        )
@@ -1118,7 +1186,7 @@
 
 	//// Table
 
-		/// Measure 1 - Score Previous
+		/// Measure 1 - Percent Earned Previous
 			// vMM_Avg_PercScore_OverallToDomainToMetric_Previous
 
 			// background coloring
@@ -1128,7 +1196,7 @@
 				If($(vMM_Avg_PercScore_OverallToDomainToMetric_Previous) < 0.75, 'rgb(0,176,80)',
 				If($(vMM_Avg_PercScore_OverallToDomainToMetric_Previous) >= 0.75, 'rgb(0,112,192)'))));
 		
-		/// Measure 2 - Score Current
+		/// Measure 2 - Percent Earned Current
 			//  vMM_Avg_PercScore_OverallToDomainToMetric_Current
 			
 			// background coloring
@@ -1138,59 +1206,250 @@
 				If($(vMM_Avg_PercScore_OverallToDomainToMetric_Current) < 0.75, 'rgb(0,176,80)',
 				If($(vMM_Avg_PercScore_OverallToDomainToMetric_Current) >= 0.75, 'rgb(0,112,192)'))));
 
-		/// Measure 3 - Score Change 
+		/// Measure 3 - Percent Earned Change 
 			// vMM_Avg_PercScore_OverallToDomainToMetric_YOY 
 
 			// background coloring
 			let vCol_Avg_PercScore_OverallToDomainToMetric_YOY = 
-				If($(vMM_Avg_PercScore_OverallToDomainToMetric_YOY) < -0.2, '#AE1C3E',
-				If($(vMM_Avg_PercScore_OverallToDomainToMetric_YOY) < -0.1, '#ED875E',
+				If($(vMM_Avg_PercScore_OverallToDomainToMetric_YOY) <= -0.2, '#AE1C3E',
+				If($(vMM_Avg_PercScore_OverallToDomainToMetric_YOY) <= -0.1, '#ED875E',
 				If($(vMM_Avg_PercScore_OverallToDomainToMetric_YOY) < 0, '#F2D2AE',
 				If($(vMM_Avg_PercScore_OverallToDomainToMetric_YOY) < 0.1, '#D1EBFB',
 				If($(vMM_Avg_PercScore_OverallToDomainToMetric_YOY) < 0.2, '#5EA4D9',
 				If($(vMM_Avg_PercScore_OverallToDomainToMetric_YOY) >= 0.2, '#3C52A1'
 				))))));
 
+///// Points Possible and Points Earned (Scoring Page)
+
+	let vSheet_Points_Possible_and_Points_Earned = 'Points Possible and Points Earned for ' & $(v_SelectedOrFirst_ReportType) & ' Report'; 
+
+	//// Since this page must default to a specific report type, create a variable to store this
+	let v_SelectedOrFirst_ReportType = FirstSortedValue(distinct [SPR Report Type], [SPR Report Type]);
+
+	//// KPI 1 - # of points possible
+		/// Title			
+			let vTitle_Avg_PointsPossible_Report = 'Avg Points Possible, ' & $(vText_Level_OverallToDomainToMetric);
+			let vSubTitle_Avg_PointsPossible_Report = $(v_SelectedOrFirst_ReportType) & ' Reports (' & $(v_Max_Year) & ')';
+
+		/// Measure 1
+			// Average Points Possible for the current year for the selected report type. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
+			let vMM_Avg_PointsPossible_Report_OverallToDomainToMetric_Current = Num(
+				IF ($(vExpr_AllDomainsPossible),
+					Avg({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Possible Overall]),
+				    IF ($(vExpr_SingleDomainSelected_AllMetricsPossible),
+				    	Avg({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Possible in Domain]),
+				        IF ($(vExpr_SingleMetricSelected),
+				        	Avg({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Possible for Metric]),
+				            Avg(Aggr(Sum({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Possible for Metric]), [%SchoolReportYearKey]))
+				        )
+				    )
+				)
+				, '#0.#');
+
+			let vLab_Avg_PointsPossible_Report_OverallToDomainToMetric_Current = $(vTitle_Avg_PointsPossible_Report_OverallToDomainToMetric_Current) & ' (' & $(v_SelectedOrFirst_ReportType) & ', ' & $(v_Max_Year) &')';
+			
+		/// Measure 2
+
+			let vMM_Max_PointsPossible_OverallToDomainToMetric_Current = Max({<YearEnd={$(=$(v_Max_YearEnd))}, [School Name]=, [Learning Network]=, [Peer Group]= >} Aggr(Sum({<YearEnd={$(=$(v_Max_YearEnd))}, [School Name]=, [Learning Network]=, [Peer Group]= >}[Points Possible for Metric]), [%SchoolReportYearKey]));
+
+	//// KPI 2 - # of points earned
+		/// Title			
+			let vTitle_Avg_PointsEarned_Report = 'Avg Points Earned, ' & $(vText_Level_OverallToDomainToMetric);
+			let vSubTitle_Avg_PointsEarned_Report = $(v_SelectedOrFirst_ReportType) & ' Reports (' & $(v_Max_Year) & ')';
+
+		// Average Points Earned for the current year for the selected report type. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
+		let vMM_Avg_PointsEarned_Report_OverallToDomainToMetric_Current = Num(
+			IF ($(vExpr_AllDomainsPossible),
+				Avg({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Earned Overall]),
+			    IF ($(vExpr_SingleDomainSelected_AllMetricsPossible),
+			    	Avg({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Earned in Domain]),
+			        IF ($(vExpr_SingleMetricSelected),
+			        	Avg({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Earned for Metric]),
+			            Avg(Aggr(Sum({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Earned for Metric]), [%SchoolReportYearKey]))
+			        )
+			    )
+			)
+			, '#0.#');
+
+		let vLab_Avg_PointsEarned_Report_OverallToDomainToMetric_Current = $(vTitle_Avg_PointsEarned_OverallToDomainToMetric_Current) & ' (' & $(v_SelectedOrFirst_ReportType) & ', ' & $(v_Max_Year) &')';
+
+	//// KPI 3 - % of points earned
+
+		/// Title			
+			let vTitle_Avg_PercScore_Report = 'Avg Percent Earned, ' & $(vText_Level_OverallToDomainToMetric);
+			let vSubTitle_Avg_PercScore_Report = $(v_SelectedOrFirst_ReportType) & ' Reports (' & $(v_Max_Year) & ')';
+
+		// SPR Percent Earned for the current year for the selected report type. If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
+		let vMM_Avg_PercScore_Report_OverallToDomainToMetric_Current = Num(
+			IF ($(vExpr_AllDomainsPossible),
+				Avg({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Percent Earned Overall]),
+			    IF ($(vExpr_SingleDomainSelected_AllMetricsPossible),
+			    	Avg({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Percent Earned in Domain]),
+			        IF ($(vExpr_SingleMetricSelected),
+			        	Avg({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Percent Earned for Metric]),
+			            Avg(Aggr(Sum({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Earned for Metric]) / Sum({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Possible for Metric]), [%SchoolReportYearKey]))
+			        )
+			    )
+			)
+			, '#0%');
+
+		let vLab_Avg_PercScore_Report_OverallToDomainToMetric_Current = $(vTitle_Avg_PercScore_OverallToDomainToMetric) & ' (' & $(v_SelectedOrFirst_ReportType) & ', ' & $(v_Max_Year) &')';
+
+
+	//// KPI 4 - Current Tier
+		/// Title			
+			let vTitle_Avg_Tier_Report = 'Avg Tier, ' & $(vText_Level_OverallToDomainToMetric);
+			let vSubTitle_Avg_Tier_Report = $(v_SelectedOrFirst_ReportType) & ' Reports (' & $(v_Max_Year) & ')';
+
+		// Aperage Tier for the current year (< 0.25 = 'Intervene', < 0.50 = 'Watch', < .75 = 'Reinforce', >= 'Model'). If multiple metrics are selected, this is equal to overall score. If a selection on Domain is made and there are no selections on metric, this is equal to the score for the domain. If a single metric is selected, this is equal to the metric score.
+		let vMM_Avg_Tier_Report_OverallToDomainToMetric_Current = 
+			If($(vMM_Avg_PercScore_Report_OverallToDomainToMetric_Current) < 0.25, 'Intervene',
+			IF ($(vMM_Avg_PercScore_Report_OverallToDomainToMetric_Current) < 0.5, 'Watch',
+			IF ($(vMM_Avg_PercScore_Report_OverallToDomainToMetric_Current) < 0.75, 'Reinforce',
+			IF ($(vMM_Avg_PercScore_Report_OverallToDomainToMetric_Current) >= 0.75, 'Model'))));
+
+		let vLab_Avg_Tier_Report_OverallToDomainToMetric_Current = $(vTitle_Avg_Tier_OverallToDomainToMetric_Current) & ' (' & $(v_SelectedOrFirst_ReportType) & ', ' & $(v_Max_Year) &')';
+			
 		
+	//// TreeMap (Bottom) - Displays size by number of points, color by tier
+		/// Title
+			let vTitle_Scoring_Report_DomainToMetric =  
+				If($(vExpr_SingleDomainSelected), 
+					'Distribution of Points across Metrics in '  & Only(GetFieldSelections([Domain_Name])), 
+					'Distribution of Points across Domains'
+				) & ' for ' & $(v_SelectedOrFirst_ReportType) & ' Report Type';
+
+		/// Subtitle:
+			let vSubTitle_Scoring_Report_DomainToMetric = 'Size indicates # of possible points in each ' & 
+				If($(vExpr_SingleDomainSelected), 
+					'Metric in ' & Only(GetFieldSelections([Domain_Name])), 
+					'Domain'
+				) & '. Color indicates ' & 
+				IF(GetSelectedCount([School Name])=1, ' Tiers achieved by ' & Only(GetFieldSelections([School Name])),
+					IF(GetSelectedCount([School Name])>1, ' average Tiers achieved by Selected Schools',
+						IF(GetSelectedCount([Learning Network])=1, ' average Tier achieved in ' & Only(GetFieldSelections([Learning Network])),
+						IF(GetSelectedCount([Learning Network])>1, ' average Tier achieved in Selected Learning Networks',
+						'average Tier achieved across all schools'))));	
+
+		/// Measure (for size)
+			// Displays the maximum number of points per domain. If a single domain is selected will show the maximum # of points per metric.
+			let vMM_MaxScore_Report_DomainToMetric_Current = Num(
+					If(GetPossibleCount([Domain_Name]) = 1, 
+						Max({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, IsSum={0}, YearEnd={$(=$(v_Max_YearEnd))}, [Metric_Name]=, [Metric ID]=>}[Points Possible]),  
+						Max({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))},[Domain_Name]=, [Metric_Name]=, [Metric ID]=>}[Points Possible in Domain])
+					)
+				, '#,##0.#');
+
+			let vLab_MaxScore_Report_DomainToMetric_Current = $(vTitle_MaxScore_DomainToMetric) & ' (' & $(v_SelectedOrFirst_ReportType) & ', ' & $(v_Max_Year) &')';
+		
+
+		/// Color
+			// The percent of possible points earned for all available metrics in the most current year. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			let vMM_Avg_PercScore_Report_DomainToMetric_Current = Num(
+					If(GetPossibleCount([Domain_Name]) = 1, 
+						Avg({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, IsSum={0}, YearEnd={$(=$(v_Max_YearEnd))}>}[Percent Earned]),  
+						Avg({<[SPR Report Type] = {"$(=$(v_SelectedOrFirst_ReportType))"}, YearEnd={$(=$(v_Max_YearEnd))},[Metric_Name]=, [Metric ID]=>}[Percent Earned in Domain])
+					)
+					+ 0.0001, '#0%');
+
+
+			let vLab_Avg_PercScore_Report_DomainToMetric_Current = $(vTitle_Avg_PercScore_DomainToMetric) & ' (' & $(v_SelectedOrFirst_ReportType) & ', ' & $(v_Max_Year) &')';
+
+
+			let vCol_Avg_PercScore_Report_DomainToMetric_Current = 
+				IF($(vMM_Avg_PercScore_Report_DomainToMetric_Current) < 0.25, rgb(192,80,77),
+				IF($(vMM_Avg_PercScore_Report_DomainToMetric_Current) < 0.5, rgb(247,150,70),
+				IF($(vMM_Avg_PercScore_Report_DomainToMetric_Current) < 0.75, rgb(0,176,80),
+				IF($(vMM_Avg_PercScore_Report_DomainToMetric_Current) >= 0.75, rgb(0,112,192)))));
+
+///// Compare Domains Scatterplot (does not drill)
+	//// Scatterplot
+		/// Measure 1
+			// The percent of possible points earned Overall in the most current year. Ignores metric and domain selections.
+			let vMM_Avg_PercScore_Overall_Current = Num(
+				Avg({<YearEnd={$(=$(v_Max_YearEnd))}, [Domain_Name]=, [Metric_Name] =, [Metric ID]=, [Domain ID]= >}[Percent Earned Overall])
+				, '#0.#%');
+			
+			let vLab_Avg_PercScore_Overall_Current = $(vText_AverageOrSingle) & 'Percent Earned Overall ('& $(v_Max_Year) &')';
+
+		/// Color: vMM_Avg_PercScore_AchievementToMetric_Current 
+			let vCol_Avg_PercScore_Overall_Current = 
+				IF($(vMM_Avg_PercScore_Overall_Current) < 0.25, rgb(192,80,77),
+				IF($(vMM_Avg_PercScore_Overall_Current) < 0.5, rgb(247,150,70),
+				IF($(vMM_Avg_PercScore_Overall_Current)  < 0.75, rgb(0,176,80),
+				IF($(vMM_Avg_PercScore_Overall_Current) >= 0.75, rgb(0,112,192)))));
+
+		/// Measure 2
+			// The percent of possible points earned for all available "Achievement" metrics in the most current year. Ignores metric and domain selections.
+			let vMM_Avg_PercScore_Achievement_Current = Num(
+				Avg({<YearEnd={$(=$(v_Max_YearEnd))}, [Domain_Name]={"Achievement"}, [Metric_Name] =, [Metric ID]=, [Domain ID]= >}[Percent Earned in Domain])
+				, '#0.#%');
+			
+			let vLab_Avg_PercScore_Achievement_Current = $(vText_AverageOrSingle) & 'Percent Earned in Achievement Domain ('& $(v_Max_Year) &')';
+
+		/// Measure 3
+			// The percent of possible points earned for all available "Progress" metrics in the most current year. Ignores metric and domain selections.
+			let vMM_Avg_PercScore_Progress_Current = Num(
+				Avg({<YearEnd={$(=$(v_Max_YearEnd))}, [Domain_Name]={"Progress"}, [Metric_Name] =, [Metric ID]=, [Domain ID]= >}[Percent Earned in Domain])
+				, '#0.#%');
+			
+			let vLab_Avg_PercScore_Progress_Current = $(vText_AverageOrSingle) & 'Percent Earned in Progress Domain ('& $(v_Max_Year) &')';
+
+		/// Measure 4
+			// The percent of possible points earned for all available "Climate" metrics in the most current year. Ignores metric and domain selections.
+			let vMM_Avg_PercScore_Climate_Current = Num(
+				Avg({<YearEnd={$(=$(v_Max_YearEnd))}, [Domain_Name]={"Climate"}, [Metric_Name] =, [Metric ID]=, [Domain ID]= >}[Percent Earned in Domain])
+				, '#0.#%');
+			
+			let vLab_Avg_PercScore_Climate_Current = $(vText_AverageOrSingle) & 'Percent Earned in Climate Domain ('& $(v_Max_Year) &')';
+
+		/// Measure 5
+			// The percent of possible points earned for all available "College & Career" metrics in the most current year. Ignores metric and domain selections.
+			let vMM_Avg_PercScore_CollegeCareer_Current = Num(
+				Avg({<YearEnd={$(=$(v_Max_YearEnd))}, [Domain_Name]={"College & Career"}, [Metric_Name] =, [Metric ID]=, [Domain ID]= >}[Percent Earned in Domain])
+				, '#0.#%');
+			
+			let vLab_Avg_PercScore_CollegeCareer_Current = $(vText_AverageOrSingle) & 'Percent Earned in College & Career Domain ('& $(v_Max_Year) &')';
+
 ///// Map Sheet - User can select which metric to view based upon button selected
 	let vSelectedMeasure = PercScore_Current;
 
-	//// Button - Current Score
+	//// Button - Current Percent Earned
 		let vButLab_Metric_Score_Current = 
 			IF(vSelectedMeasure = 'PercScore_Current',
-				chr(9658) & ' Current Score ' & chr(9668),
-		    	'Current Score'
+				chr(9658) & ' Current Percent Earned ' & chr(9668),
+		    	'Current Percent Earned'
 		    );
 
-	//// Button - Previous Score
+	//// Button - Previous Percent Earned
 		let vButLab_Metric_Score_Previous = 
 			IF(vSelectedMeasure = 'PercScore_Previous',
-				chr(9658) & ' Previous Score ' & chr(9668),
-		    	'Previous Score'
+				chr(9658) & ' Previous Percent Earned ' & chr(9668),
+		    	'Previous Percent Earned'
 		    );
 
-	//// Button - Current Score
+	//// Button - Current Percent Earned
 		let vButLab_Metric_Score_YOY = 
 			IF(vSelectedMeasure = 'PercScore_YOY',
-				chr(9658) & ' YOY Score ' & chr(9668),
-		    	'YOY Score'
+				chr(9658) & ' YOY Percent Earned ' & chr(9668),
+		    	'YOY Percent Earned'
 		    );
 
-	//// Button - Current Score
+	//// Button - Current Percent Earned
 		let vButLab_Metric_Score_3Year_Current = 
 			IF(vSelectedMeasure = 'PercScore_3Year_Current',
-				chr(9658) & ' 3 Year Average Score ' & chr(9668),
-		    	'3 Year Average Score'
+				chr(9658) & ' 3 Year Average Percent Earned ' & chr(9668),
+		    	'3 Year Average Percent Earned'
 		    );
 
 	//// Map (Center-Left)
 		/// Measure (for size)
-			let vMM_Measure_Selected = 
+			let vMM_Measure_Selected = Num(
 				IF(vSelectedMeasure = 'PercScore_Current', $(vMM_Avg_PercScore_OverallToDomainToMetric_Current) * 100 + 0.1,
 				IF(vSelectedMeasure = 'PercScore_Previous', $(vMM_Avg_PercScore_OverallToDomainToMetric_Previous) * 100 + 0.1,
 				IF(vSelectedMeasure = 'PercScore_YOY', $(vMM_Avg_PercScore_OverallToDomainToMetric_YOY) * 100 + 0.1,
 				IF(vSelectedMeasure = 'PercScore_3Year_Current', $(vMM_Avg_PercScore_OverallToDomainToMetric_3Year_Current) * 100 + 0.1
-					))));
+				)))), '#0');
 				
 			// this isn't actually working as a real master measure, perhaps map will allow in an update.
 			let vLab_Measure_Selected = 
@@ -1218,511 +1477,68 @@
 					IF($(vMM_Avg_PercScore_OverallToDomainToMetric_Previous)  < 0.75, rgb(0,176,80),
 					IF($(vMM_Avg_PercScore_OverallToDomainToMetric_Previous) >= 0.75, rgb(0,112,192))))),
 				IF(vSelectedMeasure = 'PercScore_YOY', 
-				    IF($(vMM_Avg_PercScore_OverallToDomainToMetric_YOY) <= -0.2, '#AE1C3E',
-					IF($(vMM_Avg_PercScore_OverallToDomainToMetric_YOY) <= -0.1,'#ED875E',
-					IF($(vMM_Avg_PercScore_OverallToDomainToMetric_YOY) < 0, '#F2D2AE',
-					IF($(vMM_Avg_PercScore_OverallToDomainToMetric_YOY) < 0.1, '#D1EBFB',
-					IF($(vMM_Avg_PercScore_OverallToDomainToMetric_YOY) < 0.2, '#5EA4D9',
-					IF($(vMM_Avg_PercScore_OverallToDomainToMetric_YOY) >= 0.2, '#3C52A1')))))),
+				    $(vCol_Avg_PercScore_OverallToDomainToMetric_YOY)
 				))));
 
 	//// Treemap Legend (bottom)
-			let vColLegend_Measure_Selected = 
-				If(vSelectedMeasure = 'PercScore_Current' or vSelectedMeasure = 'PercScore_Previous' or vSelectedMeasure = 'PercScore_3Year_Current',
-					pick(
-				    	match(
-							valuelist('Intervene', 'Watch', 'Reinforce', 'Model','Decrease more than 20%','Decrease between 10% and 20%','Decrease less than 10%', 'Increase less than 10%', 'Increase between 10% and 20%', 'Increase more than 20%'),
-				        	'Intervene', 'Watch', 'Reinforce', 'Model','Decrease more than 20%','Decrease between 10% and 20%','Decrease less than 10%', 'Increase less than 10%', 'Increase between 10% and 20%', 'Increase more than 20%'),
-				        1.004,1.003,1.002,1.001,0.00000001,0.00000001,0.00000001,0.00000001,0.00000001,0.00000001)
-				   , pick(
-				    	match(
-							valuelist('Intervene', 'Watch', 'Reinforce', 'Model','Decrease more than 20%','Decrease between 10% and 20%','Decrease less than 10%', 'Increase less than 10%', 'Increase between 10% and 20%', 'Increase more than 20%'),
-				        	'Intervene', 'Watch', 'Reinforce', 'Model','Decrease more than 20%','Decrease between 10% and 20%','Decrease less than 10%', 'Increase less than 10%', 'Increase between 10% and 20%', 'Increase more than 20%'),
-				        0.00000001,0.00000001,0.00000001,0.00000001,1.005,1.004,1.003,1.002,1.001,1.000));    
+		let vDim_Measure_Selected_Category =  
+			If(vSelectedMeasure = 'PercScore_Current',
+		  		Aggr(
+		  			Pick(1 + Floor($(vMM_Avg_PercScore_OverallToDomainToMetric_Current) * 100 / 25), 'Intervene', 'Watch', 'Reinforce', 'Model')
+		    		, [School Name (Reporting Category)]
+		  		),
+			If(vSelectedMeasure = 'PercScore_3Year_Current',
+		  		Aggr(
+		  			Pick(1 + Floor($(vMM_Avg_PercScore_OverallToDomainToMetric_3Year_Current) * 100 / 25), 'Intervene', 'Watch', 'Reinforce', 'Model')
+		    		, [School Name (Reporting Category)]
+		  		),
+		  	IF(vSelectedMeasure = 'PercScore_YOY',
+		  		Aggr(
+		  			If($(vMM_Count_Reports_Current) > 0 and $(vMM_Count_Reports_Previous) > 0,
+			      		Pick(4 + RangeMax(-3, RangeMin(2, 
+				      		IF($(vMM_Avg_PercScore_OverallToDomainToMetric_Current) - $(vMM_Avg_PercScore_OverallToDomainToMetric_Previous) >= 0,
+				      			Floor(Round(($(vMM_Avg_PercScore_OverallToDomainToMetric_Current) - $(vMM_Avg_PercScore_OverallToDomainToMetric_Previous)) * 100) / 10),
+				            	-1 * (Floor(Round(($(vMM_Avg_PercScore_OverallToDomainToMetric_Previous) - $(vMM_Avg_PercScore_OverallToDomainToMetric_Current)) * 100) / 10) + 1)
+				      		))),
+							'Decrease more than 20%','Decrease between 10% and 20%','Decrease less than 10%', 'Increase less than 10%', 'Increase between 10% and 20%', 'Increase more than 20%'
+			      		)
+		      		), [School Name (Reporting Category)]
+		      	)
+		    )));
 
-///// Achievement Domain Sheet
-	//// Line Graph (top-left) - shows last 3 years of performance in the Achievement domain, drill to metrics
-		/// Title
-			let vTitle_Avg_PercScore_Achievement_3Year_Current = 'Average Achievement Score for Previous 3 Years';
-
-		/// SubTitle
-			let vSubTitle_Avg_PercScore_Achievement_3Year_Current = '';
-
-		/// Measure 1
-			// The average percent of possible points earned for all available "Achievement" metrics in the previous 3 years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
-			let vMM_Avg_PercScore_Achievement_3Year_Current = Num(
-				If($(vExpr_NoMetricSelected),
-					Avg( {<[Domain Name] = {"Achievement"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Percent Earned in Domain]),
-					Avg(Aggr(Sum({<[Domain Name] = {"Achievement"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Earned]) / Sum({<[Domain Name] = {"Achievement"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Possible]), [%SchoolReportYearKey]))
-				), '#0%');
-
-			let vLab_Avg_PercScore_Achievement_3Year_Current = 'Achievement: Average Score';	
-			
-		/// Color
-			let vCol_Avg_PercScore_Achievement_3Year_Current = 
-				IF($(vMM_Avg_PercScore_Achievement_3Year_Current) < 0.25, rgb(192,80,77),
-				IF($(vMM_Avg_PercScore_Achievement_3Year_Current) < 0.5, rgb(247,150,70),
-				IF($(vMM_Avg_PercScore_Achievement_3Year_Current)  < 0.75, rgb(0,176,80),
-				IF($(vMM_Avg_PercScore_Achievement_3Year_Current) >= 0.75, rgb(0,112,192)))));
-
-	
-	
-	//// Table (bottom-left)
-		/// Measure 1: Achievement - # of reports
-			// The number of "Achievement" reports in the most recent three years.
-			let vMM_Count_Reports_Achievement_3Year_Current = Num(
-				If($(vExpr_NoMetricSelected),
-					Count(distinct {<[Points Possible in Domain] = {">0"}, [Domain Name] = {"Achievement"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearDomainKey),
-					Count(distinct {<[Points Possible] = {">0"}, [Domain Name] = {"Achievement"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearKey)
-				), '#,##0');
-			let vLab_Count_Reports_Achievement_3Year_Current = 'Achievement: # of School Reports';
-			
-		/// Measure 2: Achievement - Average Points Possible
-			// The average number of total possible points for all available "Achievement" metrics in the previous three years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
-			let vMM_Avg_PointsPossible_Achievement_3Year_Current = Num(
-				If($(vExpr_NoMetricSelected),
-					Avg( {<[Domain Name] = {"Achievement"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Possible in Domain]),
-					Avg(Aggr(Sum({<[Domain Name] = {"Achievement"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Possible]), %SchoolReportYearKey]))
-				), '#0.#');
-			let vLab_Avg_PointsPossible_Achievement_3Year_Current = 'Achievement: Average # of Points Possible';
-
-		/// Measure 3: Achievement - Average Points Earned
-			// The average number of points earned for all available "Achievement" metrics in the previous three years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
-			let vMM_Avg_PointsEarned_Achievement_3Year_Current = Num(
-				If($(vExpr_NoMetricSelected),
-					Avg( {<[Domain Name] = {"Achievement"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Earned in Domain]),
-					Avg(Aggr(Sum({<[Domain Name] = {"Achievement"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Earned]), %SchoolReportYearKey]))
-				), '#0.#');
-			let vLab_Avg_PointsEarned_Achievement_3Year_Current = 'Achievement: Average # of Points Earned';
-
-		/// Measure 3: Achievement - Average Score %
-			// vMM_Avg_PercScore_Achievement_3Year_Current 
-			
-
-		/// Measure 4: Achievement - Average Tier
-			// The average tier for the "Achievement" achievement domain for the previous 3 years (< 0.25 = 'Intervene', < 0.50 = 'Watch', < .75 = 'Reinforce', >= 'Model'). Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
-			let vMM_Avg_Tier_Achievement_3Year_Current = 
-				If($(vMM_Avg_PercScore_Achievement_3Year_Current) < 0.25, 'Intervene',
-				If($(vMM_Avg_PercScore_Achievement_3Year_Current) < 0.5, 'Watch',
-				If($(vMM_Avg_PercScore_Achievement_3Year_Current) < 0.75, 'Reinforce',	
-				If($(vMM_Avg_PercScore_Achievement_3Year_Current) >= 0.75, 'Model')))	
-				);
-			let vLab_Avg_Tier_Achievement_3Year_Current = 'Achievement: Average Tier';
+		let vMM_Measure_Selected_Category = 
+			If(vSelectedMeasure = 'PercScore_Current',
+				100 - $(vMM_Avg_PercScore_OverallToDomainToMetric_Current),
+			If(vSelectedMeasure = 'PercScore_3Year_Current',
+				100 - $(vMM_Avg_PercScore_OverallToDomainToMetric_3Year_Current),
+			IF(vSelectedMeasure = 'PercScore_YOY',
+			  	100 - RangeMax(-3, RangeMin(2, 
+			      	IF($(vMM_Avg_PercScore_OverallToDomainToMetric_Current) - $(vMM_Avg_PercScore_OverallToDomainToMetric_Previous) >= 0,
+			      		Floor(Round(($(vMM_Avg_PercScore_OverallToDomainToMetric_Current) - $(vMM_Avg_PercScore_OverallToDomainToMetric_Previous)) * 100) / 10),
+			            -1 * (Floor(Round(($(vMM_Avg_PercScore_OverallToDomainToMetric_Previous) - $(vMM_Avg_PercScore_OverallToDomainToMetric_Current)) * 100) / 10) + 1)
+			      	)
+			    ))
+			)));
 
 
-		/// Measure 5: Achievement - # of reports in "model" or "reinforce"
-			// The number of reports at the "Model" and "Reinforce" tier withing the "Achievement" domain.
-			let vMM_Count_Reports_ModelReinforce_Achievement_3Year_Current = Num(
-				If($(vExpr_NoMetricSelected),
-					Count(distinct {<[Tier in Domain] = {"Model", "Reinforce"}, [Domain Name] = {"Achievement"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearDomainKey),
-					Count(distinct {<[Tier in Domain] = {"Model", "Reinforce"}, [Domain Name] = {"Achievement"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearKey)
-				), '#,##0');
-			let vLab_Count_Reports_ModelReinforce_Achievement_3Year_Current = 'Achievement: # of "Model" and "Reinforce" School Reports';
+		let vCol_Measure_Selected_Category =  
+			If(vSelectedMeasure = 'PercScore_Current',
+				Pick(1 + Floor($(vMM_Avg_PercScore_OverallToDomainToMetric_Current) * 100 / 25), 'rgb(192,80,77)', 'rgb(247,150,70)', 'rgb(0,176,80)', 'rgb(0,112,192)'),
+			If(vSelectedMeasure = 'PercScore_3Year_Current',
+			  	Pick(1 + Floor($(vMM_Avg_PercScore_OverallToDomainToMetric_3Year_Current) * 100 / 25), 'rgb(192,80,77)', 'rgb(247,150,70)', 'rgb(0,176,80)', 'rgb(0,112,192)'),  
+			IF(vSelectedMeasure = 'PercScore_YOY',  	
+			  	Aggr(
+			      Pick(4 + 
+			      	RangeMax(-3, RangeMin(2, 
+			      	IF($(vMM_Avg_PercScore_OverallToDomainToMetric_Current) - $(vMM_Avg_PercScore_OverallToDomainToMetric_Previous) >= 0,
+			      		Floor(Round(($(vMM_Avg_PercScore_OverallToDomainToMetric_Current) - $(vMM_Avg_PercScore_OverallToDomainToMetric_Previous)) * 100) / 10),
+			            -1 * (Floor(Round(($(vMM_Avg_PercScore_OverallToDomainToMetric_Previous) - $(vMM_Avg_PercScore_OverallToDomainToMetric_Current)) * 100) / 10) + 1)
+			      	))),		      
+			        '#AE1C3E','#ED875E','#F2D2AE', '#D1EBFB', '#5EA4D9', '#3C52A1'
+			    ), [School Name (Reporting Category)])
+			 )));
 		
-		
-		/// Color
-			let vCol_YearEnd = If(YearEnd = 2017, '#398635', If(YearEnd = 2016, '#737373', If(YearEnd = 2015, '#BDBDBD', '#F0F0F0')));
 
-
-	//// Bar Chart (right)
-		/// Title
-			let vTitle_Avg_PercScore_Achievement_Current = 'Average Achievement Score';
-
-		/// SubTitle
-			let vSubTitle_Avg_PercScore_Achievement_Current = '';	
-
-		/// Measure 1
-			// The percent of possible points earned for all available "Achievement" metrics in the most current year. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
-			let vMM_Avg_PercScore_AchievementToMetric_Current = Num(
-				IF($(vExpr_MultipleMetricsSelected),
-		        	Avg(Aggr(Sum({<IsSum={0}, [Domain Name]={"Achievement"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Earned]) / Sum({<IsSum={0}, [Domain Name]={"Achievement"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Possible]), [%SchoolReportYearKey]))
-		              ,
-		            Avg({<YearEnd={$(=$(v_Max_YearEnd))}, [Domain Name]={"Achievement"}>}[Percent Earned in Domain])
-		        )					
-				, '#0.#%');
-			
-			let vLab_Avg_PercScore_AchievementToMetric_Current = 
-				IF($(vExpr_MultipleMetricsSelected),
-		        	'Average Score in Achievement Domain ('& $(v_Max_Year) &')'
-		              ,
-		            'Average Score in Achievement Domain ('& $(v_Max_Year) &')'
-		        );
-
-		/// Color: vMM_Avg_PercScore_AchievementToMetric_Current 
-			let vCol_Avg_PercScore_AchievementToMetric_Current = 
-				IF($(vMM_Avg_PercScore_AchievementToMetric_Current) < 0.25, rgb(192,80,77),
-				IF($(vMM_Avg_PercScore_AchievementToMetric_Current) < 0.5, rgb(247,150,70),
-				IF($(vMM_Avg_PercScore_AchievementToMetric_Current)  < 0.75, rgb(0,176,80),
-				IF($(vMM_Avg_PercScore_AchievementToMetric_Current) >= 0.75, rgb(0,112,192)))));
-
-///// Progress Domain Sheet
-	//// Line Graph (top-left) - shows last 3 years of performance in the Progress domain, drill to metrics
-		/// Title
-			let vTitle_Avg_PercScore_Progress_3Year_Current = 'Average Progress Score for Previous 3 Years';
-
-		/// SubTitle
-			let vSubTitle_Avg_PercScore_Progress_3Year_Current = '';
-
-		/// Measure 1
-			// The average percent of possible points earned for all available "Progress" metrics in the previous 3 years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
-			let vMM_Avg_PercScore_Progress_3Year_Current = Num(
-				If($(vExpr_NoMetricSelected),
-					Avg( {<[Domain Name] = {"Progress"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Percent Earned in Domain]),
-					Avg(Aggr(Sum({<[Domain Name] = {"Progress"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Earned]) / Sum({<[Domain Name] = {"Progress"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Possible]), [%SchoolReportYearKey]))
-				), '#0%');
-
-			let vLab_Avg_PercScore_Progress_3Year_Current = 'Progress: Average Score';	
-			
-		/// Color
-			let vCol_Avg_PercScore_Progress_3Year_Current = 
-				IF($(vMM_Avg_PercScore_Progress_3Year_Current) < 0.25, rgb(192,80,77),
-				IF($(vMM_Avg_PercScore_Progress_3Year_Current) < 0.5, rgb(247,150,70),
-				IF($(vMM_Avg_PercScore_Progress_3Year_Current)  < 0.75, rgb(0,176,80),
-				IF($(vMM_Avg_PercScore_Progress_3Year_Current) >= 0.75, rgb(0,112,192)))));
-
-	
-	
-	//// Table (bottom-left)
-		/// Measure 1: Progress - # of reports
-			// The number of "Progress" reports in the most recent three years.
-			let vMM_Count_Reports_Progress_3Year_Current = Num(
-				If($(vExpr_NoMetricSelected),
-					Count(distinct {<[Points Possible in Domain] = {">0"}, [Domain Name] = {"Progress"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearDomainKey),
-					Count(distinct {<[Points Possible] = {">0"}, [Domain Name] = {"Progress"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearKey)
-				), '#,##0');
-			let vLab_Count_Reports_Progress_3Year_Current = 'Progress: # of School Reports';
-			
-		/// Measure 2: Progress - Average Points Possible
-			// The average number of total possible points for all available "Progress" metrics in the previous three years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
-			let vMM_Avg_PointsPossible_Progress_3Year_Current = Num(
-				If($(vExpr_NoMetricSelected),
-					Avg( {<[Domain Name] = {"Progress"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Possible in Domain]),
-					Avg(Aggr(Sum({<[Domain Name] = {"Progress"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Possible]), %SchoolReportYearKey]))
-				), '#0.#');
-			let vLab_Avg_PointsPossible_Progress_3Year_Current = 'Progress: Average # of Points Possible';
-
-		/// Measure 3: Progress - Average Points Earned
-			// The average number of points earned for all available "Progress" metrics in the previous three years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
-			let vMM_Avg_PointsEarned_Progress_3Year_Current = Num(
-				If($(vExpr_NoMetricSelected),
-					Avg( {<[Domain Name] = {"Progress"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Earned in Domain]),
-					Avg(Aggr(Sum({<[Domain Name] = {"Progress"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Earned]), %SchoolReportYearKey]))
-				), '#0.#');
-			let vLab_Avg_PointsEarned_Progress_3Year_Current = 'Progress: Average # of Points Earned';
-
-		/// Measure 3: Progress - Average Score %
-			// vMM_Avg_PercScore_Progress_3Year_Current 
-			
-
-		/// Measure 4: Progress - Average Tier
-			// The average tier for the "Progress" achievement domain for the previous 3 years (< 0.25 = 'Intervene', < 0.50 = 'Watch', < .75 = 'Reinforce', >= 'Model'). Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
-			let vMM_Avg_Tier_Progress_3Year_Current = 
-				If($(vMM_Avg_PercScore_Progress_3Year_Current) < 0.25, 'Intervene',
-					If($(vMM_Avg_PercScore_Progress_3Year_Current) < 0.5, 'Watch',
-					If($(vMM_Avg_PercScore_Progress_3Year_Current) < 0.75, 'Reinforce',	
-					If($(vMM_Avg_PercScore_Progress_3Year_Current) >= 0.75, 'Model')))	
-				);
-			let vLab_Avg_Tier_Progress_3Year_Current = 'Progress: Average Tier';
-
-
-		/// Measure 5: Progress - # of reports in "model" or "reinforce"
-			// The number of reports at the "Model" and "Reinforce" tier withing the "Progress" domain.
-			let vMM_Count_Reports_ModelReinforce_Progress_3Year_Current = Num(
-				If($(vExpr_NoMetricSelected),
-					Count(distinct {<[Tier in Domain] = {"Model", "Reinforce"}, [Domain Name] = {"Progress"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearDomainKey),
-					Count(distinct {<[Tier in Domain] = {"Model", "Reinforce"}, [Domain Name] = {"Progress"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearKey)
-				), '#,##0');
-			let vLab_Count_Reports_ModelReinforce_Progress_3Year_Current = 'Progress: # of "Model" and "Reinforce" School Reports';
-		
-		
-		/// Color
-			let vCol_YearEnd = If(YearEnd = 2017, '#398635', If(YearEnd = 2016, '#737373', If(YearEnd = 2015, '#BDBDBD', '#F0F0F0')));
-
-
-	//// Bar Chart (right)
-		/// Title
-			let vTitle_Avg_PercScore_Progress_Current = 'Average Progress Score';
-
-		/// SubTitle
-			let vSubTitle_Avg_PercScore_Progress_Current = '';	
-
-		/// Measure 1
-			// The percent of possible points earned for all available "Progress" metrics in the most current year. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
-			let vMM_Avg_PercScore_ProgressToMetric_Current = Num(
-				IF($(vExpr_MultipleMetricsSelected),
-		        	Avg(Aggr(Sum({<IsSum={0}, [Domain Name]={"Progress"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Earned]) / Sum({<IsSum={0}, [Domain Name]={"Progress"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Possible]), [%SchoolReportYearKey]))
-		              ,
-		            Avg({<YearEnd={$(=$(v_Max_YearEnd))}, [Domain Name]={"Progress"}>}[Percent Earned in Domain])
-		        )					
-				, '#0.#%');
-			
-			let vLab_Avg_PercScore_ProgressToMetric_Current = 
-				IF($(vExpr_MultipleMetricsSelected),
-		        	'Average Score in Progress Domain ('& $(v_Max_Year) &')'
-		              ,
-		            'Average Score in Progress Domain ('& $(v_Max_Year) &')'
-		        );
-
-		/// Color:
-			let vCol_Avg_PercScore_ProgressToMetric_Current = 
-				IF($(vMM_Avg_PercScore_ProgressToMetric_Current) < 0.25, rgb(192,80,77),
-					IF($(vMM_Avg_PercScore_ProgressToMetric_Current) < 0.5, rgb(247,150,70),
-					IF($(vMM_Avg_PercScore_ProgressToMetric_Current)  < 0.75, rgb(0,176,80),
-					IF($(vMM_Avg_PercScore_ProgressToMetric_Current) >= 0.75, rgb(0,112,192)))));
-
-///// Climate Domain Sheet
-	//// Line Graph (top-left) - shows last 3 years of performance in the Climate domain, drill to metrics
-		/// Title
-			let vTitle_Avg_PercScore_Climate_3Year_Current = 'Average Climate Score for Previous 3 Years';
-
-		/// SubTitle
-			let vSubTitle_Avg_PercScore_Climate_3Year_Current = '';
-
-		/// Measure 1
-			// The average percent of possible points earned for all available "Climate" metrics in the previous 3 years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
-			let vMM_Avg_PercScore_Climate_3Year_Current = Num(
-				If($(vExpr_NoMetricSelected),
-					Avg( {<[Domain Name] = {"Climate"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Percent Earned in Domain]),
-					Avg(Aggr(Sum({<[Domain Name] = {"Climate"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Earned]) / Sum({<[Domain Name] = {"Climate"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Possible]), [%SchoolReportYearKey]))
-				), '#0%');
-
-			let vLab_Avg_PercScore_Climate_3Year_Current = 'Climate: Average Score';	
-			
-		/// Color
-			let vCol_Avg_PercScore_Climate_3Year_Current = 
-				IF($(vMM_Avg_PercScore_Climate_3Year_Current) < 0.25, rgb(192,80,77),
-				IF($(vMM_Avg_PercScore_Climate_3Year_Current) < 0.5, rgb(247,150,70),
-				IF($(vMM_Avg_PercScore_Climate_3Year_Current)  < 0.75, rgb(0,176,80),
-				IF($(vMM_Avg_PercScore_Climate_3Year_Current) >= 0.75, rgb(0,112,192)))));
-
-	
-	
-	//// Table (bottom-left)
-		/// Measure 1: Climate - # of reports
-			// The number of "Climate" reports in the most recent three years.
-			let vMM_Count_Reports_Climate_3Year_Current = Num(
-				If($(vExpr_NoMetricSelected),
-					Count(distinct {<[Points Possible in Domain] = {">0"}, [Domain Name] = {"Climate"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearDomainKey),
-					Count(distinct {<[Points Possible] = {">0"}, [Domain Name] = {"Climate"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearKey)
-				), '#,##0');
-			let vLab_Count_Reports_Climate_3Year_Current = 'Climate: # of School Reports';
-			
-		/// Measure 2: Climate - Average Points Possible
-			// The average number of total possible points for all available "Climate" metrics in the previous three years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
-			let vMM_Avg_PointsPossible_Climate_3Year_Current = Num(
-				If($(vExpr_NoMetricSelected),
-					Avg( {<[Domain Name] = {"Climate"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Possible in Domain]),
-					Avg(Aggr(Sum({<[Domain Name] = {"Climate"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Possible]), %SchoolReportYearKey]))
-				), '#0.#');
-			let vLab_Avg_PointsPossible_Climate_3Year_Current = 'Climate: Average # of Points Possible';
-
-		/// Measure 3: Climate - Average Points Earned
-			// The average number of points earned for all available "Climate" metrics in the previous three years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
-			let vMM_Avg_PointsEarned_Climate_3Year_Current = Num(
-				If($(vExpr_NoMetricSelected),
-					Avg( {<[Domain Name] = {"Climate"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Earned in Domain]),
-					Avg(Aggr(Sum({<[Domain Name] = {"Climate"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Earned]), %SchoolReportYearKey]))
-				), '#0.#');
-			let vLab_Avg_PointsEarned_Climate_3Year_Current = 'Climate: Average # of Points Earned';
-
-		/// Measure 3: Climate - Average Score %
-			// vMM_Avg_PercScore_Climate_3Year_Current 
-			
-
-		/// Measure 4: Climate - Average Tier
-			// The average tier for the "Climate" achievement domain for the previous 3 years (< 0.25 = 'Intervene', < 0.50 = 'Watch', < .75 = 'Reinforce', >= 'Model'). Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
-			let vMM_Avg_Tier_Climate_3Year_Current = 
-				If($(vMM_Avg_PercScore_Climate_3Year_Current) < 0.25, 'Intervene',
-					If($(vMM_Avg_PercScore_Climate_3Year_Current) < 0.5, 'Watch',
-					If($(vMM_Avg_PercScore_Climate_3Year_Current) < 0.75, 'Reinforce',	
-					If($(vMM_Avg_PercScore_Climate_3Year_Current) >= 0.75, 'Model')))	
-				);
-			let vLab_Avg_Tier_Climate_3Year_Current = 'Climate: Average Tier';
-
-
-		/// Measure 5: Climate - # of reports in "model" or "reinforce"
-			// The number of reports at the "Model" and "Reinforce" tier withing the "Climate" domain.
-			let vMM_Count_Reports_ModelReinforce_Climate_3Year_Current = Num(
-				If($(vExpr_NoMetricSelected),
-					Count(distinct {<[Tier in Domain] = {"Model", "Reinforce"}, [Domain Name] = {"Climate"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearDomainKey),
-					Count(distinct {<[Tier in Domain] = {"Model", "Reinforce"}, [Domain Name] = {"Climate"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearKey)
-				), '#,##0');
-			let vLab_Count_Reports_ModelReinforce_Climate_3Year_Current = 'Climate: # of "Model" and "Reinforce" School Reports';
-		
-		
-		/// Color
-			let vCol_YearEnd = If(YearEnd = 2017, '#398635', If(YearEnd = 2016, '#737373', If(YearEnd = 2015, '#BDBDBD', '#F0F0F0')));
-
-
-	//// Bar Chart (right)
-		/// Title
-			let vTitle_Avg_PercScore_Climate_Current = 'Average Climate Score';
-
-		/// SubTitle
-			let vSubTitle_Avg_PercScore_Climate_Current = '';	
-
-		/// Measure 1
-			// The percent of possible points earned for all available "Climate" metrics in the most current year. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
-			let vMM_Avg_PercScore_ClimateToMetric_Current = Num(
-				IF($(vExpr_MultipleMetricsSelected),
-		        	Avg(Aggr(Sum({<IsSum={0}, [Domain Name]={"Climate"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Earned]) / Sum({<IsSum={0}, [Domain Name]={"Climate"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Possible]), [%SchoolReportYearKey]))
-		              ,
-		            Avg({<YearEnd={$(=$(v_Max_YearEnd))}, [Domain Name]={"Climate"}>}[Percent Earned in Domain])
-		        )					
-				, '#0.#%');
-			
-			let vLab_Avg_PercScore_ClimateToMetric_Current = 
-				IF($(vExpr_MultipleMetricsSelected),
-		        	'Average Score in Climate Domain ('& $(v_Max_Year) &')'
-		              ,
-		            'Average Score in Climate Domain ('& $(v_Max_Year) &')'
-		        );
-
-		/// Color:
-			let vCol_Avg_PercScore_ClimateToMetric_Current = 
-				IF($(vMM_Avg_PercScore_ClimateToMetric_Current) < 0.25, rgb(192,80,77),
-					IF($(vMM_Avg_PercScore_ClimateToMetric_Current) < 0.5, rgb(247,150,70),
-					IF($(vMM_Avg_PercScore_ClimateToMetric_Current)  < 0.75, rgb(0,176,80),
-					IF($(vMM_Avg_PercScore_ClimateToMetric_Current) >= 0.75, rgb(0,112,192)))));
-
-///// College & Career Domain Sheet
-	//// Line Graph (top-left) - shows last 3 years of performance in the College & Career domain, drill to metrics
-		/// Title
-			let vTitle_Avg_PercScore_CollegeCareer_3Year_Current = 'Average College & Career Score for Previous 3 Years';
-
-		/// SubTitle
-			let vSubTitle_Avg_PercScore_CollegeCareer_3Year_Current = '';
-
-		/// Measure 1
-			// The average percent of possible points earned for all available "College & Career" metrics in the previous 3 years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
-			let vMM_Avg_PercScore_CollegeCareer_3Year_Current = Num(
-				If($(vExpr_NoMetricSelected),
-					Avg( {<[Domain Name] = {"College & Career"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Percent Earned in Domain]),
-					Avg(Aggr(Sum({<[Domain Name] = {"College & Career"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Earned]) / Sum({<[Domain Name] = {"College & Career"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Possible]), [%SchoolReportYearKey]))
-				), '#0%');
-
-			let vLab_Avg_PercScore_CollegeCareer_3Year_Current = 'College & Career: Average Score';	
-			
-		/// Color
-			let vCol_Avg_PercScore_CollegeCareer_3Year_Current = 
-				IF($(vMM_Avg_PercScore_CollegeCareer_3Year_Current) < 0.25, rgb(192,80,77),
-					IF($(vMM_Avg_PercScore_CollegeCareer_3Year_Current) < 0.5, rgb(247,150,70),
-					IF($(vMM_Avg_PercScore_CollegeCareer_3Year_Current)  < 0.75, rgb(0,176,80),
-					IF($(vMM_Avg_PercScore_CollegeCareer_3Year_Current) >= 0.75, rgb(0,112,192)))));
-
-	
-	
-	//// Table (bottom-left)
-		/// Measure 1: College & Career - # of reports
-			// The number of "College & Career" reports in the most recent three years.
-			let vMM_Count_Reports_CollegeCareer_3Year_Current = Num(
-				If($(vExpr_NoMetricSelected),
-					Count(distinct {<[Points Possible in Domain] = {">0"}, [Domain Name] = {"College & Career"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearDomainKey),
-					Count(distinct {<[Points Possible] = {">0"}, [Domain Name] = {"College & Career"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearKey)
-				), '#,##0');
-			let vLab_Count_Reports_CollegeCareer_3Year_Current = 'College & Career: # of School Reports';
-			
-		/// Measure 2: College & Career - Average Points Possible
-			// The average number of total possible points for all available "College & Career" metrics in the previous three years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
-			let vMM_Avg_PointsPossible_CollegeCareer_3Year_Current = Num(
-				If($(vExpr_NoMetricSelected),
-					Avg( {<[Domain Name] = {"College & Career"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Possible in Domain]),
-					Avg(Aggr(Sum({<[Domain Name] = {"College & Career"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Possible]), %SchoolReportYearKey]))
-				), '#0.#');
-			let vLab_Avg_PointsPossible_CollegeCareer_3Year_Current = 'College & Career: Average # of Points Possible';
-
-		/// Measure 3: College & Career - Average Points Earned
-			// The average number of points earned for all available "College & Career" metrics in the previous three years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
-			let vMM_Avg_PointsEarned_CollegeCareer_3Year_Current = Num(
-				If($(vExpr_NoMetricSelected),
-					Avg( {<[Domain Name] = {"College & Career"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Earned in Domain]),
-					Avg(Aggr(Sum({<[Domain Name] = {"College & Career"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Earned]), %SchoolReportYearKey]))
-				), '#0.#');
-			let vLab_Avg_PointsEarned_CollegeCareer_3Year_Current = 'College & Career: Average # of Points Earned';
-
-		/// Measure 3: College & Career - Average Score %
-			// vMM_Avg_PercScore_CollegeCareer_3Year_Current 
-			
-
-		/// Measure 4: College & Career - Average Tier
-			// The average tier for the "College & Career" achievement domain for the previous 3 years (< 0.25 = 'Intervene', < 0.50 = 'Watch', < .75 = 'Reinforce', >= 'Model'). Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
-			let vMM_Avg_Tier_CollegeCareer_3Year_Current = 
-				If($(vMM_Avg_PercScore_CollegeCareer_3Year_Current) < 0.25, 'Intervene',
-					If($(vMM_Avg_PercScore_CollegeCareer_3Year_Current) < 0.5, 'Watch',
-					If($(vMM_Avg_PercScore_CollegeCareer_3Year_Current) < 0.75, 'Reinforce',	
-					If($(vMM_Avg_PercScore_CollegeCareer_3Year_Current) >= 0.75, 'Model')))	
-				);
-			let vLab_Avg_Tier_CollegeCareer_3Year_Current = 'College & Career: Average Tier';
-
-
-		/// Measure 5: College & Career - # of reports in "model" or "reinforce"
-			// The number of reports at the "Model" and "Reinforce" tier withing the "College & Career" domain.
-			let vMM_Count_Reports_ModelReinforce_CollegeCareer_3Year_Current = Num(
-				If($(vExpr_NoMetricSelected),
-					Count(distinct {<[Tier in Domain] = {"Model", "Reinforce"}, [Domain Name] = {"College & Career"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearDomainKey),
-					Count(distinct {<[Tier in Domain] = {"Model", "Reinforce"}, [Domain Name] = {"College & Career"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearKey)
-				), '#,##0');
-			let vLab_Count_Reports_ModelReinforce_CollegeCareer_3Year_Current = 'College & Career: # of "Model" and "Reinforce" School Reports';
-		
-		
-		/// Color
-			let vCol_YearEnd = If(YearEnd = 2017, '#398635', If(YearEnd = 2016, '#737373', If(YearEnd = 2015, '#BDBDBD', '#F0F0F0')));
-
-
-	//// Bar Chart (right)
-		/// Title
-			let vTitle_Avg_PercScore_CollegeCareer_Current = 'Average College & Career Score';
-
-		/// SubTitle
-			let vSubTitle_Avg_PercScore_CollegeCareer_Current = '';	
-
-		/// Measure 1
-			// The percent of possible points earned for all available "College & Career" metrics in the most current year. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
-			let vMM_Avg_PercScore_CollegeCareerToMetric_Current = Num(
-				IF($(vExpr_MultipleMetricsSelected),
-		        	Avg(Aggr(Sum({<IsSum={0}, [Domain Name]={"College & Career"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Earned]) / Sum({<IsSum={0}, [Domain Name]={"College & Career"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Possible]), [%SchoolReportYearKey]))
-		              ,
-		            Avg({<YearEnd={$(=$(v_Max_YearEnd))}, [Domain Name]={"College & Career"}>}[Percent Earned in Domain])
-		        )					
-				, '#0.#%');
-			
-			let vLab_Avg_PercScore_CollegeCareerToMetric_Current = 
-				IF($(vExpr_MultipleMetricsSelected),
-		        	'Average Score in College & Career Domain ('& $(v_Max_Year) &')'
-		              ,
-		            'Average Score in College & Career Domain ('& $(v_Max_Year) &')'
-		        );
-
-		/// Color:
-			let vCol_Avg_PercScore_CollegeCareerToMetric_Current = 
-				IF($(vMM_Avg_PercScore_CollegeCareerToMetric_Current) < 0.25, rgb(192,80,77),
-					IF($(vMM_Avg_PercScore_CollegeCareerToMetric_Current) < 0.5, rgb(247,150,70),
-					IF($(vMM_Avg_PercScore_CollegeCareerToMetric_Current)  < 0.75, rgb(0,176,80),
-					IF($(vMM_Avg_PercScore_CollegeCareerToMetric_Current) >= 0.75, rgb(0,112,192)))));
-
-///// Educator Effectiveness Domain Sheet
-	//// Line Graph (top-left) - shows last 3 years of performance in the College & Career domain, drill to metrics
-		/// Title
-			let vTitle_Avg_PercScore_EducatorEffectiveness_3Year_Current = 'Each Educator Effectiveness Score for Previous 3 Years';
-
-		/// SubTitle
-			let vSubTitle_Avg_PercScore_EducatorEffectiveness_3Year_Current = '';
-
-		/// Measure 1
-			// The average percent of possible points earned for all available "College & Career" metrics in the previous 3 years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
-			let vMM_Avg_PercScore_EducatorEffectiveness_3Year_Current = Num(
-				Avg( {<[Domain Name] = {"Educator Effectiveness"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Percent Earned for Metric])
-				, '#0%');
-
-			let vLab_Avg_PercScore_EducatorEffectiveness_3Year_Current = 'Educator Effectiveness: Average Score';	
-			
-		/// Color
-			let vCol_Avg_PercScore_EducatorEffectiveness_3Year_Current = 
-				IF($(vMM_Avg_PercScore_EducatorEffectiveness_3Year_Current) < 0.25, rgb(192,80,77),
-					IF($(vMM_Avg_PercScore_EducatorEffectiveness_3Year_Current) < 0.5, rgb(247,150,70),
-					IF($(vMM_Avg_PercScore_EducatorEffectiveness_3Year_Current)  < 0.75, rgb(0,176,80),
-					IF($(vMM_Avg_PercScore_EducatorEffectiveness_3Year_Current) >= 0.75, rgb(0,112,192)))));
-	
 ///// Table Page
 
 	//// Table
@@ -1742,7 +1558,7 @@
 				IF ($(vExpr_AllDomainsPossible),
 					'Overall City Rank (' & $(v_Max_Year) & ')',
 				    IF ($(vExpr_SingleDomainSelected_AllMetricsPossible),
-				    	'City Rank in ' & GetFieldSelections([Domain Name]) & ' (' & $(v_Max_Year) & ')'
+				    	'City Rank in ' & GetFieldSelections([Domain_Name]) & ' (' & $(v_Max_Year) & ')'
 				    )
 				);
 
@@ -1778,7 +1594,7 @@
 				IF ($(vExpr_AllDomainsPossible),
 					'Overall Peer Rank (' & $(v_Max_Year) & ')',
 				    IF ($(vExpr_SingleDomainSelected_AllMetricsPossible),
-				    	'Peer Rank in ' & GetFieldSelections([Domain Name]) & ' (' & $(v_Max_Year) & ')'
+				    	'Peer Rank in ' & GetFieldSelections([Domain_Name]) & ' (' & $(v_Max_Year) & ')'
 				    )
 				);
 
@@ -1818,34 +1634,589 @@
 	
 	//// Scatter Chart (center)
 
+		let vText_Avg_SPPScore_Selected = 'SPP' & If(GetSelectedCount([SPP_Metric]) = 0, ' Overall', ', ' & FirstSortedValue(distinct [SPP_Metric], [SPP_Metric]));
+
 		/// Title
-			let vTitle_Avg_PercScore_v_SPP = 'SPP - ' & FirstSortedValue(distinct [SPP Metric], [SPP Metric]) & ' (vertical) vs. SPR Score (horizontal)';
+			let vTitle_Avg_PercScore_v_SPP = $(vText_Avg_SPPScore_Selected) & ' (vertical) vs. SPR Percent Earned (horizontal)';
 
 		/// SubTitle
 
 		/// Measure 1
-			let v_Format_SPP_Selected = If (FirstSortedValue(distinct [SPP Metric Is Percent], [SPP Metric]) = 1, '#0%', '##0');
+			let v_Format_SPP_Selected = If(GetSelectedCount([SPP_Metric]) = 0, '#0%', If (FirstSortedValue(distinct [SPP Metric Is Percent], [SPP_Metric]) = 1, '#0%', '##0'));
 
 			// The Penssylvania School Performance Profile (SPP) "Final Academic Score" for the current year. Please visit http://www.paschoolperformance.org for more information.
 			let vMM_Avg_SPPScore_Selected_Current = Num(
-				If (FirstSortedValue(distinct [SPP Metric Is Percent], [SPP Metric]) = 1,
-					Avg({<[SPP Metric] = {"$(=FirstSortedValue(distinct [SPP Metric], [SPP Metric]))"}, [SPP Year] = {"$(=$(v_Max_Year))"}>}[SPP Score]) / 100
-					,
-					Avg({<[SPP Metric] = {"$(=FirstSortedValue(distinct [SPP Metric], [SPP Metric]))"}, [SPP Year] = {"$(=$(v_Max_Year))"}>}[SPP Score]) 
+				If(GetSelectedCount([SPP_Metric]) = 0,
+					Avg({<[SPP_Metric] = {"Final Academic Score"}, [SPP Year] = {"$(=$(v_Max_Year))"}>}[SPP Score]) / 100,
+					If (FirstSortedValue(distinct [SPP Metric Is Percent], [SPP_Metric]) = 1,
+						Avg({<[SPP_Metric] = {"$(=FirstSortedValue(distinct [SPP_Metric], [SPP_Metric]))"}, [SPP Year] = {"$(=$(v_Max_Year))"}>}[SPP Score]) / 100
+						,
+						Avg({<[SPP_Metric] = {"$(=FirstSortedValue(distinct [SPP_Metric], [SPP_Metric]))"}, [SPP Year] = {"$(=$(v_Max_Year))"}>}[SPP Score]) 
+					)
 				) + 0.0001, '$(=$(v_Format_SPP_Selected))'
 			);
 
-			let vLab_Avg_SPPScore_Selected_Current = 'SPP - ' & FirstSortedValue(distinct [SPP Metric], [SPP Metric]) & ' (' & $(v_Max_Year) &')';
+			let vLab_Avg_SPPScore_Selected_Current = $(vText_Avg_SPPScore_Selected) & ' (' & $(v_Max_Year) &')';
 
 			// add 5% to max that is not a %
-			let vYMax_Avg_SPPScore_Selected_Current = If (FirstSortedValue(distinct [SPP Metric Is Percent], [SPP Metric]) = 1, 
+			let vYMax_Avg_SPPScore_Selected_Current = If (FirstSortedValue(distinct [SPP Metric Is Percent], [SPP_Metric]) = 1, 
 				1, 
-				Max({<[SPP Metric] = {"$(=FirstSortedValue(distinct [SPP Metric], [SPP Metric]))"}, [SPP Year] = {"$(=$(v_Max_Year))"}>}[SPP Score]) + 0.05 * Max({<[SPP Metric] = {"$(=FirstSortedValue(distinct [SPP Metric], [SPP Metric]))"}, [SPP Year] = {"$(=$(v_Max_Year))"}>}[SPP Score]));
+				Max({<[SPP_Metric] = {"$(=FirstSortedValue(distinct [SPP_Metric], [SPP_Metric]))"}, [SPP Year] = {"$(=$(v_Max_Year))"}>}[SPP Score]) + 0.05 * Max({<[SPP_Metric] = {"$(=FirstSortedValue(distinct [SPP_Metric], [SPP_Metric]))"}, [SPP Year] = {"$(=$(v_Max_Year))"}>}[SPP Score]));
 
 		/// We may not use the following, but we'll keep it in the system
 			// The Penssylvania School Performance Profile (SPP) "Final Academic Score" for the current year. Please visit http://www.paschoolperformance.org for more information.
-			let vMM_Avg_SPPScore_FinalAcademicScore_Current = Num(
-				Avg({<[SPP Metric] = {"Final Academic Score"}, [SPP Year] = {"$(=$(v_Max_Year))"}>}[SPP Score]) / 100
-				+ 0.0001, '#0%');
+			//let vMM_Avg_SPPScore_FinalAcademicScore_Current = Num(
+			//	Avg({<[SPP_Metric] = {"Final Academic Score"}, [SPP Year] = {"$(=$(v_Max_Year))"}>}[SPP Score]) / 100
+			//	+ 0.0001, '#0%');
 
-			let vLab_Avg_SPPScore_FinalAcademicScore_Current = 'Overall SPP Score' & ' (' & $(v_Max_Year) &')';
+			//let vLab_Avg_SPPScore_FinalAcademicScore_Current = 'Overall SPP Score' & ' (' & $(v_Max_Year) &')';
+
+///// Achievement Domain Sheet
+	let vText_AchievementOrMetric = 
+		If(GetSelectedCount([Metric_Name]) = 1,
+			GetFieldSelections([Metric_Name]),
+			'Achievement'
+		);
+
+	let vCalc_AchievementOrMetric = If($(vExpr_NoMetricSelected) or $(vExpr_SingleMetricSelected) and WildMatch(Concat(distinct [Domain_Name]), '*Achievement*'), 1, 0);
+
+	let vCalcDisplay_AchievementOrMetric = 
+		If($(vExpr_MultipleMetricsSelected), 'You have multiple metrics selected. Please select only one.',
+			If($(vExpr_SingleMetricSelected) and Not(WildMatch(Concat(distinct [Domain_Name]), '*Achievement*')), 
+				'The metric you have selected is within the ' & Concat(distinct [Domain_Name], ', ') &' domain. Please select an Achievement metric.'));
+
+
+	//// Line Graph (top-left) - shows last 3 years of performance in the Achievement domain, drill to metrics
+		/// Title
+			let vTitle_Avg_PercScore_Achievement_3Year_Current = $(vText_AverageOrSingle) & '' & $(vText_AchievementOrMetric) & ' Percent Earned for Previous 3 Years';
+
+		/// SubTitle
+			let vSubTitle_Avg_PercScore_Achievement_3Year_Current = '';
+
+		/// Measure 1
+			// The average percent of possible points earned for all available "Achievement" metrics in the previous 3 years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			let vMM_Avg_PercScore_Achievement_3Year_Current = Num(
+				If($(vExpr_NoMetricSelected),
+					Avg( {<[Domain_Name] = {"Achievement"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Percent Earned in Domain]),
+					Avg(Aggr(Sum({<[Domain_Name] = {"Achievement"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Earned]) / Sum({<[Domain_Name] = {"Achievement"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Possible]), [%SchoolReportYearKey]))
+				) + 0.0001, '#0%');
+
+			let vLab_Avg_PercScore_Achievement_3Year_Current = '' & $(vText_AchievementOrMetric) & ': ' & $(vText_AverageOrSingle) & 'Percent Earned';	
+			
+		/// Color
+			let vCol_Avg_PercScore_Achievement_3Year_Current = 
+				IF($(vMM_Avg_PercScore_Achievement_3Year_Current) < 0.25, rgb(192,80,77),
+				IF($(vMM_Avg_PercScore_Achievement_3Year_Current) < 0.5, rgb(247,150,70),
+				IF($(vMM_Avg_PercScore_Achievement_3Year_Current)  < 0.75, rgb(0,176,80),
+				IF($(vMM_Avg_PercScore_Achievement_3Year_Current) >= 0.75, rgb(0,112,192)))));
+
+		// min max
+			let vMin_Avg_PercScore_Achievement_3Year_Current = RangeMax(0, Floor(Min(Aggr($(vMM_Avg_PercScore_Achievement_3Year_Current), Year)) * 10) / 10); 
+			let vMax_Avg_PercScore_Achievement_3Year_Current = RangeMin(1, Ceil(Max(Aggr($(vMM_Avg_PercScore_Achievement_3Year_Current), Year)) * 10) / 10);
+
+	//// Table (bottom-left)
+		/// Measure 1: Achievement - # of reports
+			// The number of "Achievement" reports in the most recent three years.
+			let vMM_Count_Reports_Achievement_3Year_Current = Num(
+				If($(vExpr_NoMetricSelected),
+					Count(distinct {<[Points Possible in Domain] = {">0"}, [Domain_Name] = {"Achievement"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearDomainKey),
+					Count(distinct {<[Points Possible] = {">0"}, [Domain_Name] = {"Achievement"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearKey)
+				), '#,##0');
+			let vLab_Count_Reports_Achievement_3Year_Current = '' & $(vText_AchievementOrMetric) & ': # of School Reports';
+			
+		/// Measure 2: Achievement - Average Points Possible
+			// The average number of total possible points for all available "Achievement" metrics in the previous three years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			let vMM_Avg_PointsPossible_Achievement_3Year_Current = Num(
+				If($(vExpr_NoMetricSelected),
+					Avg( {<[Domain_Name] = {"Achievement"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Possible in Domain]),
+					Avg(Aggr(Sum({<[Domain_Name] = {"Achievement"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Possible]), %SchoolReportYearKey))
+				), '#0.#');
+			let vLab_Avg_PointsPossible_Achievement_3Year_Current = '' & $(vText_AchievementOrMetric) & ': ' & $(vText_AverageOrSingle) & '# of Points Possible';
+
+		/// Measure 3: Achievement - Average Points Earned
+			// The average number of points earned for all available "Achievement" metrics in the previous three years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			let vMM_Avg_PointsEarned_Achievement_3Year_Current = Num(
+				If($(vExpr_NoMetricSelected),
+					Avg( {<[Domain_Name] = {"Achievement"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Earned in Domain]),
+					Avg(Aggr(Sum({<[Domain_Name] = {"Achievement"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Earned]), %SchoolReportYearKey))
+				), '#0.#');
+			let vLab_Avg_PointsEarned_Achievement_3Year_Current = '' & $(vText_AchievementOrMetric) & ': ' & $(vText_AverageOrSingle) & '# of Points Earned';
+
+		/// Measure 3: Achievement - Average Percent Earned %
+			// vMM_Avg_PercScore_Achievement_3Year_Current 
+			
+
+		/// Measure 4: Achievement - Average Tier
+			// The average tier for the "Achievement" achievement domain for the previous 3 years (< 0.25 = 'Intervene', < 0.50 = 'Watch', < .75 = 'Reinforce', >= 'Model'). Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			let vMM_Avg_Tier_Achievement_3Year_Current = 
+				If($(vMM_Avg_PercScore_Achievement_3Year_Current) < 0.25, 'Intervene',
+				If($(vMM_Avg_PercScore_Achievement_3Year_Current) < 0.5, 'Watch',
+				If($(vMM_Avg_PercScore_Achievement_3Year_Current) < 0.75, 'Reinforce',	
+				If($(vMM_Avg_PercScore_Achievement_3Year_Current) >= 0.75, 'Model')))	
+				);
+			let vLab_Avg_Tier_Achievement_3Year_Current = '' & $(vText_AchievementOrMetric) & ': ' & $(vText_AverageOrSingle) & 'Tier';
+
+
+		/// Measure 5: Achievement - # of reports in "model" or "reinforce"
+			// The number of reports at the "Model" and "Reinforce" tier withing the "Achievement" domain.
+			let vMM_Count_Reports_ModelReinforce_Achievement_3Year_Current = Num(
+				If($(vExpr_NoMetricSelected),
+					Count(distinct {<[Tier in Domain] = {"Model", "Reinforce"}, [Domain_Name] = {"Achievement"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearDomainKey),
+					Count(distinct {<[Tier in Domain] = {"Model", "Reinforce"}, [Domain_Name] = {"Achievement"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearKey)
+				), '#,##0');
+			let vLab_Count_Reports_ModelReinforce_Achievement_3Year_Current = '' & $(vText_AchievementOrMetric) & ': # of "Model" and "Reinforce" School Reports';
+		
+		
+		/// Color
+			let vCol_YearEnd = If(YearEnd = 2017, '#398635', If(YearEnd = 2016, '#737373', If(YearEnd = 2015, '#BDBDBD', '#F0F0F0')));
+
+
+	//// Bar Chart (right)
+		/// Title
+			let vTitle_Avg_PercScore_Achievement_Current = $(vText_AverageOrSingle) & '' & $(vText_AchievementOrMetric) & ' Percent Earned';
+
+		/// SubTitle
+			let vSubTitle_Avg_PercScore_Achievement_Current = '';	
+
+		/// Measure 1
+			// The percent of possible points earned for all available "Achievement" metrics in the most current year. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			let vMM_Avg_PercScore_AchievementToMetric_Current = Num(
+				IF($(vExpr_MultipleMetricsSelected),
+		        	Avg(Aggr(Sum({<IsSum={0}, [Domain_Name]={"Achievement"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Earned]) / Sum({<IsSum={0}, [Domain_Name]={"Achievement"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Possible]), [%SchoolReportYearKey]))
+		              ,
+		            Avg({<YearEnd={$(=$(v_Max_YearEnd))}, [Domain_Name]={"Achievement"}>}[Percent Earned in Domain])
+		        ) + 0.0001					
+				, '#0.#%');
+			
+			let vLab_Avg_PercScore_AchievementToMetric_Current = 
+				IF($(vExpr_MultipleMetricsSelected),
+		        	$(vText_AverageOrSingle) & 'Percent Earned in Achievement Domain ('& $(v_Max_Year) &')'
+		              ,
+		            $(vText_AverageOrSingle) & 'Percent Earned in Achievement Domain ('& $(v_Max_Year) &')'
+		        );
+
+		/// Color: vMM_Avg_PercScore_AchievementToMetric_Current 
+			let vCol_Avg_PercScore_AchievementToMetric_Current = 
+				IF($(vMM_Avg_PercScore_AchievementToMetric_Current) < 0.25, rgb(192,80,77),
+				IF($(vMM_Avg_PercScore_AchievementToMetric_Current) < 0.5, rgb(247,150,70),
+				IF($(vMM_Avg_PercScore_AchievementToMetric_Current)  < 0.75, rgb(0,176,80),
+				IF($(vMM_Avg_PercScore_AchievementToMetric_Current) >= 0.75, rgb(0,112,192)))));
+
+///// Progress Domain Sheet
+	
+	let vText_ProgressOrMetric = 
+		If(GetSelectedCount([Metric_Name]) = 1,
+			GetFieldSelections([Metric_Name]),
+			'Progress'
+		);
+
+	let vCalc_ProgressOrMetric = If($(vExpr_NoMetricSelected) or $(vExpr_SingleMetricSelected) and WildMatch(Concat(distinct [Domain_Name]), '*Progress*'), 1, 0);
+
+	let vCalcDisplay_ProgressOrMetric = 
+		If($(vExpr_MultipleMetricsSelected), 'You have multiple metrics selected. Please select only one.',
+			If($(vExpr_SingleMetricSelected) and Not(WildMatch(Concat(distinct [Domain_Name]), '*Progress*')), 
+				'The metric you have selected is within the ' & Concat(distinct [Domain_Name], ', ') &' domain. Please select a Progress metric.'));
+
+
+	//// Line Graph (top-left) - shows last 3 years of performance in the Progress domain, drill to metrics
+		/// Title
+			let vTitle_Avg_PercScore_Progress_3Year_Current = $(vText_AverageOrSingle) & '' & $(vText_ProgressOrMetric) & ' Percent Earned for Previous 3 Years';
+
+		/// SubTitle
+			let vSubTitle_Avg_PercScore_Progress_3Year_Current = '';
+
+		/// Measure 1
+			// The average percent of possible points earned for all available "Progress" metrics in the previous 3 years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			let vMM_Avg_PercScore_Progress_3Year_Current = Num(
+				If($(vExpr_NoMetricSelected),
+					Avg( {<[Domain_Name] = {"Progress"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Percent Earned in Domain]),
+					Avg(Aggr(Sum({<[Domain_Name] = {"Progress"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Earned]) / Sum({<[Domain_Name] = {"Progress"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Possible]), [%SchoolReportYearKey]))
+				) + 0.0001, '#0%');
+
+			let vLab_Avg_PercScore_Progress_3Year_Current = '' & $(vText_ProgressOrMetric) & ': ' & $(vText_AverageOrSingle) & 'Percent Earned';	
+			
+		/// Color
+			let vCol_Avg_PercScore_Progress_3Year_Current = 
+				IF($(vMM_Avg_PercScore_Progress_3Year_Current) < 0.25, rgb(192,80,77),
+				IF($(vMM_Avg_PercScore_Progress_3Year_Current) < 0.5, rgb(247,150,70),
+				IF($(vMM_Avg_PercScore_Progress_3Year_Current) < 0.75, rgb(0,176,80),
+				IF($(vMM_Avg_PercScore_Progress_3Year_Current) >= 0.75, rgb(0,112,192)))));
+
+		// min max
+			let vMin_Avg_PercScore_Progress_3Year_Current = RangeMax(0, Floor(Min(Aggr($(vMM_Avg_PercScore_Progress_3Year_Current), Year)) * 10) / 10); 
+			let vMax_Avg_PercScore_Progress_3Year_Current = RangeMin(1, Ceil(Max(Aggr($(vMM_Avg_PercScore_Progress_3Year_Current), Year)) * 10) / 10);
+
+	
+	//// Table (bottom-left)
+		/// Measure 1: Progress - # of reports
+			// The number of "Progress" reports in the most recent three years.
+			let vMM_Count_Reports_Progress_3Year_Current = Num(
+				If($(vExpr_NoMetricSelected),
+					Count(distinct {<[Points Possible in Domain] = {">0"}, [Domain_Name] = {"Progress"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearDomainKey),
+					Count(distinct {<[Points Possible] = {">0"}, [Domain_Name] = {"Progress"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearKey)
+				), '#,##0');
+			let vLab_Count_Reports_Progress_3Year_Current = '' & $(vText_ProgressOrMetric) & ': # of School Reports';
+			
+		/// Measure 2: Progress - Average Points Possible
+			// The average number of total possible points for all available "Progress" metrics in the previous three years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			let vMM_Avg_PointsPossible_Progress_3Year_Current = Num(
+				If($(vExpr_NoMetricSelected),
+					Avg( {<[Domain_Name] = {"Progress"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Possible in Domain]),
+					Avg(Aggr(Sum({<[Domain_Name] = {"Progress"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Possible]), %SchoolReportYearKey))
+				), '#0.#');
+			let vLab_Avg_PointsPossible_Progress_3Year_Current = '' & $(vText_ProgressOrMetric) & ': ' & $(vText_AverageOrSingle) & '# of Points Possible';
+
+		/// Measure 3: Progress - Average Points Earned
+			// The average number of points earned for all available "Progress" metrics in the previous three years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			let vMM_Avg_PointsEarned_Progress_3Year_Current = Num(
+				If($(vExpr_NoMetricSelected),
+					Avg( {<[Domain_Name] = {"Progress"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Earned in Domain]),
+					Avg(Aggr(Sum({<[Domain_Name] = {"Progress"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Earned]), %SchoolReportYearKey))
+				), '#0.#');
+			let vLab_Avg_PointsEarned_Progress_3Year_Current = '' & $(vText_ProgressOrMetric) & ': ' & $(vText_AverageOrSingle) & '# of Points Earned';
+
+		/// Measure 3: Progress - Average Percent Earned %
+			// vMM_Avg_PercScore_Progress_3Year_Current 
+			
+
+		/// Measure 4: Progress - Average Tier
+			// The average tier for the "Progress" achievement domain for the previous 3 years (< 0.25 = 'Intervene', < 0.50 = 'Watch', < .75 = 'Reinforce', >= 'Model'). Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			let vMM_Avg_Tier_Progress_3Year_Current = 
+				If($(vMM_Avg_PercScore_Progress_3Year_Current) < 0.25, 'Intervene',
+				If($(vMM_Avg_PercScore_Progress_3Year_Current) < 0.5, 'Watch',
+				If($(vMM_Avg_PercScore_Progress_3Year_Current) < 0.75, 'Reinforce',	
+				If($(vMM_Avg_PercScore_Progress_3Year_Current) >= 0.75, 'Model')))	
+				);
+			let vLab_Avg_Tier_Progress_3Year_Current = '' & $(vText_ProgressOrMetric) & ': ' & $(vText_AverageOrSingle) & 'Tier';
+
+
+		/// Measure 5: Progress - # of reports in "model" or "reinforce"
+			// The number of reports at the "Model" and "Reinforce" tier withing the "Progress" domain.
+			let vMM_Count_Reports_ModelReinforce_Progress_3Year_Current = Num(
+				If($(vExpr_NoMetricSelected),
+					Count(distinct {<[Tier in Domain] = {"Model", "Reinforce"}, [Domain_Name] = {"Progress"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearDomainKey),
+					Count(distinct {<[Tier in Domain] = {"Model", "Reinforce"}, [Domain_Name] = {"Progress"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearKey)
+				), '#,##0');
+			let vLab_Count_Reports_ModelReinforce_Progress_3Year_Current = '' & $(vText_ProgressOrMetric) & ': # of "Model" and "Reinforce" School Reports';
+		
+		
+		/// Color
+			let vCol_YearEnd = If(YearEnd = 2017, '#398635', If(YearEnd = 2016, '#737373', If(YearEnd = 2015, '#BDBDBD', '#F0F0F0')));
+
+
+	//// Bar Chart (right)
+		/// Title
+			let vTitle_Avg_PercScore_Progress_Current = $(vText_AverageOrSingle) & '' & $(vText_ProgressOrMetric) & ' Percent Earned';
+
+		/// SubTitle
+			let vSubTitle_Avg_PercScore_Progress_Current = '';	
+
+		/// Measure 1
+			// The percent of possible points earned for all available "Progress" metrics in the most current year. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			let vMM_Avg_PercScore_ProgressToMetric_Current = Num(
+				IF($(vExpr_MultipleMetricsSelected),
+		        	Avg(Aggr(Sum({<IsSum={0}, [Domain_Name]={"Progress"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Earned]) / Sum({<IsSum={0}, [Domain_Name]={"Progress"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Possible]), [%SchoolReportYearKey]))
+		              ,
+		            Avg({<YearEnd={$(=$(v_Max_YearEnd))}, [Domain_Name]={"Progress"}>}[Percent Earned in Domain])
+		        ) + 0.0001					
+				, '#0.#%');
+			
+			let vLab_Avg_PercScore_ProgressToMetric_Current = 
+				IF($(vExpr_MultipleMetricsSelected),
+		        	$(vText_AverageOrSingle) & 'Percent Earned in Progress Domain ('& $(v_Max_Year) &')'
+		              ,
+		            $(vText_AverageOrSingle) & 'Percent Earned in Progress Domain ('& $(v_Max_Year) &')'
+		        );
+
+		/// Color:
+			let vCol_Avg_PercScore_ProgressToMetric_Current = 
+				IF($(vMM_Avg_PercScore_ProgressToMetric_Current) < 0.25, rgb(192,80,77),
+				IF($(vMM_Avg_PercScore_ProgressToMetric_Current) < 0.5, rgb(247,150,70),
+				IF($(vMM_Avg_PercScore_ProgressToMetric_Current)  < 0.75, rgb(0,176,80),
+				IF($(vMM_Avg_PercScore_ProgressToMetric_Current) >= 0.75, rgb(0,112,192)))));
+
+///// Climate Domain Sheet
+	
+	let vText_ClimateOrMetric = 
+		If(GetSelectedCount([Metric_Name]) = 1,
+			GetFieldSelections([Metric_Name]),
+			'Climate'
+		);
+
+	let vCalc_ClimateOrMetric = If($(vExpr_NoMetricSelected) or $(vExpr_SingleMetricSelected) and WildMatch(Concat(distinct [Domain_Name]), '*Climate*'), 1, 0);
+
+	let vCalcDisplay_ClimateOrMetric = 
+		If($(vExpr_MultipleMetricsSelected), 'You have multiple metrics selected. Please select only one.',
+			If($(vExpr_SingleMetricSelected) and Not(WildMatch(Concat(distinct [Domain_Name]), '*Climate*')), 
+				'The metric you have selected is within the ' & Concat(distinct [Domain_Name], ', ') &' domain. Please select a Climate metric.'));
+
+	//// Line Graph (top-left) - shows last 3 years of performance in the Climate domain, drill to metrics
+		/// Title
+			let vTitle_Avg_PercScore_Climate_3Year_Current = $(vText_AverageOrSingle) & '' & $(vText_ClimateOrMetric) & ' Percent Earned for Previous 3 Years';
+
+		/// SubTitle
+			let vSubTitle_Avg_PercScore_Climate_3Year_Current = '';
+
+		/// Measure 1
+			// The average percent of possible points earned for all available "Climate" metrics in the previous 3 years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			let vMM_Avg_PercScore_Climate_3Year_Current = Num(
+				If($(vExpr_NoMetricSelected),
+					Avg( {<[Domain_Name] = {"Climate"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Percent Earned in Domain]),
+					Avg(Aggr(Sum({<[Domain_Name] = {"Climate"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Earned]) / Sum({<[Domain_Name] = {"Climate"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Possible]), [%SchoolReportYearKey]))
+				) + 0.0001, '#0%');
+
+			let vLab_Avg_PercScore_Climate_3Year_Current = '' & $(vText_ClimateOrMetric) & ': ' & $(vText_AverageOrSingle) & 'Percent Earned';	
+			
+		/// Color
+			let vCol_Avg_PercScore_Climate_3Year_Current = 
+				IF($(vMM_Avg_PercScore_Climate_3Year_Current) < 0.25, rgb(192,80,77),
+				IF($(vMM_Avg_PercScore_Climate_3Year_Current) < 0.5, rgb(247,150,70),
+				IF($(vMM_Avg_PercScore_Climate_3Year_Current) < 0.75, rgb(0,176,80),
+				IF($(vMM_Avg_PercScore_Climate_3Year_Current) >= 0.75, rgb(0,112,192)))));
+
+		// min max
+			let vMin_Avg_PercScore_Climate_3Year_Current = RangeMax(0, Floor(Min(Aggr($(vMM_Avg_PercScore_Climate_3Year_Current), Year)) * 10) / 10); 
+			let vMax_Avg_PercScore_Climate_3Year_Current = RangeMin(1, Ceil(Max(Aggr($(vMM_Avg_PercScore_Climate_3Year_Current), Year)) * 10) / 10);
+
+	
+	//// Table (bottom-left)
+		/// Measure 1: Climate - # of reports
+			// The number of "Climate" reports in the most recent three years.
+			let vMM_Count_Reports_Climate_3Year_Current = Num(
+				If($(vExpr_NoMetricSelected),
+					Count(distinct {<[Points Possible in Domain] = {">0"}, [Domain_Name] = {"Climate"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearDomainKey),
+					Count(distinct {<[Points Possible] = {">0"}, [Domain_Name] = {"Climate"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearKey)
+				), '#,##0');
+			let vLab_Count_Reports_Climate_3Year_Current = '' & $(vText_ClimateOrMetric) & ': # of School Reports';
+			
+		/// Measure 2: Climate - Average Points Possible
+			// The average number of total possible points for all available "Climate" metrics in the previous three years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			let vMM_Avg_PointsPossible_Climate_3Year_Current = Num(
+				If($(vExpr_NoMetricSelected),
+					Avg( {<[Domain_Name] = {"Climate"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Possible in Domain]),
+					Avg(Aggr(Sum({<[Domain_Name] = {"Climate"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Possible]), %SchoolReportYearKey))
+				), '#0.#');
+			let vLab_Avg_PointsPossible_Climate_3Year_Current = '' & $(vText_ClimateOrMetric) & ': ' & $(vText_AverageOrSingle) & '# of Points Possible';
+
+		/// Measure 3: Climate - Average Points Earned
+			// The average number of points earned for all available "Climate" metrics in the previous three years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			let vMM_Avg_PointsEarned_Climate_3Year_Current = Num(
+				If($(vExpr_NoMetricSelected),
+					Avg( {<[Domain_Name] = {"Climate"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Earned in Domain]),
+					Avg(Aggr(Sum({<[Domain_Name] = {"Climate"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Earned]), %SchoolReportYearKey))
+				), '#0.#');
+			let vLab_Avg_PointsEarned_Climate_3Year_Current = '' & $(vText_ClimateOrMetric) & ': ' & $(vText_AverageOrSingle) & '# of Points Earned';
+
+		/// Measure 3: Climate - Average Percent Earned %
+			// vMM_Avg_PercScore_Climate_3Year_Current 
+			
+
+		/// Measure 4: Climate - Average Tier
+			// The average tier for the "Climate" achievement domain for the previous 3 years (< 0.25 = 'Intervene', < 0.50 = 'Watch', < .75 = 'Reinforce', >= 'Model'). Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			let vMM_Avg_Tier_Climate_3Year_Current = 
+				If($(vMM_Avg_PercScore_Climate_3Year_Current) < 0.25, 'Intervene',
+				If($(vMM_Avg_PercScore_Climate_3Year_Current) < 0.5, 'Watch',
+				If($(vMM_Avg_PercScore_Climate_3Year_Current) < 0.75, 'Reinforce',	
+				If($(vMM_Avg_PercScore_Climate_3Year_Current) >= 0.75, 'Model'))));
+
+			let vLab_Avg_Tier_Climate_3Year_Current = '' & $(vText_ClimateOrMetric) & ': ' & $(vText_AverageOrSingle) & 'Tier';
+
+
+		/// Measure 5: Climate - # of reports in "model" or "reinforce"
+			// The number of reports at the "Model" and "Reinforce" tier withing the "Climate" domain.
+			let vMM_Count_Reports_ModelReinforce_Climate_3Year_Current = Num(
+				If($(vExpr_NoMetricSelected),
+					Count(distinct {<[Tier in Domain] = {"Model", "Reinforce"}, [Domain_Name] = {"Climate"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearDomainKey),
+					Count(distinct {<[Tier in Domain] = {"Model", "Reinforce"}, [Domain_Name] = {"Climate"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearKey)
+				), '#,##0');
+			let vLab_Count_Reports_ModelReinforce_Climate_3Year_Current = '' & $(vText_ClimateOrMetric) & ': # of "Model" and "Reinforce" School Reports';
+		
+		
+		/// Color
+			let vCol_YearEnd = If(YearEnd = 2017, '#398635', If(YearEnd = 2016, '#737373', If(YearEnd = 2015, '#BDBDBD', '#F0F0F0')));
+
+
+	//// Bar Chart (right)
+		/// Title
+			let vTitle_Avg_PercScore_Climate_Current = $(vText_AverageOrSingle) & '' & $(vText_ClimateOrMetric) & ' Percent Earned';
+
+		/// SubTitle
+			let vSubTitle_Avg_PercScore_Climate_Current = '';	
+
+		/// Measure 1
+			// The percent of possible points earned for all available "Climate" metrics in the most current year. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			let vMM_Avg_PercScore_ClimateToMetric_Current = Num(
+				IF($(vExpr_MultipleMetricsSelected),
+		        	Avg(Aggr(Sum({<IsSum={0}, [Domain_Name]={"Climate"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Earned]) / Sum({<IsSum={0}, [Domain_Name]={"Climate"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Possible]), [%SchoolReportYearKey]))
+		              ,
+		            Avg({<YearEnd={$(=$(v_Max_YearEnd))}, [Domain_Name]={"Climate"}>}[Percent Earned in Domain])
+		        ) + 0.0001					
+				, '#0.#%');
+			
+			let vLab_Avg_PercScore_ClimateToMetric_Current = 
+				IF($(vExpr_MultipleMetricsSelected),
+		        	$(vText_AverageOrSingle) & 'Percent Earned in Climate Domain ('& $(v_Max_Year) &')'
+		              ,
+		            $(vText_AverageOrSingle) & 'Percent Earned in Climate Domain ('& $(v_Max_Year) &')'
+		        );
+
+		/// Color:
+			let vCol_Avg_PercScore_ClimateToMetric_Current = 
+				IF($(vMM_Avg_PercScore_ClimateToMetric_Current) < 0.25, rgb(192,80,77),
+				IF($(vMM_Avg_PercScore_ClimateToMetric_Current) < 0.5, rgb(247,150,70),
+				IF($(vMM_Avg_PercScore_ClimateToMetric_Current)  < 0.75, rgb(0,176,80),
+				IF($(vMM_Avg_PercScore_ClimateToMetric_Current) >= 0.75, rgb(0,112,192)))));
+
+///// College & Career Domain Sheet
+	let vText_CollegeCareerOrMetric = 
+		If(GetSelectedCount([Metric_Name]) = 1,
+			GetFieldSelections([Metric_Name]),
+			'College & Career'
+		);
+
+	let vCalc_CollegeCareerOrMetric = If($(vExpr_NoMetricSelected) or $(vExpr_SingleMetricSelected) and WildMatch(Concat(distinct [Domain_Name]), '*College*'), 1, 0);
+
+	let vCalcDisplay_CollegeCareerOrMetric = 
+		If($(vExpr_MultipleMetricsSelected), 'You have multiple metrics selected. Please select only one.',
+			If($(vExpr_SingleMetricSelected) and Not(WildMatch(Concat(distinct [Domain_Name]), '*College*')), 
+				'The metric you have selected is within the ' & Concat(distinct [Domain_Name], ', ') &' domain. Please select a College & Career metric.'));
+
+	//// Line Graph (top-left) - shows last 3 years of performance in the College & Career domain, drill to metrics
+		/// Title
+			let vTitle_Avg_PercScore_CollegeCareer_3Year_Current = $(vText_AverageOrSingle) & '' & $(vText_CollegeCareerOrMetric) & ' Percent Earned for Previous 3 Years';
+
+		/// SubTitle
+			let vSubTitle_Avg_PercScore_CollegeCareer_3Year_Current = '';
+
+		/// Measure 1
+			// The average percent of possible points earned for all available "College & Career" metrics in the previous 3 years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			let vMM_Avg_PercScore_CollegeCareer_3Year_Current = Num(
+				If($(vExpr_NoMetricSelected),
+					Avg( {<[Domain_Name] = {"College & Career"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Percent Earned in Domain]),
+					Avg(Aggr(Sum({<[Domain_Name] = {"College & Career"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Earned]) / Sum({<[Domain_Name] = {"College & Career"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Possible]), [%SchoolReportYearKey]))
+				) + 0.0001, '#0%');
+
+			let vLab_Avg_PercScore_CollegeCareer_3Year_Current = '' & $(vText_CollegeCareerOrMetric) & ': ' & $(vText_AverageOrSingle) & 'Percent Earned';	
+			
+		/// Color
+			let vCol_Avg_PercScore_CollegeCareer_3Year_Current = 
+				IF($(vMM_Avg_PercScore_CollegeCareer_3Year_Current) < 0.25, rgb(192,80,77),
+				IF($(vMM_Avg_PercScore_CollegeCareer_3Year_Current) < 0.5, rgb(247,150,70),
+				IF($(vMM_Avg_PercScore_CollegeCareer_3Year_Current)  < 0.75, rgb(0,176,80),
+				IF($(vMM_Avg_PercScore_CollegeCareer_3Year_Current) >= 0.75, rgb(0,112,192)))));
+	
+		// min max
+			let vMin_Avg_PercScore_CollegeCareer_3Year_Current = RangeMax(0, Floor(Min(Aggr($(vMM_Avg_PercScore_CollegeCareer_3Year_Current), Year)) * 10) / 10); 
+			let vMax_Avg_PercScore_CollegeCareer_3Year_Current = RangeMin(1, Ceil(Max(Aggr($(vMM_Avg_PercScore_CollegeCareer_3Year_Current), Year)) * 10) / 10);
+
+	//// Table (bottom-left)
+		/// Measure 1: College & Career - # of reports
+			// The number of "College & Career" reports in the most recent three years.
+			let vMM_Count_Reports_CollegeCareer_3Year_Current = Num(
+				If($(vExpr_NoMetricSelected),
+					Count(distinct {<[Points Possible in Domain] = {">0"}, [Domain_Name] = {"College & Career"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearDomainKey),
+					Count(distinct {<[Points Possible] = {">0"}, [Domain_Name] = {"College & Career"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearKey)
+				), '#,##0');
+			let vLab_Count_Reports_CollegeCareer_3Year_Current = '' & $(vText_CollegeCareerOrMetric) & ': # of School Reports';
+			
+		/// Measure 2: College & Career - Average Points Possible
+			// The average number of total possible points for all available "College & Career" metrics in the previous three years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			let vMM_Avg_PointsPossible_CollegeCareer_3Year_Current = Num(
+				If($(vExpr_NoMetricSelected),
+					Avg( {<[Domain_Name] = {"College & Career"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Possible in Domain]),
+					Avg(Aggr(Sum({<[Domain_Name] = {"College & Career"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Possible]), %SchoolReportYearKey))
+				), '#0.#');
+			let vLab_Avg_PointsPossible_CollegeCareer_3Year_Current = '' & $(vText_CollegeCareerOrMetric) & ': ' & $(vText_AverageOrSingle) & '# of Points Possible';
+
+		/// Measure 3: College & Career - Average Points Earned
+			// The average number of points earned for all available "College & Career" metrics in the previous three years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			let vMM_Avg_PointsEarned_CollegeCareer_3Year_Current = Num(
+				If($(vExpr_NoMetricSelected),
+					Avg( {<[Domain_Name] = {"College & Career"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Earned in Domain]),
+					Avg(Aggr(Sum({<[Domain_Name] = {"College & Career"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Points Earned]), %SchoolReportYearKey))
+				), '#0.#');
+			let vLab_Avg_PointsEarned_CollegeCareer_3Year_Current = '' & $(vText_CollegeCareerOrMetric) & ': ' & $(vText_AverageOrSingle) & '# of Points Earned';
+
+		/// Measure 3: College & Career - Average Percent Earned %
+			// vMM_Avg_PercScore_CollegeCareer_3Year_Current 
+			
+
+		/// Measure 4: College & Career - Average Tier
+			// The average tier for the "College & Career" achievement domain for the previous 3 years (< 0.25 = 'Intervene', < 0.50 = 'Watch', < .75 = 'Reinforce', >= 'Model'). Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			let vMM_Avg_Tier_CollegeCareer_3Year_Current = 
+				If($(vMM_Avg_PercScore_CollegeCareer_3Year_Current) < 0.25, 'Intervene',
+					If($(vMM_Avg_PercScore_CollegeCareer_3Year_Current) < 0.5, 'Watch',
+					If($(vMM_Avg_PercScore_CollegeCareer_3Year_Current) < 0.75, 'Reinforce',	
+					If($(vMM_Avg_PercScore_CollegeCareer_3Year_Current) >= 0.75, 'Model')))	
+				);
+			let vLab_Avg_Tier_CollegeCareer_3Year_Current = '' & $(vText_CollegeCareerOrMetric) & ': ' & $(vText_AverageOrSingle) & 'Tier';
+
+
+		/// Measure 5: College & Career - # of reports in "model" or "reinforce"
+			// The number of reports at the "Model" and "Reinforce" tier withing the "College & Career" domain.
+			let vMM_Count_Reports_ModelReinforce_CollegeCareer_3Year_Current = Num(
+				If($(vExpr_NoMetricSelected),
+					Count(distinct {<[Tier in Domain] = {"Model", "Reinforce"}, [Domain_Name] = {"College & Career"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearDomainKey),
+					Count(distinct {<[Tier in Domain] = {"Model", "Reinforce"}, [Domain_Name] = {"College & Career"}, IsSum = {0}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}%SchoolReportYearKey)
+				), '#,##0');
+			let vLab_Count_Reports_ModelReinforce_CollegeCareer_3Year_Current = '' & $(vText_CollegeCareerOrMetric) & ': # of "Model" and "Reinforce" School Reports';
+		
+		
+		/// Color
+			let vCol_YearEnd = If(YearEnd = 2017, '#398635', If(YearEnd = 2016, '#737373', If(YearEnd = 2015, '#BDBDBD', '#F0F0F0')));
+
+
+	//// Bar Chart (right)
+		/// Title
+			let vTitle_Avg_PercScore_CollegeCareer_Current = $(vText_AverageOrSingle) & '' & $(vText_CollegeCareerOrMetric) & ' Percent Earned';
+
+		/// SubTitle
+			let vSubTitle_Avg_PercScore_CollegeCareer_Current = '';	
+
+		/// Measure 1
+			// The percent of possible points earned for all available "College & Career" metrics in the most current year. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			let vMM_Avg_PercScore_CollegeCareerToMetric_Current = Num(
+				IF($(vExpr_MultipleMetricsSelected),
+		        	Avg(Aggr(Sum({<IsSum={0}, [Domain_Name]={"College & Career"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Earned]) / Sum({<IsSum={0}, [Domain_Name]={"College & Career"}, YearEnd={$(=$(v_Max_YearEnd))}>}[Points Possible]), [%SchoolReportYearKey]))
+		              ,
+		            Avg({<YearEnd={$(=$(v_Max_YearEnd))}, [Domain_Name]={"College & Career"}>}[Percent Earned in Domain])
+		        ) + 0.0001					
+				, '#0.#%');
+			
+			let vLab_Avg_PercScore_CollegeCareerToMetric_Current = 
+				IF($(vExpr_MultipleMetricsSelected),
+		        	$(vText_AverageOrSingle) & 'Percent Earned in College & Career Domain ('& $(v_Max_Year) &')'
+		              ,
+		            $(vText_AverageOrSingle) & 'Percent Earned in College & Career Domain ('& $(v_Max_Year) &')'
+		        );
+
+		/// Color:
+			let vCol_Avg_PercScore_CollegeCareerToMetric_Current = 
+				IF($(vMM_Avg_PercScore_CollegeCareerToMetric_Current) < 0.25, rgb(192,80,77),
+					IF($(vMM_Avg_PercScore_CollegeCareerToMetric_Current) < 0.5, rgb(247,150,70),
+					IF($(vMM_Avg_PercScore_CollegeCareerToMetric_Current)  < 0.75, rgb(0,176,80),
+					IF($(vMM_Avg_PercScore_CollegeCareerToMetric_Current) >= 0.75, rgb(0,112,192)))));
+
+///// Educator Effectiveness Domain Sheet
+	//// Line Graph (top-left) - shows last 3 years of performance in the College & Career domain, drill to metrics
+		/// Title
+			let vTitle_Avg_PercScore_EducatorEffectiveness_3Year_Current = 'Each Educator Effectiveness Percent Earned for Previous 3 Years';
+
+		/// SubTitle
+			let vSubTitle_Avg_PercScore_EducatorEffectiveness_3Year_Current = '';
+
+		/// Measure 1
+			// The average percent of possible points earned for all available "College & Career" metrics in the previous 3 years. Without selections this defaults to the domain level. If a single domain is selected this will display individual metrics.
+			let vMM_Avg_PercScore_EducatorEffectiveness_3Year_Current = Num(
+				Avg( {<[Domain_Name] = {"Educator Effectiveness"}, YearEnd={">=$(=$(v_LastLast_YearEnd))"}>}[Percent Earned for Metric])
+				 + 0.0001, '#0%');
+
+			let vLab_Avg_PercScore_EducatorEffectiveness_3Year_Current = 'Educator Effectiveness: ' & $(vText_AverageOrSingle) & 'Percent Earned';	
+			
+		/// Color
+			let vCol_Avg_PercScore_EducatorEffectiveness_3Year_Current = 
+				IF($(vMM_Avg_PercScore_EducatorEffectiveness_3Year_Current) < 0.25, rgb(192,80,77),
+				IF($(vMM_Avg_PercScore_EducatorEffectiveness_3Year_Current) < 0.5, rgb(247,150,70),
+				IF($(vMM_Avg_PercScore_EducatorEffectiveness_3Year_Current)  < 0.75, rgb(0,176,80),
+				IF($(vMM_Avg_PercScore_EducatorEffectiveness_3Year_Current) >= 0.75, rgb(0,112,192)))));
+	
