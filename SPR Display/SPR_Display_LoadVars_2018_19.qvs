@@ -1179,25 +1179,34 @@
 				' reports are excluded from the diagram because of missing values in one of two years.'; 
 
 		/// Variables for selecting the appropriate year
-			let v_Sankey_Current = If($(v_Max_YearEnd) = 2018, 'Tier (2017-2018)',
+			let v_Sankey_Current = If($(v_Max_YearEnd) = 2019, 'Tier (2018-2019)',
+					If($(v_Max_YearEnd) = 2018, 'Tier (2017-2018)',
     			If($(v_Max_YearEnd) = 2017, 'Tier (2016-2017)',
     			If($(v_Max_YearEnd) = 2016, 'Tier (2015-2016)',
     			If($(v_Max_YearEnd) = 2015, 'Tier (2014-2015)',
     			If($(v_Max_YearEnd) = 2014, 'Tier (2013-2014)',
                 If($(v_Max_YearEnd) = 2013, 'Tier (2012-2013)'
-    			))))));
+    			)))))));
 
-    		let v_Sankey_Previous = If($(v_Last_YearEnd) = 2017, 'Tier (2016-2017)',
+			let v_Sankey_Previous = If($(v_Last_YearEnd) = 2018, 'Tier (2017-2018)',
+    			If($(v_Last_YearEnd) = 2017, 'Tier (2016-2017)',
     			If($(v_Last_YearEnd) = 2016, 'Tier (2015-2016)',
     			If($(v_Last_YearEnd) = 2015, 'Tier (2014-2015)',
     			If($(v_Last_YearEnd) = 2014, 'Tier (2013-2014)',
                 If($(v_Last_YearEnd) = 2013, 'Tier (2012-2013)'
-    			)))));
+    			))))));
 
-			let v_Sankey_Previous2 = If($(v_LastLast_YearEnd) = 2016, 'Tier (2015-2016)',
+    		let v_Sankey_Previous2 = If($(v_LastLast_YearEnd) = 2017, 'Tier (2016-2017)',
+    			If($(v_LastLast_YearEnd) = 2016, 'Tier (2015-2016)',
     			If($(v_LastLast_YearEnd) = 2015, 'Tier (2014-2015)',
     			If($(v_LastLast_YearEnd) = 2014, 'Tier (2013-2014)',
                 If($(v_LastLast_YearEnd) = 2013, 'Tier (2012-2013)'
+    			)))));
+
+			let v_Sankey_Previous3 = If($(v_LastLastLast_YearEnd) = 2016, 'Tier (2015-2016)',
+    			If($(v_LastLastLast_YearEnd) = 2015, 'Tier (2014-2015)',
+    			If($(v_LastLastLast_YearEnd) = 2014, 'Tier (2013-2014)',
+                If($(v_LastLastLast_YearEnd) = 2013, 'Tier (2012-2013)'
     			))));    		
   		
 
@@ -1884,7 +1893,7 @@
 		
 		
 		/// Color
-			let vCol_YearEnd = If(YearEnd = 2018, '#398635', If(YearEnd = 2017, '#737373', If(YearEnd = 2016, '#BDBDBD', '#F0F0F0')));
+			let vCol_YearEnd = If(YearEnd = 2019, '#398635', If(YearEnd = 2018, '#737373', If(YearEnd = 2017, '#BDBDBD', '#F0F0F0')));
 
 
 	//// Bar Chart (right)
@@ -2080,7 +2089,7 @@
 		
 		
 		/// Color
-			let vCol_YearEnd = If(YearEnd = 2018, '#398635', If(YearEnd = 2017, '#737373', If(YearEnd = 2016, '#BDBDBD', '#F0F0F0')));
+			let vCol_YearEnd = If(YearEnd = 2019, '#398635', If(YearEnd = 2018, '#737373', If(YearEnd = 2017, '#BDBDBD', '#F0F0F0')));
 
 
 	//// Bar Chart (right)
@@ -2262,7 +2271,7 @@
 		
 		
 		/// Color
-			let vCol_YearEnd = If(YearEnd = 2018, '#398635', If(YearEnd = 2017, '#737373', If(YearEnd = 2016, '#BDBDBD', '#F0F0F0')));
+			let vCol_YearEnd = If(YearEnd = 2019, '#398635', If(YearEnd = 2018, '#737373', If(YearEnd = 2017, '#BDBDBD', '#F0F0F0')));
 
 
 	//// Bar Chart (right)
@@ -2443,7 +2452,7 @@
 		
 		
 		/// Color
-			let vCol_YearEnd = If(YearEnd = 2018, '#398635', If(YearEnd = 2017, '#737373', If(YearEnd = 2016, '#BDBDBD', '#F0F0F0')));
+			let vCol_YearEnd = If(YearEnd = 2019, '#398635', If(YearEnd = 2018, '#737373', If(YearEnd = 2017, '#BDBDBD', '#F0F0F0')));
 
 
 	//// Bar Chart (right)
@@ -2621,7 +2630,7 @@
 		
 		
 		/// Color
-			let vCol_YearEnd = If(YearEnd = 2018, '#398635', If(YearEnd = 2017, '#737373', If(YearEnd = 2016, '#BDBDBD', '#F0F0F0')));
+			let vCol_YearEnd = If(YearEnd = 2019, '#398635', If(YearEnd = 2018, '#737373', If(YearEnd = 2017, '#BDBDBD', '#F0F0F0')));
 
 
 	//// Bar Chart (right)

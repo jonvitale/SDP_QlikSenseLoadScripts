@@ -1,0 +1,108 @@
+/**
+*	Loading Variables: Climate Matters
+*	Jonathan Vitale
+*	Changes:
+*
+*	Version 0.3:
+*		- 
+*
+*	Reminders:
+*	- All the let statements will be strings, if you want an actual single quote in the string, use '&chr(39)&'
+*	- Alternatively, you can use double-quotes in set analyses, but these enable search and wildcards, so be careful.
+*   - A '&chr(36)&'(somevar) tells click to substitute whatever is somevar immediately. If you want to prevent this expansion replace '&chr(36)&' with '&chr(36)&'
+*   - Similarly '&chr(36)&'(='&chr(36)&'(somevar)) tells Qlik to evaluate the somevar expression, if you do not want this done in the load script replace both '&chr(36)&' with chr(36)
+**/
+
+
+
+/// The following variables should be re-evaluated on every click - therefore make sure they are preceded by an equal sign
+
+Let vCond_Selected_School = =GetSelectedCount([School Name]) >=1 OR GetPossibleCount([School Name]) = 1;
+Let vCond_Selected_Network = =GetSelectedCount([Current Network]) >= 1 or GetSelectedCount([Within Year Network]) >= 1
+    		OR GetPossibleCount([Current Network]) = 1 OR GetPossibleCount([Within Year Network])=1);
+
+Let vSetOption_AllFields_no_MonthMonthYear = ='['& Concat({1<$Field-={'Month-Month Year'}>}distinct $Field, ']=,[') & ']=';
+Let vSetOption_AllFields_no_MonthMonthYear_SCHOOLYEAR = ='['& Concat({1<$Field-={'Month-Month Year','SCHOOL_YEAR'}>}distinct $Field, ']=,[') & ']=';
+
+// The AggLevel can be either District-Network-School (DNS), 'Network-School' (NS), or 'School' (S)
+Let vAggLevel_District = =If($(vCond_Selected_School),	School, If($(vCond_Selected_Network), Network, District));
+Let vAggLevel_Network = =If($(vCond_Selected_School),	School, Network);
+Let vAggLevel_School = School;
+
+Let vAggLevel2_District = =If($(vCond_Selected_School),	School, If($(vCond_Selected_Network), NTWK, District));
+Let vAggLevel2_Network = =If($(vCond_Selected_School),	School, NTWK);
+Let vAggLevel2_School = School;
+
+
+Let vMonthYear_YTD = =Left((Maxstring({<$(vSetOption_AllFields_no_MonthMonthYear)>}[Month Year])),3)
+	&' '&
+	If(Match(Left((Maxstring({<$(vSetOption_AllFields_no_MonthMonthYear)>}[Month Year])),3),'Sep','Oct','Nov','Dec'),
+		(Left(MaxString({<$(vSetOption_AllFields_no_MonthMonthYear_SCHOOLYEAR)>} SCHOOL_YEAR),4))
+		,
+		(Right(MaxString({<$(vSetOption_AllFields_no_MonthMonthYear_SCHOOLYEAR)>} SCHOOL_YEAR),4))
+	);
+
+Let vMonthYear_LYTD = =Left((Maxstring({<$(vSetOption_AllFields_no_MonthMonthYear)>}[Month Year])),3)
+	&' '&
+	If(Match(Left((Maxstring({<$(vSetOption_AllFields_no_MonthMonthYear)>}[Month Year])),3),'Sep','Oct','Nov','Dec'),
+		(Left(MaxString({<$(vSetOption_AllFields_no_MonthMonthYear_SCHOOLYEAR)>} SCHOOL_YEAR),4)-1)
+		,
+		(Right(MaxString({<$(vSetOption_AllFields_no_MonthMonthYear_SCHOOLYEAR)>} SCHOOL_YEAR),4)-1)
+	);
+
+Let vMonthYear_EOY = =Left((Maxstring({<$(vSetOption_AllFields_no_MonthMonthYear_SCHOOLYEAR)>}[Month Year])),3)
+	&' '&
+	(Right(Maxstring({<$(vSetOption_AllFields_no_MonthMonthYear_SCHOOLYEAR)>}[Month Year]),4));
+
+/////////////////////////////////////////////////////////////////
+///					GENERAL
+/////////////////////////////////////////////////////////////////
+
+	//// Total Number of Students
+	/// Two parameters: HighestAggLevel - Either District, Network, or School
+	/// MonthYear - either, LYTD, YTD or EOY
+	Let vCount_Students_HighestAggLevel_MonthYear = Sum({<[$(vAggLevel_$1)CountsFlag] = {1}, [$(vAggLevel_$1)CalculationRecordFlag] = {1}, [Month Year] = {'$(vMonthYear_$2)'}>} [Total Student Counter]);
+	Let vCount1_Students_HighestAggLevel_MonthYear = Sum({1<[$(vAggLevel_$1)CountsFlag] = {1}, [$(vAggLevel_$1)CalculationRecordFlag] = {1}, [Month Year] = {'$(vMonthYear_$2)'}>} [Total Student Counter]);
+		
+
+
+/////////////////////////////////////////////////////////////////
+///					ATTENDANCE
+/////////////////////////////////////////////////////////////////
+
+	///	Students with 95%+ Attendance				
+	Let vCount_Students_95Att_HighestAggLevel_YTD = Sum({<[$(vAggLevel_$1)CountsFlag] = {1}, [Month Year] = {'$(vMonthYear_$2)'}>} [$(vAggLevel2_$1)_NinetyFive%IDCounter]);
+	Let vCount1_Students_95Att_HighestAggLevel_YTD = Sum({1<[$(vAggLevel_$1)CountsFlag] = {1}, [Month Year] = {'$(vMonthYear_$2)'}>} [$(vAggLevel2_$1)_NinetyFive%IDCounter]);
+	
+	/// Students in a different attendance bucket (we don't use a counter for this one)
+	/// First parameter is RunningAttendanceBucket, 2nd and 3rd are agglevel and monthyear, respectively
+	/// Values for AttBucket: <80%, 80~85%, 85~90%, 90~95%
+	Let vCount_Students_AttBucket_HighestAggLevel_MonthYear = Sum({<[$(vAggLevel_$1)_RunningAttendanceBucket] *= {$1}, [$(vAggLevel_$2)CountsFlag] = {1}, [$(vAggLevel_$2)CalculationRecordFlag] = {1}, [Month Year] = {'$(vMonthYear_$3)'}>} [Total Student Counter]);
+	Let vCount1_Students_AttBucket_HighestAggLevel_MonthYear = Sum({1<[$(vAggLevel_$1)_RunningAttendanceBucket] *= {$1}, [$(vAggLevel_$2)CountsFlag] = {1}, [$(vAggLevel_$2)CalculationRecordFlag] = {1}, [Month Year] = {'$(vMonthYear_$3)'}>} [Total Student Counter]);
+	
+	/// Chronically Truant
+	Let vCount_Students_ChronicallyTruant_HighestAggLevel_YTD = Sum({<[$(vAggLevel_$1)CountsFlag] = {1}, [$(vAggLevel_$2)CalculationRecordFlag] = {1}, [Month Year] = {'$(vMonthYear_$2)'}>} [$(vAggLevel2_$1)_ChronicallyTruantCounter]);
+	Let vCount1_Students_ChronicallyTruant_HighestAggLevel_YTD = Sum({1<[$(vAggLevel_$1)CountsFlag] = {1}, [$(vAggLevel_$2)CalculationRecordFlag] = {1}, [Month Year] = {'$(vMonthYear_$2)'}>} [$(vAggLevel2_$1)_ChronicallyTruantCounter]);
+		
+
+/////////////////////////////////////////////////////////////////
+///					SUSPENSIONS
+/////////////////////////////////////////////////////////////////
+
+	/// 1 or more suspensions
+	/// New Parameter: Suspension Type: OS, IS
+	Let vCount_Students_1orMoreSuspensionType_HighestAggLevel_YTD = Sum({<[$(vAggLevel_$2)CountsFlag] = {1}, [Month Year] = {'$(vMonthYear_$3)'}>} [$(vAggLevel2_$2)_NonZero$1SuspCounter]);
+	Let vCount1_Students_1orMoreSuspensionType_HighestAggLevel_YTD = Sum({1<[$(vAggLevel_$2)CountsFlag] = {1}, [Month Year] = {'$(vMonthYear_$3)'}>} [$(vAggLevel2_$2)_NonZero$1SuspCounter]);
+	
+	/// 2 or more suspensions
+	Let vCount_Students_MultipleSuspensionType_HighestAggLevel_YTD = Sum({<[$(vAggLevel_$2)CountsFlag] = {1}, [Month Year] = {'$(vMonthYear_$3)'}>} [$(vAggLevel2_$2)_Multi$1SuspCounter]);
+	Let vCount1_Students_MultipleSuspensionType_HighestAggLevel_YTD = Sum({1<[$(vAggLevel_$2)CountsFlag] = {1}, [Month Year] = {'$(vMonthYear_$3)'}>} [$(vAggLevel2_$2)_Multi$1SuspCounter]);
+	
+	/// zero suspensions
+	Let vCount_Students_ZeroSuspensionType_HighestAggLevel_YTD = $(vCount_Students_HighestAggLevel_MonthYear($2, $3)) - $(vCount_Students_1orMoreSuspensionType_HighestAggLevel_YTD($1, $2, $3));
+	Let vCount1_Students_ZeroSuspensionType_HighestAggLevel_YTD = $(vCount1_Students_HighestAggLevel_MonthYear($2, $3)) - $(vCount1_Students_1orMoreSuspensionType_HighestAggLevel_YTD($1, $2, $3));
+
+	// Arbitrary number of suspensions, new parameter: N, can be a single number 0 - 4 or '>=4'
+	Let vCount_Students_NSuspensionType_HighestAggLevel_YTD = Sum({<[$(vAggLevel2_$3)_Total$2Suspensions]={$1}, [$(vAggLevel_$3)CountsFlag] = {1}, [$(vAggLevel_$3)CalculationRecordFlag] = {1}, [Month Year] = {'$(vMonthYear_$4)'}>} [Total Student Counter]);
+	Let vCount1_Students_NSuspensionType_HighestAggLevel_YTD = Sum({1<[$(vAggLevel2_$3)_Total$2Suspensions]={$1}, [$(vAggLevel_$3)CountsFlag] = {1}, [$(vAggLevel_$3)CalculationRecordFlag] = {1}, [Month Year] = {'$(vMonthYear_$4)'}>} [Total Student Counter]);
+	

@@ -1,0 +1,165 @@
+/**
+*	Loading Variables: School Profiles 
+*	Jonathan Vitale
+*	Changes:
+*
+*	Overview:
+*	Data for the school profiles comes from several different locations. Because
+*	similar metrics may come from different sources variables are named as v*Source*_metric...
+*	Here are potential sources:
+*	ENR: October 1 Enrollment. Used for current details about school enrollment
+*	SPR: SPR files
+*	DWS: District-wide surveys (these variables are similar/same as used in the DWS app)
+*	APR: Alternative education progress report
+*	
+*	Reminder:
+*	THIS FILE IS THE RAW QLIK CODE. IT **MUST** BE COMPILED INTO STRINGS TO BE LOADED INTO A SCRIPT.
+*   Make sure to save the formatted code in a separate file and keep this file raw. 
+*	For SUBLIME TEXT use the RegReplace package with custom rules and commands
+*   Note: I am using the RegEx instead of the default py regualar expression engine (v.1). Set this in package settings.
+*	Also, instead of using single quotes for final strings, use ` to avoid unnecessary replacements
+**/
+
+
+///// Universal Variables
+	
+	
+
+///// ENR - October 1 calculations:
+
+	//// These variables need an equal sign in front, so add after conversion
+		let vENR_SchoolYear_Current = (Num(Left(Maxstring([School Year]),4)))&'-'&(Num(Right(Maxstring([School Year]),4)));
+		let vENR_SchoolYear_Previous = (Num(Left(Maxstring({<[School Year]-={"$(vENR_SchoolYear_Current)"}>}[School Year]),4)))&'-'&(Num(Right(Maxstring({<[School Year]-={"$(vENR_SchoolYear_Current)"}>}[School Year]),4)));
+		let vENR_SchoolYear_Previous2 = (Num(Left(Maxstring({<[School Year]-={"$(vENR_SchoolYear_Current)","$(vENR_SchoolYear_Previous)"}>}[School Year]),4)))&'-'&(Num(Right(Maxstring({<[School Year]-={"$(vENR_SchoolYear_Current)","$(vENR_SchoolYear_Previous)"}>}[School Year]),4)));
+
+	//// Enrollment counts
+		/// Overall
+			let vENR_Count_Students_3Year = Num(Count(Distinct {<[School Year]={'$(vENR_Count_Students_Current)','$(vENR_Count_Students_Previous)','$(vENR_Count_Students_Previous2)'}, SpedInd -= {'Y'}>} [Student ID]), '#,##0');
+			let vENR_Count_Students_Current = Num(Count(Distinct {<[School Year]={'$(vENR_Count_Students_Current)'}, SpedInd -= {'Y'}>} [Student ID]), '#,##0');
+			let vENR_Count_Students_Previous = Num(Count(Distinct {<[School Year]={'$(vENR_Count_Students_Previous)'}, SpedInd -= {'Y'}>} [Student ID]), '#,##0');
+			let vENR_Count_Students_Previous2 = Num(Count(Distinct {<[School Year]={'$(vENR_Count_Students_Previous2)'}, SpedInd -= {'Y'}>} [Student ID]), '#,##0');
+
+			let vENR_CountTotal_Students_Current = Num(Count(Total Distinct {<[School Year]={'$(vENR_Count_Students_Current)'}, SpedInd -= {'Y'}>} [Student ID]), '#,##0');
+			let vENR_CountTotal_Students_Previous = Num(Count(Total Distinct {<[School Year]={'$(vENR_Count_Students_Previous)'}, SpedInd -= {'Y'}>} [Student ID]), '#,##0');
+			let vENR_CountTotal_Students_Previous2 = Num(Count(Total Distinct {<[School Year]={'$(vENR_Count_Students_Previous2)'}, SpedInd -= {'Y'}>} [Student ID]), '#,##0');
+
+		/// Demos
+			let vENR_Count_Students_Male_Current = Num(Count(Distinct {<Gender = {'Male'}, [School Year]={'$(vENR_Count_Students_Current)'}, SpedInd -= {'Y'}>} [Student ID]), '#,##0');
+			let vENR_Count_Students_Male_Previous = Num(Count(Distinct {<Gender = {'Male'}, [School Year]={'$(vENR_Count_Students_Previous)'}, SpedInd -= {'Y'}>} [Student ID]), '#,##0');
+			
+			let vENR_Count_Students_Female_Current = Num(Count(Distinct {<Gender = {'Female'}, [School Year]={'$(vENR_Count_Students_Current)'}, SpedInd -= {'Y'}>} [Student ID]), '#,##0');
+			let vENR_Count_Students_Female_Previous = Num(Count(Distinct {<Gender = {'Female'}, [School Year]={'$(vENR_Count_Students_Previous)'}, SpedInd -= {'Y'}>} [Student ID]), '#,##0');
+			
+			let vENR_Count_Students_EconDis_Current = Num(Count(distinct {<[Free From Tape] = {'FT'}, Sector -= {'Charter', 'Pre-Kindergarten', 'Special Education'}, [School Year]={'$(vENR_Count_Students_Current)'}, SpedInd -= {'Y'}>} [Student ID]), '#,##0');
+			let vENR_Count_Students_EconDis_Previous = Num(Count(distinct {<[Free From Tape] = {'FT'}, Sector -= {'Charter', 'Pre-Kindergarten', 'Special Education'}, [School Year]={'$(vENR_Count_Students_Previous)'}, SpedInd -= {'Y'}>} [Student ID]), '#,##0');
+			
+			let vENR_Count_Students_ELL_Current = Num(Count(distinct {<[English Language Learner] = {'Y'}, Sector -= {'Charter', 'Pre-Kindergarten', 'Special Education'}, [School Year]={'$(vENR_Count_Students_Current)'}, SpedInd -= {'Y'}>} [Student ID]), '#,##0');
+			let vENR_Count_Students_ELL_Previous = Num(Count(distinct {<[English Language Learner] = {'Y'}, Sector -= {'Charter', 'Pre-Kindergarten', 'Special Education'}, [School Year]={'$(vENR_Count_Students_Previous)'}, SpedInd -= {'Y'}>} [Student ID]), '#,##0');
+			
+			let vENR_Count_Students_SPED_Current = Num(Count(distinct {<[Special Education] = {'Y'}, Sector -= {'Charter', 'Pre-Kindergarten', 'Special Education'}, [School Year]={'$(vENR_Count_Students_Current)'}, SpedInd -= {'Y'}>} [Student ID]), '#,##0');
+			let vENR_Count_Students_SPED_Previous = Num(Count(distinct {<[Special Education] = {'Y'}, Sector -= {'Charter', 'Pre-Kindergarten', 'Special Education'}, [School Year]={'$(vENR_Count_Students_Previous)'}, SpedInd -= {'Y'}>} [Student ID]), '#,##0');
+		
+	//// Enrollment Changes
+			/// Overall
+			let vENR_YOYChange_Students_Current = Num(
+					Count(Distinct {<[School Year]={'$(vENR_Count_Students_Current)'}, SpedInd -= {'Y'}>} [Student ID]) -
+					Count(Distinct {<[School Year]={'$(vENR_Count_Students_Previous)'}, SpedInd -= {'Y'}>} [Student ID])
+				, '#,##0');
+		
+
+///// School Progress Report Metrics - this includes both the overall-domain-metric scores and the metric scores used for pages such as Reading Levels
+
+	//// These variables need an equal sign in front, so add after conversion
+		let vMET_SchoolYear_Current = (Num(Left(Maxstring([school_year]),4)))&'-'&(Num(Right(Maxstring([school_year]),4)));
+		let vMET_SchoolYear_Previous = (Num(Left(Maxstring({<[school_year]-={"$(vMET_SchoolYear_Current)"}>}[school_year]),4)))&'-'&(Num(Right(Maxstring({<[school_year]-={"$(vMET_SchoolYear_Current)"}>}[school_year]),4)));
+		let vMET_SchoolYear_Previous2 = (Num(Left(Maxstring({<[school_year]-={"$(vMET_SchoolYear_Current)","$(vMET_SchoolYear_Previous)"}>}[school_year]),4)))&'-'&(Num(Right(Maxstring({<[school_year]-={"$(vMET_SchoolYear_Current)","$(vMET_SchoolYear_Previous)"}>}[school_year]),4)));
+
+		let vMET_AggLevel_Selected =  If(GetSelectedCount([Proper School Name]) = 1, 'srcschoolid',
+			If(GetSelectedCount([Proper Network Name]) = 1, 'network',
+				If(GetSelectedCount([Ordered City Council District]) = 1, 'council', 
+					If(GetSelectedCount([Sector]) > 0 and GetSelectedCount("School Level") = 0, 'sector',
+						If(GetSelectedCount([Sector]) > 0 and GetSelectedCount("School Level") > 0, 'sector_schoollevel',
+							If(GetSelectedCount("School Level") > 0, 'schoollevel',
+							 'city'))))));
+
+	//// Other high level variables
+		let vMET_NumFormat_Perc_KPI = #0%;
+		let vMET_NumFormat_Perc_Bar = #0.#%;
+
+	//// These variables will sum any given metric using metric name and metric values as the parameters
+		let vMET_Sum_MetricValue_Current = Sum({<agg_level={'$(vMET_AggLevel_Selected)'}, school_year={'$(vMET_SchoolYear_Current)'}, metric_name={$1}, metric_value={$2}>}total_students);
+		let vMET_SumTotal_MetricValue_Current = Sum(Total {<agg_level={'$(vMET_AggLevel_Selected)'}, school_year={'$(vMET_SchoolYear_Current)'}, metric_name={$1}, metric_value={$2}>}total_students);
+		let vMET_SumTotalQualifer_MetricValue_Current = Sum(Total<$3> {<agg_level={'$(vMET_AggLevel_Selected)'}, school_year={'$(vMET_SchoolYear_Current)'}, metric_name={$1}, metric_value={$2}>}total_students);
+		let vMET_Sum_MetricValue_District_Current = Sum({<agg_level={'sector'}, agg_value={'District'}, school_year={'$(vMET_SchoolYear_Current)'}, metric_name={$1}, metric_value={$2}>}total_students);
+		let vMET_Sum_MetricValue_City_Current = Sum({<agg_level={'city'}, agg_value={1}, school_year={'$(vMET_SchoolYear_Current)'}, metric_name={$1}, metric_value={$2}>}total_students);
+		
+		let vMET_Sum_MetricValue_Previous = Sum({<agg_level={'$(vMET_AggLevel_Selected)'}, school_year={'$(vMET_SchoolYear_Previous)'}, metric_name={$1}, metric_value={$2}>}total_students);
+		let vMET_SumTotal_MetricValue_Previous = Sum(Total {<agg_level={'$(vMET_AggLevel_Selected)'}, school_year={'$(vMET_SchoolYear_Previous)'}, metric_name={$1}, metric_value={$2}>}total_students);
+		let vMET_SumTotalQualifer_MetricValue_Previous = Sum(Total<$3> {<agg_level={'$(vMET_AggLevel_Selected)'}, school_year={'$(vMET_SchoolYear_Previous)'}, metric_name={$1}, metric_value={$2}>}total_students);
+		let vMET_Sum_MetricValue_District_Previous = Sum({<agg_level={'sector'}, agg_value={'District'}, school_year={'$(vMET_SchoolYear_Previous)'}, metric_name={$1}, metric_value={$2}>}total_students);
+		let vMET_Sum_MetricValue_City_Previous = Sum({<agg_level={'city'}, agg_value={1}, school_year={'$(vMET_SchoolYear_Previous)'}, metric_name={$1}, metric_value={$2}>}total_students);
+		
+
+		let vMET_Sum_MetricValue = Sum({<agg_level={'$(vMET_AggLevel_Selected)'}, metric_name={$1}, metric_value={$2}>}total_students);
+		let vMET_SumTotal_MetricValue = Sum(Total {<agg_level={'$(vMET_AggLevel_Selected)'}, metric_name={$1}, metric_value={$2}>}total_students);
+		let vMET_SumTotalQualifier_MetricValue = Sum(Total<$3> {<agg_level={'$(vMET_AggLevel_Selected)'}, metric_name={$1}, metric_value={$2}>}total_students);
+		let vMET_Sum_MetricValue_District = Sum({<agg_level={'sector'}, agg_value={'District'}, metric_name={$1}, metric_value={$2}>}total_students);
+		let vMET_Sum_MetricValue_City = Sum({<agg_level={'city'}, agg_value={1}, metric_name={$1}, metric_value={$2}>}total_students);
+		
+	//// These variables will sum any given metric using metric name as the parameter (not a specific value, use for a total-denominator)
+		let vMET_Sum_Metric_Current = Sum({<agg_level={'$(vMET_AggLevel_Selected)'}, school_year={'$(vMET_SchoolYear_Current)'}, metric_name={$1}>}total_students);
+		let vMET_SumTotal_Metric_Current = Sum(Total {<agg_level={'$(vMET_AggLevel_Selected)'}, school_year={'$(vMET_SchoolYear_Current)'}, metric_name={$1}>}total_students);
+		let vMET_SumTotalQualifier_Metric_Current = Sum(Total<$2> {<agg_level={'$(vMET_AggLevel_Selected)'}, school_year={'$(vMET_SchoolYear_Current)'}, metric_name={$1}>}total_students);
+		let vMET_Sum_Metric_District_Current = Sum({<agg_level={'sector'}, agg_value={'District'}, school_year={'$(vMET_SchoolYear_Current)'}, metric_name={$1}>}total_students);
+		let vMET_Sum_Metric_City_Current = Sum({<agg_level={'city'}, agg_value={1}, school_year={'$(vMET_SchoolYear_Current)'}, metric_name={$1}>}total_students);
+		
+		let vMET_Sum_Metric_Previous = Sum({<agg_level={'$(vMET_AggLevel_Selected)'}, school_year={'$(vMET_SchoolYear_Previous)'}, metric_name={$1}>}total_students);
+		let vMET_SumTotal_Metric_Previous = Sum(Total {<agg_level={'$(vMET_AggLevel_Selected)'}, school_year={'$(vMET_SchoolYear_Previous)'}, metric_name={$1}>}total_students);
+		let vMET_SumTotalQualifier_Metric_Previous = Sum(Total<$2> {<agg_level={'$(vMET_AggLevel_Selected)'}, school_year={'$(vMET_SchoolYear_Previous)'}, metric_name={$1}>}total_students);
+		let vMET_Sum_Metric_District_Previous = Sum({<agg_level={'sector'}, agg_value={'District'}, school_year={'$(vMET_SchoolYear_Previous)'}, metric_name={$1}>}total_students);
+		let vMET_Sum_Metric_City_Previous = Sum({<agg_level={'city'}, agg_value={1}, school_year={'$(vMET_SchoolYear_Previous)'}, metric_name={$1}>}total_students);
+		
+		let vMET_Sum_Metric = Sum({<agg_level={'$(vMET_AggLevel_Selected)'}, metric_name={$1}>}total_students);
+		let vMET_SumTotal_Metric = Sum(Total {<agg_level={'$(vMET_AggLevel_Selected)'}, metric_name={$1}>}total_students);
+		let vMET_SumTotalQualifier_Metric = Sum(Total<$2> {<agg_level={'$(vMET_AggLevel_Selected)'}, metric_name={$1}>}total_students);
+		let vMET_Sum_Metric_District = Sum({<agg_level={'sector'}, agg_value={'District'}, metric_name={$1}>}total_students);
+		let vMET_Sum_Metric_City = Sum({<agg_level={'city'}, agg_value={1}, metric_name={$1}>}total_students);
+		
+//// These variables will sum any given metric using metric name and metric values as the parameters
+		let vMET_Sum_MetricValue_Grade_Current = Sum({<agg_level={'$(vMET_AggLevel_Selected)'}, school_year={'$(vMET_SchoolYear_Current)'}, metric_name={$1}, metric_value={$2}, gradelevel={$3}>}total_students);
+		let vMET_SumTotal_MetricValue_Grade_Current = Sum(Total {<agg_level={'$(vMET_AggLevel_Selected)'}, school_year={'$(vMET_SchoolYear_Current)'}, metric_name={$1}, metric_value={$2}, gradelevel={$3}>}total_students);
+		let vMET_SumTotalQualifer_MetricValue_Grade_Current = Sum(Total<$3> {<agg_level={'$(vMET_AggLevel_Selected)'}, school_year={'$(vMET_SchoolYear_Current)'}, metric_name={$1}, metric_value={$2}, gradelevel={$4}>}total_students);
+		let vMET_Sum_MetricValue_Grade_District_Current = Sum({<agg_level={'sector'}, agg_value={'District'}, school_year={'$(vMET_SchoolYear_Current)'}, metric_name={$1}, metric_value={$2}, gradelevel={$3}>}total_students);
+		let vMET_Sum_MetricValue_Grade_City_Current = Sum({<agg_level={'city'}, agg_value={1}, school_year={'$(vMET_SchoolYear_Current)'}, metric_name={$1}, metric_value={$2}, gradelevel={$3}>}total_students);
+		
+		let vMET_Sum_MetricValue_Grade_Previous = Sum({<agg_level={'$(vMET_AggLevel_Selected)'}, school_year={'$(vMET_SchoolYear_Previous)'}, metric_name={$1}, metric_value={$2}, gradelevel={$3}>}total_students);
+		let vMET_SumTotal_MetricValue_Grade_Previous = Sum(Total {<agg_level={'$(vMET_AggLevel_Selected)'}, school_year={'$(vMET_SchoolYear_Previous)'}, metric_name={$1}, metric_value={$2}, gradelevel={$3}>}total_students);
+		let vMET_SumTotalQualifer_MetricValue_Grade_Previous = Sum(Total<$3> {<agg_level={'$(vMET_AggLevel_Selected)'}, school_year={'$(vMET_SchoolYear_Previous)'}, metric_name={$1}, metric_value={$2}, gradelevel={$4}>}total_students);
+		let vMET_Sum_MetricValue_Grade_District_Previous = Sum({<agg_level={'sector'}, agg_value={'District'}, school_year={'$(vMET_SchoolYear_Previous)'}, metric_name={$1}, metric_value={$2}, gradelevel={$3}>}total_students);
+		let vMET_Sum_MetricValue_Grade_City_Previous = Sum({<agg_level={'city'}, agg_value={1}, school_year={'$(vMET_SchoolYear_Previous)'}, metric_name={$1}, metric_value={$2}, gradelevel={$3}>}total_students);
+
+		let vMET_Sum_MetricValue_Grade = Sum({<agg_level={'$(vMET_AggLevel_Selected)'}, metric_name={$1}, metric_value={$2}, gradelevel={$3}>}total_students);
+		let vMET_SumTotal_MetricValue_Grade = Sum(Total {<agg_level={'$(vMET_AggLevel_Selected)'}, metric_name={$1}, metric_value={$2}, gradelevel={$3}>}total_students);
+		let vMET_SumTotalQualifier_MetricValue_Grade = Sum(Total<$3> {<agg_level={'$(vMET_AggLevel_Selected)'}, metric_name={$1}, metric_value={$2}, gradelevel={$4}>}total_students);
+		let vMET_Sum_MetricValue_Grade_District = Sum({<agg_level={'sector'}, agg_value={'District'}, metric_name={$1}, metric_value={$2}, gradelevel={$3}>}total_students);
+		let vMET_Sum_MetricValue_Grade_City = Sum({<agg_level={'city'}, agg_value={1}, metric_name={$1}, metric_value={$2}, gradelevel={$3}>}total_students);
+		
+	//// These variables will sum any given metric using metric name as the parameter (not a specific value, use for a total-denominator)
+		let vMET_Sum_Metric_Grade_Current = Sum({<agg_level={'$(vMET_AggLevel_Selected)'}, school_year={'$(vMET_SchoolYear_Current)'}, metric_name={$1}, gradelevel={$2}>}total_students);
+		let vMET_SumTotal_Metric_Grade_Current = Sum(Total {<agg_level={'$(vMET_AggLevel_Selected)'}, school_year={'$(vMET_SchoolYear_Current)'}, metric_name={$1}, gradelevel={$2}>}total_students);
+		let vMET_SumTotalQualifier_Metric_Grade_Current = Sum(Total<$2> {<agg_level={'$(vMET_AggLevel_Selected)'}, school_year={'$(vMET_SchoolYear_Current)'}, metric_name={$1}, gradelevel={$3}>}total_students);
+		let vMET_Sum_Metric_Grade_District_Current = Sum({<agg_level={'sector'}, agg_value={'District'}, school_year={'$(vMET_SchoolYear_Current)'}, metric_name={$1}, gradelevel={$2}>}total_students);
+		let vMET_Sum_Metric_Grade_City_Current = Sum({<agg_level={'city'}, agg_value={1}, school_year={'$(vMET_SchoolYear_Current)'}, metric_name={$1}, gradelevel={$2}>}total_students);
+		
+		let vMET_Sum_Metric_Grade_Previous = Sum({<agg_level={'$(vMET_AggLevel_Selected)'}, school_year={'$(vMET_SchoolYear_Previous)'}, metric_name={$1}, gradelevel={$2}>}total_students);
+		let vMET_SumTotal_Metric_Grade_Previous = Sum(Total {<agg_level={'$(vMET_AggLevel_Selected)'}, school_year={'$(vMET_SchoolYear_Previous)'}, metric_name={$1}, gradelevel={$2}>}total_students);
+		let vMET_SumTotalQualifier_Metric_Grade_Previous = Sum(Total<$2> {<agg_level={'$(vMET_AggLevel_Selected)'}, school_year={'$(vMET_SchoolYear_Previous)'}, metric_name={$1}, gradelevel={$3}>}total_students);
+		let vMET_Sum_Metric_Grade_District_Previous = Sum({<agg_level={'sector'}, agg_value={'District'}, school_year={'$(vMET_SchoolYear_Previous)'}, metric_name={$1}, gradelevel={$2}>}total_students);
+		let vMET_Sum_Metric_Grade_City_Previous = Sum({<agg_level={'city'}, agg_value={1}, school_year={'$(vMET_SchoolYear_Previous)'}, metric_name={$1}, gradelevel={$2}>}total_students);
+		
+		let vMET_Sum_Metric_Grade = Sum({<agg_level={'$(vMET_AggLevel_Selected)'}, metric_name={$1}, gradelevel={$2}>}total_students);
+		let vMET_SumTotal_Metric_Grade = Sum(Total {<agg_level={'$(vMET_AggLevel_Selected)'}, metric_name={$1}, gradelevel={$2}>}total_students);
+		let vMET_SumTotalQualifier_Metric_Grade = Sum(Total<$2> {<agg_level={'$(vMET_AggLevel_Selected)'}, metric_name={$1}, gradelevel={$2}>}total_students);
+		let vMET_Sum_Metric_Grade_District = Sum({<agg_level={'sector'}, agg_value={'District'}, metric_name={$1}, gradelevel={$2}>}total_students);
+		let vMET_Sum_Metric_Grade_City = Sum({<agg_level={'city'}, agg_value={1}, metric_name={$1}, gradelevel={$2}>}total_students);
+		

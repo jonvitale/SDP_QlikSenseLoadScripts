@@ -1,0 +1,101 @@
+/**
+*	Loading Variables: School Support Census
+*	Jonathan Vitale
+*	Changes:
+*
+*	Version 0.2:
+*		- 
+*
+*	Reminders:
+*	- All the let statements will be strings, if you want an actual single quote in the string, use '
+*	- Alternatively, you can use double-quotes in set analyses, but these enable search and wildcards, so be careful.
+*   - A $(somevar) tells click to substitute whatever is somevar immediately. If you want to prevent this expansion replace $ with $
+*   - Similarly $(=$(somevar)) tells Qlik to evaluate the somevar expression, if you do not want this done in the load script replace both $ with chr(36)
+**/
+
+///// What is the latest year?
+  let vMaxYearEnd = Max(YearEnd);
+  let vLastYearEnd = (Max(YearEnd)-1);
+  let vMaxYear = (max(left(Year,4))) & '-' & (max(right(Year,4)));
+  let vLastYear = (max(left(Year,4))-1) & '-' & (max(right(Year,4))-1);
+ 
+ //// Metrics for School, Network, District
+
+ 	//// Completion:
+ 		let vmmCount_Responded_Current = Num(Sum({<YearEnd={$(=$(vMaxYearEnd))}>} Responded), '#,##0');
+ 		let vmmCount_Responded_Previous = Num(Sum({<YearEnd={$(=$(vLastYearEnd))}>} Responded), '#,##0');
+
+ 		let vmmCount_Schools_Current = Num(Count({<YearEnd={$(=$(vMaxYearEnd))}>} Responded), '#,##0');
+ 		let vmmCount_Schools_Previous = Num(Count({<YearEnd={$(=$(vLastYearEnd))}>} Responded), '#,##0');
+
+ 		let vmmRatio_Responded_Current = Num(Sum({<YearEnd={$(=$(vMaxYearEnd))}>} Responded) / $(vmmCount_Schools_Current), '#0.#%');
+ 		let vmmRatio_Responded_Previous = Num(Sum({<YearEnd={$(=$(vLastYearEnd))}>} Responded) / $(vmmCount_Schools_Previous), '#0.#%');
+ 		let vmmRatio_Responded_YOY = Num($(vmmRatio_Responded_Current) - $(vmmRatio_Responded_Previous), '#0.#%');
+		
+		let vmmRatio_RespondedNeeds_Current = Num(Sum({<YearEnd={$(=$(vMaxYearEnd))}>} RespondedNeeds) / $(vmmCount_Schools_Current), '#0.#%');
+ 		let vmmRatio_RespondedNeeds_Previous = Num(Sum({<YearEnd={$(=$(vLastYearEnd))}>} RespondedNeeds) / $(vmmCount_Schools_Previous), '#0.#%');
+ 		let vmmRatio_RespondedNeeds_YOY = Num($(vmmRatio_RespondedNeeds_Current) - $(vmmRatio_RespondedNeeds_Previous), '#0.#%');
+	
+
+	//// Enrollment: already aggregated at a school level
+		let vmmCount_Students_Current = Num(Sum({<YearEnd={$(=$(vMaxYearEnd))}>} Enrollment), '#,##0');
+		let vmmCount_Students_Previous = Num(Sum({<YearEnd={$(=$(vLastYearEnd))}>} Enrollment), '#,##0');
+	
+	//// SPR
+		//let vmmSPR_Current = Num(Only({<YearEnd={$(=$(vMaxYearEnd))}>} [2014-15 SPR]), '#,##0');
+		//let vmmSPR_Previous = Num(Only({<YearEnd={$(=$(vMaxYearEnd))}>} [2014-15 SPR]), '#,##0');
+	
+	//// Number of partnerships at a school
+		let vmmCount_Partnerships = Num(Count(distinct Partnership), '#,##0');
+		let vmmCount_Partnerships_Current = Num(Count(distinct {<YearEnd={$(=$(vMaxYearEnd))}>} Partnership), '#,##0');
+		let vmmCount_Partnerships_Previous = Num(Count(distinct {<YearEnd={$(=$(vLastYearEnd))}>} Partnership), '#,##0');
+		let vmmCount_Partnerships_YOY = Num($(vmmCount_Partnerships_Current) - $(vmmCount_Partnerships_Previous), '#,##0');
+
+		let vmmCount_Partners = Num(Count(distinct PartnerNum), '#,##0');
+		let vmmCount_Partners_Current = Num(Count(distinct {<YearEnd={$(=$(vMaxYearEnd))}>} PartnerNum), '#,##0');
+		let vmmCount_Partners_Previous = Num(Count(distinct {<YearEnd={$(=$(vLastYearEnd))}>} PartnerNum), '#,##0');
+		let vmmCount_Partners_YOY = Num($(vmmCount_Partners_Current) - $(vmmCount_Partners_Previous), '#,##0');
+
+		let vmmRatio_PartnershipsPerStudent_Current = Num(100 * $(vmmCount_Partnerships_Current) / $(vmmCount_Students_Current), '#,##0.#');
+		let vmmRatio_PartnershipsPerStudent_Previous = Num(100 * $(vmmCount_Partnerships_Previous) / $(vmmCount_Students_Previous), '#,##0.#');
+
+		let vmmRatio_PartnersPerStudent_Current = Num(100 * $(vmmCount_Partners_Current) / $(vmmCount_Students_Current), '#,##0.#');
+		let vmmRatio_PartnersPerStudent_Previous = Num(100 * $(vmmCount_Partners_Previous) / $(vmmCount_Students_Previous), '#,##0.#');
+
+		let vmmAvg_Partnerships_AggSchool_Current = Num(Avg(Aggr(Count(distinct {<YearEnd={$(=$(vMaxYearEnd))}>} Partnership), [School Name])), '#,##0.#');
+		let vmmAvg_Partnerships_AggSchool_Previous = Num(Avg(Aggr(Count(distinct {<YearEnd={$(=$(vLastYearEnd))}>} Partnership), [School Name])), '#,##0.#');
+		let vmmAvg_Partnerships_AggSchool_YOY = Num($(vmmAvg_Partnerships_AggSchool_Current) - $(vmmAvg_Partnerships_AggSchool_Previous), '#,##0.#');
+
+		let vmmAvg_Partners_AggSchool_Current = Num(Avg(Aggr(Count(distinct {<YearEnd={$(=$(vMaxYearEnd))}>} PartnerNum), [School Name])), '#,##0.#');
+		let vmmAvg_Partners_AggSchool_Previous = Num(Avg(Aggr(Count(distinct {<YearEnd={$(=$(vLastYearEnd))}>} PartnerNum), [School Name])), '#,##0.#');
+		let vmmAvg_Partners_AggSchool_YOY = Num($(vmmAvg_Partners_AggSchool_Current) - $(vmmAvg_Partners_AggSchool_Previous), '#,##0.#');
+
+	//// Needs areas
+		let vmmCount_Needs_Critical = Num(If(Count([Need Value]) > 0, Count({<[Need Value]={3}>}[Need Area]),Null()), '#,##0');
+		let vmmCount_Needs_Critical_Current = Num(If(Count( {<YearEnd={$(=$(vMaxYearEnd))}>} [Need Value]) > 0, Count({<[Need Value]={3}, YearEnd={$(=$(vMaxYearEnd))}>}[Need Area]),Null()), '#,##0');
+		let vmmCount_Needs_Critical_Previous = Num(If(Count({<YearEnd={$(=$(vLastYearEnd))}>} [Need Value]) > 0, Count({<[Need Value]={3}, YearEnd={$(=$(vLastYearEnd))}>}[Need Area]),Null()), '#,##0');
+		let vmmCount_Needs_Critical_YOY = Num($(vmmCount_Needs_Critical_Current) - $(vmmCount_Needs_Critical_Previous), '#,##0');
+		let vCount_Needs_Critical_Current_Color = If(Count( {<YearEnd={$(=$(vMaxYearEnd))}>} [Need Value]) > 0, 100 - Count({<[Need Value]={3}, YearEnd={$(=$(vMaxYearEnd))}>}[Need Area]),Null());
+		
+		let vmmAvg_Needs = Num(Avg([Need Value]), '#,##0.#');
+		let vmmAvg_Needs_Current = Num(Avg( {<YearEnd={$(=$(vMaxYearEnd))}>} [Need Value]), '#,##0.#');
+		let vmmAvg_Needs_Previous = Num(Avg({<YearEnd={$(=$(vLastYearEnd))}>} [Need Value]), '#,##0.#');
+		let vAvg_Needs_Current_Color = 3 - Avg( {<YearEnd={$(=$(vMaxYearEnd))}>} [Need Value]);
+		
+		let vmmAvg_Needs_Critical_AggSchool_Current = Num(Avg(Aggr(Count({<[Need Value]={3}, YearEnd={$(=$(vMaxYearEnd))}>} [Need Value]), [School Name])), '#,##0.#');
+		let vmmAvg_Needs_Critical_AggSchool_Previous = Num(Avg(Aggr(Count({<[Need Value]={3}, YearEnd={$(=$(vLastYearEnd))}>} [Need Value]), [School Name])), '#,##0.#');
+		let vmmAvg_Needs_Critical_AggSchool_YOY = Num($(vmmAvg_Needs_Critical_AggSchool_Current) - $(vmmAvg_Needs_Critical_AggSchool_Previous), '#,##0.#');
+
+//// Metrics for Partners, Partnerships
+	//// Number of schools served
+		//let vmmCount_Schools = Num(Count(distinct [School Name]), '#,##0');
+		//let vmmCount_Schools_Current = Num(Count(distinct  {<YearEnd={$(=$(vMaxYearEnd))}>} [School Name]), '#,##0');
+		//let vmmCount_Schools_Previous = Num(Count(distinct {<YearEnd={$(=$(vLastYearEnd))}>} [School Name]), '#,##0');
+		//let vmmCount_Schools_YOY = Num($(vmmCount_Schools_Current) - $(vmmCount_Schools_Previous), '#,##0');
+	
+	//// SPR stats for schools served by this partner/partnership
+		let vmmAvg_SPR = Num(Avg([2014-15 SPR]), '#,##0.#');
+		let vmmMin_SPR = Num(Min([2014-15 SPR]), '#,##0.#');
+		let vmmMax_SPR = Num(Max([2014-15 SPR]), '#,##0.#');
+
+set vSelectedMetric = vmmCount_Partnerships_Current;

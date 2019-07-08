@@ -1,0 +1,88 @@
+/**
+*	Loading Variables: PSSA-Keystone
+*	Jonathan Vitale
+*	Changes:
+*
+*	Version :
+*		- 
+*
+*	Reminders:
+*	- All the let statements will be strings, if you want an actual single quote in the string, use '&chr(39)&'
+*	- Alternatively, you can use double-quotes in set analyses, but these enable search and wildcards, so be careful.
+*   - A '&chr(36)&'(somevar) tells click to substitute whatever is somevar immediately. If you want to prevent this expansion replace '&chr(36)&' with '&chr(36)&'
+*   - Similarly '&chr(36)&'(='&chr(36)&'(somevar)) tells Qlik to evaluate the somevar expression, if you do not want this done in the load script replace both '&chr(36)&' with chr(36)
+**/
+
+Let vSetOpt_dSector = =If(vCond_NoNetworkSelections,	', [Sector]={"District"}', '');
+Let vSetOpt_dSubject = =If (GetPossibleCount(Subject) > 1, ', Subject={"ELA"}', '');
+Let vSetOpt_dTest = =IF(GetPossibleCount([Test]) > 1, ', [Test] = {"PSSA"}', '');
+Let vSubject_Selected = =If (GetPossibleCount(Subject) = 1, Only(Subject), 'ELA');
+Let vCond_NoNetworkSelections = =GetSelectedCount(Governance)<1 And GetSelectedCount(Sector)<1 And GetSelectedCount([Learning Network])<1 And GetSelectedCount([Current Network])<1 And GetSelectedCount([School Name])<1;
+Let vText_AggLevel = =IF($(vCond_NoNetworkSelections), 'District', 'School');
+Let vSetMod_IgnoreTestSelections = ,[Subject]=, [Test]=, [Test Name]=, [Test Subject]=;
+
+Let vSetMod_dSubject_dSector = <[School Year]=P([School Year]) $(vSetOpt_dSubject) $(vSetOpt_dSector)>;
+Let vSetMod_dTest_dSubject_dSector = <[Performance Level Code]=P([Performance Level Code]) $(vSetOpt_dTest) $(vSetOpt_dSubject) $(vSetOpt_dSector)>;
+Let vSetMod_pPerformanceCode_dTest_dSubject_dSector = <[Performance Level Code]={$1} $(vSetOpt_dTest) $(vSetOpt_dSubject) $(vSetOpt_dSector)>;
+Let vSetMod_pPerformanceCode_pSubject_pSY_dSector = <[Performance Level Code]={$1}, [Subject]={$2}, [School Year]={$3} $(vSetOpt_dSector)>;
+Let vSetMod_pPerformanceCode_pSY_dSubject_dSector = <[Performance Level Code]={$1}, [School Year]={$2} $(vSetOpt_dSubject) $(vSetOpt_dSector)>;
+Let vSetMod_pPerformanceCode_pSY_dTest_dSubject_dSector = <[Performance Level Code]={$1}, [School Year]={$2} $(vSetOpt_dTest) $(vSetOpt_dSubject) $(vSetOpt_dSector)>;
+Let vSetModpSubject_pSY_dSector = <Subject={$1}, [School Year]={$2} $(vSetOpt_dSector)>;
+Let vSetModpSubject_pSY_dSector_ProAdv = <[Performance Level Code] = {3, 4}, Subject={$1}, [School Year]={$2} $(vSetOpt_dSector)>;
+Let vSetMod_pSY_dSubject_dSector = <[School Year]={$1} $(vSetOpt_dSubject) $(vSetOpt_dSector)>;
+Let vSetMod_pSubject_pSY_dSubject_dSector_ProAdv = <[Performance Level Code]={3, 4}, [School Year]={$1} $(vSetOpt_dSubject) $(vSetOpt_dSector)>;
+Let vSetMod_pTest_pSubject_pSY_dSector_ProAdv = <[Performance Level Code] = {3, 4}, Test= {$1}, Subject={$2}, [School Year]={$3} $(vSetOpt_dSector)>;
+Let vSetMod_pSY_dTest_dSubject_dSector = <[School Year]={$1} $(vSetOpt_dTest) $(vSetOpt_dSubject) $(vSetOpt_dSector)>;
+Let vSetMod_pTest_pSubject = <Test= {$1}, Subject={$2}>;
+Let vSetMod_pTest_pSubject_pSY_dSector = <Test= {$1}, Subject={$2}, [School Year]={$3} $(vSetOpt_dSector)>;
+
+
+
+Let vSetMod_pTest_pSubject_Enrolled = <[Participation Test]={'$1'}, [Participation Subject]={'$2'}, [SchoolAccountableParticipationFlag] = {1} $(vSetMod_IgnoreTestSelections)>;
+Let vSetMod_pTest_dSubject_Enrolled = <[Participation Test]={'$1'}, [Participation Subject]={"$(vSubject_Selected)"}, [SchoolAccountableParticipationFlag] = {1} $(vSetMod_IgnoreTestSelections)>;
+Let vSetMod_pTest_pSubject_dSector_Enrolled = <[Participation Test]={'$1'}, [Participation Subject]={'$2'}, [SchoolAccountableParticipationFlag] = {1} $(vSetOpt_dSector) $(vSetMod_IgnoreTestSelections)>;
+Let vSetMod_pTest_pSubject_pSY_dSector_Enrolled = <[Participation Test]={'$1'}, [Participation Subject]={'$2'}, [School Year]={$3}, [SchoolAccountableParticipationFlag] = {1} $(vSetOpt_dSector) $(vSetMod_IgnoreTestSelections)>;
+Let vSetMod_pTest_pSubject_pSY_Enrolled = <[Participation Test]={'$1'}, [Participation Subject]={'$2'}, [School Year]={$3}, [SchoolAccountableParticipationFlag] = {1} $(vSetMod_IgnoreTestSelections)>;
+
+Let vCount_pTest_pSubject_Enrolled = Count(distinct {$(vSetMod_pTest_pSubject_Enrolled($1, $2))} [Student PA State ID]);
+Let vCount_pTest_dSubject_Enrolled = Count(distinct {$(vSetMod_pTest_dSubject_Enrolled($1))} [Student PA State ID]);
+Let vCount_pTest_pSubject_dSector_Enrolled = Count(distinct {$(vSetMod_pTest_pSubject_dSector_Enrolled($1, $2))} [Student PA State ID]);
+Let vCount_pTest_pSubject_pSY_dSector_Enrolled = Count(distinct {$(vSetMod_pTest_pSubject_pSY_dSector_Enrolled($1, $2, $3))}[Student PA State ID]) ;
+Let vCount_pTest_pSubject_pSY_Enrolled = Count(distinct {$(vSetMod_pTest_pSubject_pSY_dSector_Enrolled($1, $2, $3))}[Student PA State ID]) ;
+
+Let vSetMod_pTest_pSubject_Enrolled_District = <[Participation Test]={'$1'}, [Participation Subject]={'$2'}, [$(vText_AggLevel)AccountableParticipationFlag] = {1} $(vSetMod_IgnoreTestSelections)>;
+Let vSetMod_pTest_dSubject_Enrolled_District = <[Participation Test]={'$1'}, [Participation Subject]={"$(vSubject_Selected)"}, [$(vText_AggLevel)AccountableParticipationFlag] = {1} $(vSetMod_IgnoreTestSelections)>;
+Let vSetMod_pTest_pSubject_dSector_Enrolled_District = <[Participation Test]={'$1'}, [Participation Subject]={'$2'}, [$(vText_AggLevel)AccountableParticipationFlag] = {1} $(vSetOpt_dSector) $(vSetMod_IgnoreTestSelections)>; 
+Let vSetMod_pTest_pSubject_pSY_dSector_Enrolled_District = <[Participation Test]={'$1'}, [Participation Subject]={'$2'}, [School Year]={$3}, [$(vText_AggLevel)AccountableParticipationFlag] = {1} $(vSetOpt_dSector) $(vSetMod_IgnoreTestSelections)>;
+Let vSetMod_pTest_pSubject_pSY_Enrolled_District = <[Participation Test]={'$1'}, [Participation Subject]={'$2'}, [School Year]={$3}, [$(vText_AggLevel)AccountableParticipationFlag] = {1} $(vSetMod_IgnoreTestSelections)>;
+
+Let vCount_pTest_pSubject_Enrolled_District = Count(distinct {$(vSetMod_pTest_pSubject_Enrolled_District($1, $2))} [Student PA State ID]);
+Let vCount_pTest_dSubject_Enrolled_District = Count(distinct {$(vSetMod_pTest_dSubject_Enrolled_District($1))} [Student PA State ID]);
+Let vCount_pTest_pSubject_dSector_Enrolled_District = Count(distinct {$(vSetMod_pTest_pSubject_dSector_Enrolled_District($1, $2))} [Student PA State ID]);
+Let vCount_pTest_pSubject_pSY_dSector_Enrolled_District = Count(distinct {$(vSetMod_pTest_pSubject_pSY_dSector_Enrolled_District($1, $2, $3))}[Student PA State ID]) ;
+Let vCount_pTest_pSubject_pSY_Enrolled_District = Count(distinct {$(vSetMod_pTest_pSubject_pSY_dSector_Enrolled($1, $2, $3))}[Student PA State ID]) ;
+
+
+Let vSetMod_pTest_pSubject_Tested = <[Participation Test]={'$1'}, [Participation Subject]={'$2'}, [SchoolAccountableParticipationTestedFlag] = {1} $(vSetMod_IgnoreTestSelections)>;
+Let vSetMod_pTest_dSubject_Tested = <[Participation Test]={'$1'}, [Participation Subject]={"$(vSubject_Selected)"}, [SchoolAccountableParticipationTestedFlag] = {1} $(vSetMod_IgnoreTestSelections)>;
+Let vSetMod_pTest_pSubject_dSector_Tested = <[Participation Test]={'$1'}, [Participation Subject]={'$2'}, [SchoolAccountableParticipationTestedFlag] = {1} $(vSetOpt_dSector) $(vSetMod_IgnoreTestSelections)>;
+Let vSetMod_pTest_pSubject_pSY_dSector_Tested = <[Participation Test]={'$1'}, [Participation Subject]={'$2'}, [School Year]={$3}, [SchoolAccountableParticipationTestedFlag] = {1} $(vSetOpt_dSector) $(vSetMod_IgnoreTestSelections)>;
+Let vSetMod_pTest_pSubject_pSY_Tested = <[Participation Test]={'$1'}, [Participation Subject]={'$2'}, [School Year]={$3}, [SchoolAccountableParticipationTestedFlag] = {1} $(vSetMod_IgnoreTestSelections)>;
+
+Let vCount_pTest_pSubject_Tested = Count(distinct {$(vSetMod_pTest_pSubject_Tested($1, $2))} [Student PA State ID]);
+Let vCount_pTest_dSubject_Tested = Count(distinct {$(vSetMod_pTest_dSubject_Tested($1))} [Student PA State ID]);
+Let vCount_pTest_pSubject_dSector_Tested = Count(distinct {$(vSetMod_pTest_pSubject_dSector_Tested($1, $2))} [Student PA State ID]);
+Let vCount_pTest_pSubject_pSY_dSector_Tested = Count(distinct {$(vSetMod_pTest_pSubject_pSY_dSector_Tested($1, $2, $3))}[Student PA State ID]) ;
+Let vCount_pTest_pSubject_pSY_Tested = Count(distinct {$(vSetMod_pTest_pSubject_pSY_dSector_Tested($1, $2, $3))}[Student PA State ID]) ;
+
+Let vSetMod_pTest_pSubject_Tested_District = <[Participation Test]={'$1'}, [Participation Subject]={'$2'}, [$(vText_AggLevel)AccountableParticipationTestedFlag] = {1} $(vSetMod_IgnoreTestSelections)>;
+Let vSetMod_pTest_dSubject_Tested_District = <[Participation Test]={'$1'}, [Participation Subject]={"$(vSubject_Selected)"}, [$(vText_AggLevel)AccountableParticipationTestedFlag] = {1} $(vSetMod_IgnoreTestSelections)>;
+Let vSetMod_pTest_pSubject_dSector_Tested_District = <[Participation Test]={'$1'}, [Participation Subject]={'$2'}, [$(vText_AggLevel)AccountableParticipationTestedFlag] = {1} $(vSetOpt_dSector) $(vSetMod_IgnoreTestSelections)>;
+Let vSetMod_pTest_pSubject_pSY_dSector_Tested_District = <[Participation Test]={'$1'}, [Participation Subject]={'$2'}, [School Year]={$3}, [$(vText_AggLevel)AccountableParticipationTestedFlag] = {1} $(vSetOpt_dSector) $(vSetMod_IgnoreTestSelections)>;
+Let vSetMod_pTest_pSubject_pSY_Tested_District = <[Participation Test]={'$1'}, [Participation Subject]={'$2'}, [School Year]={$3}, [$(vText_AggLevel)AccountableParticipationTestedFlag] = {1} $(vSetMod_IgnoreTestSelections)>;
+
+Let vCount_pTest_pSubject_Tested_District = Count(distinct {$(vSetMod_pTest_pSubject_Tested_District($1, $2))} [Student PA State ID]);
+Let vCount_pTest_dSubject_Tested_District = Count(distinct {$(vSetMod_pTest_dSubject_Tested_District($1))} [Student PA State ID]);
+Let vCount_pTest_pSubject_dSector_Tested_District = Count(distinct {$(vSetMod_pTest_pSubject_dSector_Tested_District($1, $2))} [Student PA State ID]);
+Let vCount_pTest_pSubject_pSY_dSector_Tested_District = Count(distinct {$(vSetMod_pTest_pSubject_pSY_dSector_Tested_District($1, $2, $3))}[Student PA State ID]) ;
+Let vCount_pTest_pSubject_pSY_Tested_District = Count(distinct {$(vSetMod_pTest_pSubject_pSY_dSector_Tested($1, $2, $3))}[Student PA State ID]) ;

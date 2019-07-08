@@ -1,0 +1,100 @@
+ 
+  let vMinStudents = 25; 
+  let vMinParents = 25;
+  let vMinTeachers = 5;
+  let vMinPrincipals = 5;
+///// Survey Focus Questions - Percent Most Positive
+
+  //// Question codes
+    // let vQuestionCode_Student1 = Q3f;
+    // let vQuestionCode_Student2 = Q1b;
+    // let vQuestionCode_Student3 = Q3k;
+    // let vQuestionCode_Student4 = Q3a;
+
+    // let vQuestionCode_Parent1 = Q7f;
+    // let vQuestionCode_Parent2 = Q7a;
+    // let vQuestionCode_Parent3 = Q7d;
+    // let vQuestionCode_Parent4 = Q3g;
+
+    // let vQuestionCode_Teacher1 = Q5a;
+    // let vQuestionCode_Teacher2 = Q3e;
+    // let vQuestionCode_Teacher3 = Q3i;
+    // let vQuestionCode_Teacher4 = Q4e;
+    
+    // let vQuestionCode_Demo = Q3f;
+
+    // let vQuestionCode_Student1 = Q3i;
+    // let vQuestionCode_Student2 = Q1b;
+    // let vQuestionCode_Student3 = Q6d;
+
+    // let vQuestionCode_Parent1 = Q2f;
+    // let vQuestionCode_Parent2 = Q7a;
+    // let vQuestionCode_Parent3 = Q4j;
+
+    // let vQuestionCode_Teacher1 = Q8g;
+    // let vQuestionCode_Teacher2 = Q8i;
+    // let vQuestionCode_Teacher3 = Q15b;
+
+    let vSurvey_AG1 = Student;
+    let vQuestionCode_AG1_1 = Q9e;
+    let vQuestionCode_AG1_2 = Q9d;
+    let vQuestionCode_AG1_3 = Q9f;
+
+    let vSurvey_AG2 = Parent;
+    let vQuestionCode_AG2_1 = Q16a;
+    let vQuestionCode_AG2_2 = Q16b;
+    let vQuestionCode_AG2_3 = Q7e;
+
+    let vSurvey_AG3 = Student;
+    let vQuestionCode_AG3_1 = Q1i;
+    let vQuestionCode_AG3_2 = Q1b;
+    let vQuestionCode_AG3_3 = Q1c;
+
+///// Response Rate
+
+  let vCount_Respondents = Sum({<[Survey] = {"$1"}, [_Overall_Flag] = {1}>}[CountRespondents]);
+  let vCount_Respondents_YTD = Sum({<[Survey] = {"$1"}, [_$2YTD_Flag] = {1}, [_Overall_Flag] = {1}>}[CountRespondents]);
+  let vCount1_Respondents_YTD = Sum({1<[Survey] = {"$1"}, [_$2YTD_Flag] = {1}, [_Overall_Flag] = {1}>}[CountRespondents]);
+
+///// Enrolled Counts
+  let vCount_Enrolled = Sum({<[Survey] = {"$1"}, [_Overall_Flag] = {1}>}[CountEnrolled]);
+  let vCount_Enrolled_YTD = Sum({<[Survey] = {"$1"}, [_$2YTD_Flag] = {1}, [_Overall_Flag] = {1}>}[CountEnrolled]);
+  let vCount1_Enrolled_YTD = Sum({1<[Survey] = {"$1"}, [_$2YTD_Flag] = {1}, [_Overall_Flag] = {1}>}[CountEnrolled]);
+
+///// Response Count per Question, uses a parameter for question code
+  let vCount_Responses = Sum({<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_Question_Flag] = {1}, [_Ans_Display_Flag]={1}>}[CountResponses]);
+  let vCount_Responses_YTD = Sum({<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [_Ans_Display_Flag]={1}>}[CountResponses]);
+  let vCount_Responses_Grade0912_YTD = Sum({<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [Grade] = {"09", "10", "11", "12"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [_Ans_Display_Flag]={1}>}[CountResponses]);
+  let vCount_Responses_Grade0003_YTD = Sum({<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [Grade] = {"00", "01", "02", "03"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [_Ans_Display_Flag]={1}>}[CountResponses]);
+  let vCount1_Responses_YTD = Sum({1<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [_Ans_Display_Flag]={1}>}[CountResponses]);
+  let vCountAlt1_Responses_YTD = Sum({Alt1 * 1<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [_Ans_Display_Flag]={1}>}[CountResponses]);
+  
+
+/// Percent most Positive, uses a parameter for question code
+  let vCount_PMP = Sum({<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_Question_Flag] = {1}, [IsHighest]={1}>}[CountResponses]);
+  let vCount_PMP_YTD = Sum({<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [IsHighest]={1}>}[CountResponses]);
+  let vCount_PMP_Grade0912_YTD = Sum({<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [Grade] = {"09", "10", "11", "12"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [IsHighest]={1}>}[CountResponses]);
+  let vCount_PMP_Grade0003_YTD = Sum({<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [Grade] = {"00", "01", "02", "03"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [IsHighest]={1}>}[CountResponses]);
+  let vCount1_PMP_YTD = Sum({1<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [IsHighest]={1}>}[CountResponses]);
+  let vCountAlt1_PMP_YTD = Sum({Alt1 * 1<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [IsHighest]={1}>}[CountResponses]);
+  
+  
+///// Response Count, with Total keyword, per Question, uses a parameter for question code
+  let vCountTotal_Responses = Sum(Total {<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_Question_Flag] = {1}, [_Ans_Display_Flag]={1}>}[CountResponses]);
+  let vCountTotal_Responses_YTD = Sum(Total {<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_Ans_Display_Flag]={1}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}>}[CountResponses]);
+  let vCountTotal_Responses_Grade0912_YTD = Sum(Total {<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_Ans_Display_Flag]={1}, [Grade] = {"09", "10", "11", "12"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}>}[CountResponses]);
+  let vCountTotal_Responses_Grade0003_YTD = Sum(Total {<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_Ans_Display_Flag]={1}, [Grade] = {"00", "01", "02", "03"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}>}[CountResponses]);
+  let vCountTotalAlt1_Responses_YTD = Sum(Total {Alt1 * 1<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_Ans_Display_Flag]={1}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}>}[CountResponses]);
+   
+// this flag is to determine at a dimennsional level whether there are any responses
+  let vFlag_Responses_YTD = Max({1<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [_Ans_Display_Flag]={1}>}[_Question_Flag]);
+  let vFlag_Responses_Grade0912_YTD = Max({1<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [Grade] = {"09", "10", "11", "12"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [_Ans_Display_Flag]={1}>}[_Question_Flag]);
+  let vFlag_Responses_Grade0003_YTD = Max({1<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [Grade] = {"00", "01", "02", "03"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [_Ans_Display_Flag]={1}>}[_Question_Flag]);
+  let vQuestionText_YTD = Concat(Distinct {1<[QuestionCode]={"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [IsHighest]={1}>}[QuestionText]);
+  let vAnswerText_YTD = Concat(Distinct {1<[QuestionCode]={"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [IsHighest]={1}>}[AnswerText]);
+
+///  Construct
+///  Selected
+  let vCount_Responses_Survey_Construct_YTD = RangeMax(Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_7));
+  let vAvg_PMP_Survey_Construct_YTD = RangeAvg(Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NHighest_1)/Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NHighest_2)/Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NHighest_3)/Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NHighest_4)/Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NHighest_5)/Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NHighest_6)/Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NHighest_7)/Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_7));
+    
