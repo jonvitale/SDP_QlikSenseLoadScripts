@@ -35,6 +35,7 @@ Let vSetMod_pTest_pSubject_pSY_dSector_ProAdv = <[Performance Level Code] = {3, 
 Let vSetMod_pSY_dTest_dSubject_dSector = <[School Year]={$1} $(vSetOpt_dTest) $(vSetOpt_dSubject) $(vSetOpt_dSector)>;
 Let vSetMod_pTest_pSubject = <Test= {$1}, Subject={$2}>;
 Let vSetMod_pTest_pSubject_pSY_dSector = <Test= {$1}, Subject={$2}, [School Year]={$3} $(vSetOpt_dSector)>;
+Let vSetMod_pGrade_pSY_dTest_dSubject_dSector = <[Grade]={$1}, [School Year]={$2} $(vSetOpt_dTest) $(vSetOpt_dSubject) $(vSetOpt_dSector)>;
 
 
 
