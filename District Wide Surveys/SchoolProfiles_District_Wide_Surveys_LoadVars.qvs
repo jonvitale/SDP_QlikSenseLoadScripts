@@ -38,7 +38,7 @@
     let vSurvey_AG1 = Student;
     let vQuestionCode_AG1_1 = Q9e;
     let vQuestionCode_AG1_2 = Q9d;
-    let vQuestionCode_AG1_3 = Q9f;
+    let vQuestionCode_AG1_3 = Q9a;
 
     let vSurvey_AG2 = Parent;
     let vQuestionCode_AG2_1 = Q16a;
@@ -47,7 +47,7 @@
 
     let vSurvey_AG3 = Student;
     let vQuestionCode_AG3_1 = Q1i;
-    let vQuestionCode_AG3_2 = Q1b;
+    let vQuestionCode_AG3_2 = Q1j;
     let vQuestionCode_AG3_3 = Q1c;
 
 ///// Response Rate
@@ -60,6 +60,12 @@
   let vCount_Enrolled = Sum({<[Survey] = {"$1"}, [_Overall_Flag] = {1}>}[CountEnrolled]);
   let vCount_Enrolled_YTD = Sum({<[Survey] = {"$1"}, [_$2YTD_Flag] = {1}, [_Overall_Flag] = {1}>}[CountEnrolled]);
   let vCount1_Enrolled_YTD = Sum({1<[Survey] = {"$1"}, [_$2YTD_Flag] = {1}, [_Overall_Flag] = {1}>}[CountEnrolled]);
+
+///// Household Counts
+  let vCount_Households = Count(distinct {<[Survey] = {"$1"}, [_Overall_Flag] = {1}>}[Household]);
+  let vCount_Households_YTD = Count(distinct {<[Survey] = {"$1"}, [_$2YTD_Flag] = {1}, [_Overall_Flag] = {1}>}[Household]);
+  let vCount1_Households_YTD = Count(distinct {1<[Survey] = {"$1"}, [_$2YTD_Flag] = {1}, [_Overall_Flag] = {1}>}[Household]);
+
 
 ///// Response Count per Question, uses a parameter for question code
   let vCount_Responses = Sum({<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_Question_Flag] = {1}, [_Ans_Display_Flag]={1}>}[CountResponses]);
