@@ -74,13 +74,14 @@
 		let vMET_SchoolYear_Previous = (Num(Left(Maxstring({<[school_year]-={"$(vMET_SchoolYear_Current)"}>}[school_year]),4)))&'-'&(Num(Right(Maxstring({<[school_year]-={"$(vMET_SchoolYear_Current)"}>}[school_year]),4)));
 		let vMET_SchoolYear_Previous2 = (Num(Left(Maxstring({<[school_year]-={"$(vMET_SchoolYear_Current)","$(vMET_SchoolYear_Previous)"}>}[school_year]),4)))&'-'&(Num(Right(Maxstring({<[school_year]-={"$(vMET_SchoolYear_Current)","$(vMET_SchoolYear_Previous)"}>}[school_year]),4)));
 
-		let vMET_AggLevel_Selected =  If(GetSelectedCount([Proper School Name]) = 1, 'srcschoolid',
-			If(GetSelectedCount([Proper Network Name]) = 1, 'network',
-				If(GetSelectedCount([Ordered City Council District]) = 1, 'council', 
-					If(GetSelectedCount([Sector]) > 0 and GetSelectedCount("School Level") = 0, 'sector',
-						If(GetSelectedCount([Sector]) > 0 and GetSelectedCount("School Level") > 0, 'sector_schoollevel',
-							If(GetSelectedCount("School Level") > 0, 'schoollevel',
-							 'city'))))));
+		let vMET_AggLevel_Selected =  =If(GetSelectedCount([Proper School Name]) >= 1, 'school',
+			If(GetSelectedCount([Study Area]) >= 1, 'study_area',
+				If(GetSelectedCount([Proper Network Name]) = 1, 'network',
+					If(GetSelectedCount([Ordered City Council District]) = 1, 'council', 
+						If(GetSelectedCount([Sector]) > 0 and GetSelectedCount("SchoolLevel") = 0 and GetSelectedCount("School Level") = 0, 'sector',
+							If(GetSelectedCount([Sector]) > 0 and (GetSelectedCount("SchoolLevel") > 0 or GetSelectedCount("School Level") > 0), 'sector_schoollevel',
+								If(GetSelectedCount("SchoolLevel") > 0 or GetSelectedCount("School Level") > 0, 'schoollevel',
+								 'city')))))));
 
 	//// Other high level variables
 		let vMET_NumFormat_Perc_KPI = #0%;

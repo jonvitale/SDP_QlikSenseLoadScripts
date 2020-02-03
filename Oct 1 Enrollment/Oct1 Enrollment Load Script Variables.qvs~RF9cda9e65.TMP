@@ -1,0 +1,604 @@
+/**
+*	Loading Variables: Oct 1 Enrollment
+*	Jonathan Vitale
+*	Changes:
+*
+*	Version 0.3:
+*		- 
+*
+*	Reminders:
+*	- All the let statements will be strings, if you want an actual single quote in the string, use '&chr(39)&'
+*	- Alternatively, you can use double-quotes in set analyses, but these enable search and wildcards, so be careful.
+*   - A '&chr(36)&'(somevar) tells click to substitute whatever is somevar immediately. If you want to prevent this expansion replace '&chr(36)&' with '&chr(36)&'
+*   - Similarly '&chr(36)&'(='&chr(36)&'(somevar)) tells Qlik to evaluate the somevar expression, if you do not want this done in the load script replace both '&chr(36)&' with chr(36)
+**/
+
+//////////////////// IMPORTANT ///////////////////
+// The vSetOpts_EPD variable is inserted into all expression and should be blank if this is not an epd. 
+
+let vPartnerDataLimiter = ='"'&Maxstring(PROGRAM_NAME)&'"';
+
+let vSet_EPD = =IF(Len('$(vPartnerNameForApp)') > 0, 
+	'<PROGRAM_NAME={$(vPartnerDataLimiter)}>',
+	'');
+
+let vSetOpts_EPD = =IF(Len('$(vPartnerNameForApp)') > 0, 
+	', PROGRAM_NAME={$(vPartnerDataLimiter)}',
+	'');
+
+
+//////////////// GENERAL //////////////////
+let vSchoolYear_Current = =MaxString({$<[$(=Concat({1<$Field-={'School Year'}>}distinct $Field,']=,[')&']=')>} [School Year]);
+let vSY_Current = =Left('$(vSchoolYear_Current)', 5) & Right('$(vSchoolYear_Current)', 2);
+
+let vSchoolYear_Previous = =(Left(MaxString({$<[$(=Concat({1<$Field-={'School Year'}>}distinct $Field,']=,[')&']=')>} [School Year]),4)-1) 
+	&'-'& (Right(MaxString({$<[$(=Concat({1<$Field-={'School Year'}>}distinct $Field,']=,[')&']=')>} [School Year]),4)-1);
+let vSY_Previous = =Left('$(vSchoolYear_Previous)', 5) & Right('$(vSchoolYear_Previous)', 2);
+
+let vSchoolYear_2Previous = =(Left(MaxString({$<[$(=Concat({1<$Field-={'School Year'}>} distinct $Field,']=,[')&']=')>} [School Year]),4)-2) 
+	&'-'& (Right(MaxString({$<[$(=Concat({1<$Field-={'School Year'}>}distinct $Field,']=,[')&']=')>} [School Year]),4)-2);
+let vSY_2Previous = =Left('$(vSchoolYear_Previous)', 5) & Right('$(vSchoolYear_Previous)', 2);
+
+//////////// DIMENSIONSAL /////////////////
+
+//////////// ENROLLMENT COUNTS /////////////////
+	let vCount_Enrollment = Num(
+			Sum({<Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({<Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+	let vCount1_Enrollment = Num(
+			Sum({1<Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({1<Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+	let vCount_Enrollment_Current = Num(
+			Sum({<[School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({<[School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+	let vCount1_Enrollment_Current = Num(
+			Sum({1<[School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({1<[School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+	let vCountTotal_Enrollment_Current = Num(
+			Sum(Total {<[School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum(Total {<[School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+
+	let vCount_Enrollment_Previous = Num(
+			Sum({<[School Year] = {'$(vSchoolYear_Previous)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({<[School Year] = {'$(vSchoolYear_Previous)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+
+	let vCount_Enrollment_NonCharter = Num(
+			Sum({<[School Reporting Category] -= {'Charter Schools'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({<[School Reporting Category] -= {'Charter Schools'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+	let vCount1_Enrollment_NonCharter = Num(
+			Sum({1<[School Reporting Category] -= {'Charter Schools'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({1<[School Reporting Category] -= {'Charter Schools'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+	let vCount_Enrollment_NonCharter_Current = Num(
+			Sum({<[School Reporting Category] -= {'Charter Schools'}, [School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({<[School Reporting Category] -= {'Charter Schools'}, [School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+	let vCount1_Enrollment_NonCharter_Current = Num(
+			Sum({1<[School Reporting Category] -= {'Charter Schools'}, [School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({1<[School Reporting Category] -= {'Charter Schools'}, [School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+	let vCountTotal_Enrollment_NonCharter_Current = Num(
+			Sum(Total {<[School Reporting Category] -= {'Charter Schools'}, [School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum(Total {<[School Reporting Category] -= {'Charter Schools'}, [School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+
+	let vCount_Enrollment_NonCharter_Previous = Num(
+			Sum({<[School Reporting Category] -= {'Charter Schools'}, [School Year] = {'$(vSchoolYear_Previous)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({<[School Reporting Category] -= {'Charter Schools'}, [School Year] = {'$(vSchoolYear_Previous)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+
+	let vCount_Enrollment_District = Num(
+			Sum({<[Sector] = {'District'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({<[Sector] = {'District'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+	let vCount1_Enrollment_District = Num(
+			Sum({1<[Sector] = {'District'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({1<[Sector] = {'District'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+	let vCount_Enrollment_District_Current = Num(
+			Sum({<[Sector] = {'District'}, [School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({<[Sector] = {'District'}, [School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+	let vCount1_Enrollment_District_Current = Num(
+			Sum({1<[Sector] = {'District'}, [School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({1<[Sector] = {'District'}, [School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+	let vCountTotal_Enrollment_District_Current = Num(
+			Sum(Total {<[Sector] = {'District'}, [School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum(Total {<[Sector] = {'District'}, [School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+
+	let vCount_Enrollment_District_Previous = Num(
+			Sum({<[Sector] = {'District'}, [School Year] = {'$(vSchoolYear_Previous)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({<[Sector] = {'District'}, [School Year] = {'$(vSchoolYear_Previous)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+
+
+	/// the sped rate includes a 1.6 multiplier and doesn't include charters
+	let vCount_Enrollment_EconDis = Num(
+			1.6 * (Sum({<[Free From Tape] = {'FT'}, [School Reporting Category] -= {'Charter Schools'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({<[Free From Tape] = {'FT'}, [School Reporting Category] -= {'Charter Schools'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag]))
+		, '#,##0');
+	let vCount1_Enrollment_EconDis = Num(
+			1.6 * (Sum({1<[Free From Tape] = {'FT'}, [School Reporting Category] -= {'Charter Schools'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({1<[Free From Tape] = {'FT'}, [School Reporting Category] -= {'Charter Schools'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag]))
+		, '#,##0');
+	let vCount_Enrollment_EconDis_Current = Num(
+			1.6 * (Sum({<[Free From Tape] = {'FT'}, [School Year] = {'$(vSchoolYear_Current)'},[School Reporting Category] -= {'Charter Schools'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({<[Free From Tape] = {'FT'}, [School Year] = {'$(vSchoolYear_Current)'},[School Reporting Category] -= {'Charter Schools'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag]))
+		, '#,##0');
+	let vCount1_Enrollment_EconDis_Current = Num(
+			1.6 * (Sum({1<[Free From Tape] = {'FT'}, [School Year] = {'$(vSchoolYear_Current)'},[School Reporting Category] -= {'Charter Schools'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({1<[Free From Tape] = {'FT'}, [School Year] = {'$(vSchoolYear_Current)'},[School Reporting Category] -= {'Charter Schools'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag]))
+		, '#,##0');
+	let vCountTotal_Enrollment_EconDis_Current = Num(
+			1.6 * (Sum(Total {<[Free From Tape] = {'FT'}, [School Year] = {'$(vSchoolYear_Current)'},[School Reporting Category] -= {'Charter Schools'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum(Total {<[Free From Tape] = {'FT'}, [School Year] = {'$(vSchoolYear_Current)'},[School Reporting Category] -= {'Charter Schools'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag]))
+		, '#,##0');
+
+	let vCount_Enrollment_EconDis_Previous = Num(
+			1.6 * (Sum({<[Free From Tape] = {'FT'}, [School Year] = {'$(vSchoolYear_Previous)'},[School Reporting Category] -= {'Charter Schools'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({<[Free From Tape] = {'FT'}, [School Year] = {'$(vSchoolYear_Previous)'},[School Reporting Category] -= {'Charter Schools'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag]))
+		, '#,##0');
+
+	/// Black and Hispanic
+	let vCount_Enrollment_BlackHispanic = Num(
+			Sum({<[Ethnicity] = {'Black/African American', 'Hispanic/Latino'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({<[Ethnicity] = {'Black/African American', 'Hispanic/Latino'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+	let vCount1_Enrollment_BlackHispanic = Num(
+			Sum({1<[Ethnicity] = {'Black/African American', 'Hispanic/Latino'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({1<[Ethnicity] = {'Black/African American', 'Hispanic/Latino'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+	let vCount_Enrollment_BlackHispanic_Current = Num(
+			Sum({<[Ethnicity] = {'Black/African American', 'Hispanic/Latino'}, [School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({<[Ethnicity] = {'Black/African American', 'Hispanic/Latino'}, [School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+	let vCount1_Enrollment_BlackHispanic_Current = Num(
+			Sum({1<[Ethnicity] = {'Black/African American', 'Hispanic/Latino'}, [School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({1<[Ethnicity] = {'Black/African American', 'Hispanic/Latino'}, [School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+	let vCountTotal_Enrollment_BlackHispanic_Current = Num(
+			Sum(Total {<[Ethnicity] = {'Black/African American', 'Hispanic/Latino'}, [School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum(Total {<[Ethnicity] = {'Black/African American', 'Hispanic/Latino'}, [School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+
+	let vCount_Enrollment_BlackHispanic_Previous = Num(
+			Sum({<[Ethnicity] = {'Black/African American', 'Hispanic/Latino'}, [School Year] = {'$(vSchoolYear_Previous)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({<[Ethnicity] = {'Black/African American', 'Hispanic/Latino'}, [School Year] = {'$(vSchoolYear_Previous)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+
+
+	/// user-selected ethnicity
+	let vCount_Enrollment_pEthnicity = Num(
+			Sum({<[Ethnicity] = {'$1'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({<[Ethnicity] = {'$1'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+	let vCount1_Enrollment_pEthnicity = Num(
+			Sum({1<[Ethnicity] = {'$1'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({1<[Ethnicity] = {'$1'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+	let vCount_Enrollment_pEthnicity_Current = Num(
+			Sum({<[Ethnicity] = {'$1'}, [School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({<[Ethnicity] = {'$1'}, [School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+	let vCount1_Enrollment_pEthnicity_Current = Num(
+			Sum({1<[Ethnicity] = {'$1'}, [School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({1<[Ethnicity] = {'$1'}, [School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+	let vCountTotal_Enrollment_pEthnicity_Current = Num(
+			Sum(Total {<[Ethnicity] = {'$1'}, [School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum(Total {<[Ethnicity] = {'$1'}, [School Year] = {'$(vSchoolYear_Current)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+
+	let vCount_Enrollment_pEthnicity_Previous = Num(
+			Sum({<[Ethnicity] = {'$1'}, [School Year] = {'$(vSchoolYear_Previous)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Sum({<[Ethnicity] = {'$1'}, [School Year] = {'$(vSchoolYear_Previous)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+
+
+
+	//// FromOtherCatchment flag indicates the # of enrolled students that come from a different catchment
+	let vCount_FromOtherCatchment = Num(
+		  Sum({<Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+
+	let vCount_FromOtherCatchment_Current = Num(
+		  Sum({<[School Year] = {'$(vSchoolYear_Current)'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+	let vCount1_FromOtherCatchment_Current = Num(
+		  Sum({1<[School Year] = {'$(vSchoolYear_Current)'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+	let vCountTotal_FromOtherCatchment_Current = Num(
+		  Sum(Total {<[School Year] = {'$(vSchoolYear_Current)'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+
+	let vCount_FromOtherCatchment_Previous = Num(
+		  Sum({<[School Year] = {'$(vSchoolYear_Previous)'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+		, '#,##0');
+
+	//// In-Catchment is the students who attend their neighborhood schools - will work for both enrollment and catchment dimensions
+		//// Note: the Flag_Inclusion_App_Enrollment flag should always be 1 here by default because all neighborhood schoools should be 1
+	let vCount_InCatchment = Num(
+		  Sum({$(vSet_EPD)}[InCatchmentFlag])
+		, '#,##0');
+		
+	let vCount_InCatchment_Current = Num(
+		  Sum({<[School Year] = {'$(vSchoolYear_Current)'} $(vSetOpts_EPD)>} [InCatchmentFlag])
+		, '#,##0');
+	let vCount1_InCatchment_Current = Num(
+		  Sum({1<[School Year] = {'$(vSchoolYear_Current)'} $(vSetOpts_EPD)>} [InCatchmentFlag])
+		, '#,##0');
+	let vCountTotal_InCatchment_Current = Num(
+		  Sum(Total {<[School Year] = {'$(vSchoolYear_Current)'} $(vSetOpts_EPD)>} [InCatchmentFlag])
+		, '#,##0');
+
+	let vCount_InCatchment_Previous= Num(
+		  Sum({<[School Year] = {'$(vSchoolYear_Previous)'} $(vSetOpts_EPD)>} [InCatchmentFlag])
+		, '#,##0');
+
+//////////// CATCHMENT COUNTS /////////////////
+	let vCount_Catchment = Num(
+			Sum({$(vSet_EPD)}[InCatchmentFlag])
+			+
+			Alt(Sum({$(vSet_EPD)}[OutCatchmentFlag]), 0)
+		, '#,##0');
+	let vCount_Catchment_Current = Num(
+			Sum({<[School Year] = {'$(vSchoolYear_Current)'} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Alt(Sum({<[School Year] = {'$(vSchoolYear_Current)'} $(vSetOpts_EPD)>} [OutCatchmentFlag]), 0)
+		, '#,##0');
+	let vCount1_Catchment_Current = Num(
+			Sum({1<[School Year] = {'$(vSchoolYear_Current)'} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Alt(Sum({1<[School Year] = {'$(vSchoolYear_Current)'} $(vSetOpts_EPD)>} [OutCatchmentFlag]), 0)
+		, '#,##0');
+	let vCountTotal_Catchment_Current = Num(
+			Sum(Total {<[School Year] = {'$(vSchoolYear_Current)'} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Alt(Sum(Total {<[School Year] = {'$(vSchoolYear_Current)'} $(vSetOpts_EPD)>} [OutCatchmentFlag]), 0)
+		, '#,##0');
+
+	let vCount_Catchment_Previous = Num(
+			Sum({<[School Year] = {'$(vSchoolYear_Previous)'} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Alt(Sum({<[School Year] = {'$(vSchoolYear_Previous)'} $(vSetOpts_EPD)>} [OutCatchmentFlag]), 0)
+		, '#,##0');
+
+
+	let vCount_Catchment_NonCharter = Num(
+			Sum({<[Neighborhood Reporting Category] -= {'Charter Schools'} $(vSetOpts_EPD)>}[InCatchmentFlag])
+			+
+			Alt(Sum({<[Neighborhood Reporting Category] -= {'Charter Schools'} $(vSetOpts_EPD)>}[OutCatchmentFlag]), 0)
+		, '#,##0');
+	let vCount_Catchment_NonCharter_Current = Num(
+			Sum({<[Neighborhood Reporting Category] -= {'Charter Schools'}, [School Year] = {'$(vSchoolYear_Current)'} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Alt(Sum({<[Neighborhood Reporting Category] -= {'Charter Schools'}, [School Year] = {'$(vSchoolYear_Current)'} $(vSetOpts_EPD)>} [OutCatchmentFlag]), 0)
+		, '#,##0');
+	let vCount1_Catchment_NonCharter_Current = Num(
+			Sum({1<[Neighborhood Reporting Category] -= {'Charter Schools'}, [School Year] = {'$(vSchoolYear_Current)'} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Alt(Sum({1<[Neighborhood Reporting Category] -= {'Charter Schools'}, [School Year] = {'$(vSchoolYear_Current)'} $(vSetOpts_EPD)>} [OutCatchmentFlag]), 0)
+		, '#,##0');
+	let vCountTotal_Catchment_NonCharter_Current = Num(
+			Sum(Total {<[Neighborhood Reporting Category] -= {'Charter Schools'}, [School Year] = {'$(vSchoolYear_Current)'} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Alt(Sum(Total {<[Neighborhood Reporting Category] -= {'Charter Schools'}, [School Year] = {'$(vSchoolYear_Current)'} $(vSetOpts_EPD)>} [OutCatchmentFlag]), 0)
+		, '#,##0');
+
+	let vCount_Catchment_NonCharter_Previous = Num(
+			Sum({<[Neighborhood Reporting Category] -= {'Charter Schools'}, [School Year] = {'$(vSchoolYear_Previous)'} $(vSetOpts_EPD)>} [InCatchmentFlag])
+			+
+			Alt(Sum({<[Neighborhood Reporting Category] -= {'Charter Schools'}, [School Year] = {'$(vSchoolYear_Previous)'} $(vSetOpts_EPD)>} [OutCatchmentFlag]), 0)
+		, '#,##0');
+
+
+
+	
+	/// Out-Catchment are students who are attending a school out of their catchment, these count the # of catchment students
+	let vCount_OutCatchment = Num(
+		  Sum({$(vSet_EPD)}[OutCatchmentFlag])
+		, '#,##0');
+	let vCount_OutCatchment_Current = Num(
+		  Sum({<[School Year] = {'$(vSchoolYear_Current)'} $(vSetOpts_EPD)>} [OutCatchmentFlag])
+		, '#,##0');
+	let vCount1_OutCatchment_Current = Num(
+		  Sum({1<[School Year] = {'$(vSchoolYear_Current)'} $(vSetOpts_EPD)>} [OutCatchmentFlag])
+		, '#,##0');
+	let vCountTotal_OutCatchment_Current = Num(
+		  Sum(Total {<[School Year] = {'$(vSchoolYear_Current)'} $(vSetOpts_EPD)>} [OutCatchmentFlag])
+		, '#,##0');
+	let vCount_OutCatchment_Previous = Num(
+		  Sum({<[School Year] = {'$(vSchoolYear_Previous)'} $(vSetOpts_EPD)>} [OutCatchmentFlag])
+		, '#,##0');
+
+	let vCount_OutCatchment_Charter = Num(
+		  Sum({<[Neighborhood Sector]={'Charter'} $(vSetOpts_EPD)>}[OutCatchmentFlag])
+		, '#,##0');
+	let vCount_OutCatchment_Charter_Current = Num(
+		  Sum({<[Neighborhood Sector]={'Charter'}, [School Year] = {'$(vSchoolYear_Current)'} $(vSetOpts_EPD)>} [OutCatchmentFlag])
+		, '#,##0');
+	let vCountTotal_OutCatchment_Charter_Current = Num(
+		  Sum(Total {<[Neighborhood Sector]={'Charter'}, [School Year] = {'$(vSchoolYear_Current)'} $(vSetOpts_EPD)>} [OutCatchmentFlag])
+		, '#,##0');
+	let vCount_OutCatchment_Charter_Previous = Num(
+		  Sum({<[Neighborhood Sector]={'Charter'}, [School Year] = {'$(vSchoolYear_Previous)'} $(vSetOpts_EPD)>} [OutCatchmentFlag])
+		, '#,##0');
+
+	let vCount_OutCatchment_CityWide = Num(
+		  Sum({<[Neighborhood Sector]-={'Charter'}, [Neighborhood Admission Type]={'Special Admit', 'Citywide'} $(vSetOpts_EPD)>}[OutCatchmentFlag])
+		, '#,##0');
+	let vCount_OutCatchment_CityWide_Current = Num(
+		  Sum({<[Neighborhood Sector]-={'Charter'}, [Neighborhood Admission Type]={'Special Admit', 'Citywide'}, [School Year] = {'$(vSchoolYear_Current)'} $(vSetOpts_EPD)>} [OutCatchmentFlag])
+		, '#,##0');
+	let vCountTotal_OutCatchment_CityWide_Current = Num(
+		  Sum(Total {<[Neighborhood Sector]-={'Charter'}, [Neighborhood Admission Type]={'Special Admit', 'Citywide'}, [School Year] = {'$(vSchoolYear_Current)'} $(vSetOpts_EPD)>} [OutCatchmentFlag])
+		, '#,##0');
+	let vCount_OutCatchment_CityWide_Previous = Num(
+		  Sum({<[Neighborhood Sector]-={'Charter'}, [Neighborhood Admission Type]={'Special Admit', 'Citywide'}, [School Year] = {'$(vSchoolYear_Previous)'} $(vSetOpts_EPD)>} [OutCatchmentFlag])
+		, '#,##0');
+
+	let vCount_OutCatchment_OtherNeighborhood = Num(
+		  Sum({<[Neighborhood Sector]-={'Charter'}, [Neighborhood Admission Type]={'Neighborhood'} $(vSetOpts_EPD)>}[OutCatchmentFlag])
+		, '#,##0');
+	let vCount_OutCatchment_OtherNeighborhood_Current = Num(
+		  Sum({<[Neighborhood Sector]-={'Charter'}, [Neighborhood Admission Type]={'Neighborhood'}, [School Year] = {'$(vSchoolYear_Current)'} $(vSetOpts_EPD)>} [OutCatchmentFlag])
+		, '#,##0');
+	let vCountTotal_OutCatchment_OtherNeighborhood_Current = Num(
+		  Sum(Total {<[Neighborhood Sector]-={'Charter'}, [Neighborhood Admission Type]={'Neighborhood'}, [School Year] = {'$(vSchoolYear_Current)'} $(vSetOpts_EPD)>} [OutCatchmentFlag])
+		, '#,##0');
+	let vCount_OutCatchment_OtherNeighborhood_Previous = Num(
+		  Sum({<[Neighborhood Sector]-={'Charter'}, [Neighborhood Admission Type]={'Neighborhood'}, [School Year] = {'$(vSchoolYear_Previous)'} $(vSetOpts_EPD)>} [OutCatchmentFlag])
+		, '#,##0');
+
+	let vCount_OutCatchment_Other = Num(
+		  $(vCount_OutCatchment) - ($(vCount_OutCatchment_Charter) + $(vCount_OutCatchment_CityWide) + $(vCount_OutCatchment_OtherNeighborhood))
+		, '#,##0');
+	let vCount_OutCatchment_Other_Current = Num(
+		  $(vCount_OutCatchment_Current) - ($(vCount_OutCatchment_Charter_Current) + $(vCount_OutCatchment_CityWide_Current) + $(vCount_OutCatchment_OtherNeighborhood_Current))
+		, '#,##0');
+	let vCountTotal_OutCatchment_Other_Current = Num(
+		  $(vCountTotal_OutCatchment_Current) - ($(vCountTotal_OutCatchment_Charter_Current) + $(vCountTotal_OutCatchment_CityWide_Current) + $(vCountTotal_OutCatchment_OtherNeighborhood_Current))
+		, '#,##0');
+	let vCount_OutCatchment_Other_Previous = Num(
+		  $(vCount_OutCatchment_Previous) - ($(vCount_OutCatchment_Charter_Previous) + $(vCount_OutCatchment_CityWide_Previous) + $(vCount_OutCatchment_OtherNeighborhood_Previous))
+		, '#,##0');
+
+//////////////////////////// VARIABLE RELATED /////////////////////////////////////////
+
+	let vCount_Enrollment_bySelectedDemo_Current = Num (
+		if(vSelector_MapMetric_Demos = 'Economically Disadvantaged',
+			$(vCount_Enrollment_EconDis_Current)
+	    ,
+	    if(Match(vSelector_MapMetric_Demos, 'Black or Hispanic', 'Ethnicity') > 0,
+	    	(
+	        	Sum({<[School Year] = {'$(vSchoolYear_Current)'}, Ethnicity={'Black/African American', 'Hispanic/Latino'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+				+
+				Sum({<[School Year] = {'$(vSchoolYear_Current)'}, Ethnicity={'Black/African American', 'Hispanic/Latino'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+	        )
+	    ,
+	    if(Match(vSelector_MapMetric_Demos, 'Black/African American', 'Hispanic/Latino', 'Asian', 'White') > 0,
+	    	(
+	        	Sum({<[School Year] = {'$(vSchoolYear_Current)'}, Ethnicity={'$(vSelector_MapMetric_Demos)'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+				+
+				Sum({<[School Year] = {'$(vSchoolYear_Current)'}, Ethnicity={'$(vSelector_MapMetric_Demos)'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+	        )
+	    ,
+	    if(vSelector_MapMetric_Demos = 'EL',
+	    	(
+	        	Sum({<[School Year] = {'$(vSchoolYear_Current)'}, [English Learner]={'Yes'}, [School Reporting Category] -= {'Charter Schools'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+				+
+				Sum({<[School Year] = {'$(vSchoolYear_Current)'}, [English Learner]={'Yes'}, [School Reporting Category] -= {'Charter Schools'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+	        )
+	    ,
+	    if(vSelector_MapMetric_Demos = 'SPED',
+	    	(
+	        	Sum({<[School Year] = {'$(vSchoolYear_Current)'}, [Special Education]={'Y'},[School Reporting Category] -= {'Charter Schools'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+				+
+				Sum({<[School Year] = {'$(vSchoolYear_Current)'}, [Special Education]={'Y'},[School Reporting Category] -= {'Charter Schools'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+	        )
+	    ,
+	    if(vSelector_MapMetric_Demos = 'Female',
+	    	(
+	        	Sum({<[School Year] = {'$(vSchoolYear_Current)'}, [Gender]={'Female'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
+				+
+				Sum({<[School Year] = {'$(vSchoolYear_Current)'}, [Gender]={'Female'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
+	        )
+	    ,
+	    ))))))    
+    	, '#,##0');
+
+	let vAvg_Enrollment_bySelectedDemo_Current = Num(
+		RangeMin(1, $(vCount_Enrollment_bySelectedDemo_Current) / $(vCount_Enrollment_Current))	    
+		, '#0.#%'); 
+
+
+	let vCount_Catchment_bySelectedDemo_Current = Num (
+		If(Sum({<[School Year] = {'$(vSchoolYear_Current)'}>} [InCatchmentFlag]) > 0,
+			if(Match(vSelector_MapMetric_Demos, 'Economically Disadvantaged') > 0,
+				1.6 * (
+					Sum({<[Free From Tape] = {'FT'}, [School Year] = {'$(vSchoolYear_Current)'}, [Neighborhood Reporting Category] -= {'Charter Schools'} $(vSetOpts_EPD)>} [InCatchmentFlag])
+					+
+					Alt(Sum({<[Free From Tape] = {'FT'}, [School Year] = {'$(vSchoolYear_Current)'}, [Neighborhood Reporting Category] -= {'Charter Schools'} $(vSetOpts_EPD)>} [OutCatchmentFlag]),0)
+				)
+		    ,
+		    if(Match(vSelector_MapMetric_Demos, 'Black or Hispanic', 'Ethnicity') > 0,
+		    	(
+		        	Sum({<[School Year] = {'$(vSchoolYear_Current)'}, Ethnicity={'Black/African American', 'Hispanic/Latino'} $(vSetOpts_EPD)>} [InCatchmentFlag])
+					+
+					Alt(Sum({<[School Year] = {'$(vSchoolYear_Current)'}, Ethnicity={'Black/African American', 'Hispanic/Latino'} $(vSetOpts_EPD)>} [OutCatchmentFlag]),0)
+		        )
+		    ,
+		    if(Match(vSelector_MapMetric_Demos, 'Black/African American', 'Hispanic/Latino', 'Asian', 'White') > 0,
+		    	(
+		        	Sum({<[School Year] = {'$(vSchoolYear_Current)'}, Ethnicity={'$(vSelector_MapMetric_Demos)'} $(vSetOpts_EPD)>} [InCatchmentFlag])
+					+
+					Alt(Sum({<[School Year] = {'$(vSchoolYear_Current)'}, Ethnicity={'$(vSelector_MapMetric_Demos)'} $(vSetOpts_EPD)>} [OutCatchmentFlag]),0)
+		        )
+		    ,
+		    if(vSelector_MapMetric_Demos = 'EL',
+		    	(
+		        	Sum({<[School Year] = {'$(vSchoolYear_Current)'}, [English Learner]={'Yes'}, [Neighborhood Reporting Category] -= {'Charter Schools'} $(vSetOpts_EPD)>} [InCatchmentFlag])
+					+
+					Alt(Sum({<[School Year] = {'$(vSchoolYear_Current)'}, [English Learner]={'Yes'}, [Neighborhood Reporting Category] -= {'Charter Schools'} $(vSetOpts_EPD)>} [OutCatchmentFlag]),0)
+		        )
+		    ,
+		    if(vSelector_MapMetric_Demos = 'SPED',
+		    	(
+		        	Sum({<[School Year] = {'$(vSchoolYear_Current)'}, [Special Education]={'Y'}, [Neighborhood Reporting Category] -= {'Charter Schools'} $(vSetOpts_EPD)>} [InCatchmentFlag])
+					+
+					Alt(Sum({<[School Year] = {'$(vSchoolYear_Current)'}, [Special Education]={'Y'}, [Neighborhood Reporting Category] -= {'Charter Schools'} $(vSetOpts_EPD)>} [OutCatchmentFlag]),0)
+		        )
+		    ,
+		    if(vSelector_MapMetric_Demos = 'Female',
+		    	(
+		        	Sum({<[School Year] = {'$(vSchoolYear_Current)'}, [Gender]={'Female'} $(vSetOpts_EPD)>} [InCatchmentFlag])
+					+
+					Alt(Sum({<[School Year] = {'$(vSchoolYear_Current)'}, [Gender]={'Female'} $(vSetOpts_EPD)>} [OutCatchmentFlag]),0)
+		        )
+		    ,
+		    ))))))
+		)    
+    	, '#,##0');
+
+	let vAvg_Catchment_bySelectedDemo_Current = Num(
+		If($(vCount_Catchment_bySelectedDemo_Current) >= 0,
+			If (Match(vSelector_MapMetric_Demos, 'Economically Disadvantaged', 'EL', 'SPED') = 0, 
+				RangeMin(1, $(vCount_Catchment_bySelectedDemo_Current) / $(vCount_Catchment_Current)),
+				RangeMin(1, $(vCount_Catchment_bySelectedDemo_Current) / $(vCount_Catchment_NonCharter_Current))
+			)
+		)    
+		, '#0.#%'); 
+
+
+
+
+/*
+
+
+
+//////////// REVERSED COUNTS /////////////////
+////////////  these are the enrollment counts for when the "Neighborhood School" is the primary dimension
+////////////  they are the same as catchment counts, but schools that are not valid are nulled out
+////////////
+
+
+
+	let vCount_Reversed_Enrollment = Num(
+		If($(vCount1_Catchment) > 0, $(vCount_Catchment))
+		, '#,##0');
+	let vCount_Reversed_Enrollment_Current = Num(
+		If($(vCount1_Catchment_Current) > 0, $(vCount_Catchment_Current))
+		), '#,##0');
+	let vCount1_Reversed_Enrollment_Current = Num(
+		If($(vCount1_Catchment_Current) > 0, $(vCount1_Catchment_Current))
+		), '#,##0');
+	let vCountTotal_Reversed_Enrollment_Current = Num(
+		If($(vCount1_Catchment_Current) > 0, $(vCountTotal_Catchment_Current))
+		), '#,##0');
+	let vCount_Reversed_Enrollment_Previous = Num(
+		If($(vCount1_Catchment_Previous) > 0, $(vCount_Catchment_Previous))
+		), '#,##0');
+
+
+
+	//// FromOtherCatchment flag indicates the # of enrolled students that come from a different catchment
+	let vCount_Reversed_FromOtherCatchment = Num(vCount1_OutCatchment
+		If($(vCount1_Catchment) > 0, $(vCount_Catchment))
+		  Sum([FromOtherCatchmentFlag])
+		, '#,##0');
+	let vCount_Reversed_FromOtherCatchment_Current = Num(
+		  Sum({<[School Year] = {'$(vSchoolYear_Current)'}>} [OutCatchmentFlag])
+		, '#,##0');
+	let vCount1_Reversed_FromOtherCatchment_Current = Num(
+		  Sum({1<[School Year] = {'$(vSchoolYear_Current)'}>} [OutCatchmentFlag])
+		, '#,##0');
+	let vCountTotal_Reversed_FromOtherCatchment_Current = Num(
+		  Sum(Total {<[School Year] = {'$(vSchoolYear_Current)'}>} [OutCatchmentFlag])
+		, '#,##0');
+	let vCount_Reversed_FromOtherCatchment_Previous = Num(
+		  Sum({<[School Year] = {'$(vSchoolYear_Previous)'}>} [OutCatchmentFlag])
+		, '#,##0');
+
+	//// In-Catchment is the students who attend their neighborhood schools - will work for both enrollment and catchment dimensions
+		//// Note: the Flag_Inclusion_App_Enrollment flag should always be 1 here because all neighborhood schoools should be 1
+	let vCount_Reversed_InCatchment = Num(
+		  Sum([InCatchmentFlag])
+		, '#,##0');		
+	let vCount_Reversed_InCatchment_Current = Num(
+		  Sum({<[School Year] = {'$(vSchoolYear_Current)'}>} [InCatchmentFlag])
+		, '#,##0');
+	let vCount1_Reversed_InCatchment_Current = Num(
+		  Sum({1<[School Year] = {'$(vSchoolYear_Current)'}>} [InCatchmentFlag])
+		, '#,##0');
+	let vCountTotal_Reversed_InCatchment_Current = Num(
+		  Sum(Total {<[School Year] = {'$(vSchoolYear_Current)'}>} [InCatchmentFlag])
+		, '#,##0');
+	let vCount_Reversed_InCatchment_Previous= Num(
+		  Sum({<[School Year] = {'$(vSchoolYear_Previous)'}>} [InCatchmentFlag])
+		, '#,##0');
+
+
+	let vCount_Reversed_Catchment_Current = Num(
+		Sum({<[School Year] = {'$(vSchoolYear_Current)'}>} [InCatchmentFlag])
+		+
+		Alt(Sum({<[School Year] = {'$(vSchoolYear_Current)'}>} [FromOtherCatchmentFlag]), 0)
+	, '#,##0');
+
+	let vCountTotal_Reversed_Catchment_Current = Num(
+		Sum(Total {<[School Year] = {'$(vSchoolYear_Current)'}>} [InCatchmentFlag])
+		+
+		Alt(Sum(Total {<[School Year] = {'$(vSchoolYear_Current)'}>} [FromOtherCatchmentFlag]), 0)
+	, '#,##0');
+
+	let vCount_Reversed_OutCatchment_Current = Num(
+		  Sum({<[School Year] = {'$(vSchoolYear_Current)'}>} [FromOtherCatchmentFlag])
+		, '#,##0');
+	let vCountTotal_Reversed_OutCatchment_Current = Num(
+		  Sum(Total {<[School Year] = {'$(vSchoolYear_Current)'}>} [FromOtherCatchmentFlag])
+		, '#,##0');
+*/

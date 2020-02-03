@@ -90,8 +90,8 @@
 	Let vSetMods_pSY_dGrade_dSector_IgnoreApplications = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}, "Student_Applied_Flag"=, "Receiving Program Name"=, "Receiving Program Type"=, "Receiving Program ULCS Code"=, "Receiving Program Code"=,"Receiving Program Type Code"=>;
 	
 	// only students that applied to some schools
-	Let vSetMods_Applied_Any = <[Applied_Any_Flag] = {1}>;
-	Let vSetMods_Applied_Any_pSY = <[Applied_Any_Flag] = {1}, [School Year]={$1}>;
+	Let vSetMods_Applied_Any = <[Applied_Any_Flag] = {1}, [School Year]={$1}>;
+	Let vSetMods_Applied_Any_pSY = <[Applied_Any_Flag] = {1}>;
 	Let vSetMods_Applied_Any_pSY_dGrade = <[Applied_Any_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
 	Let vSetMods_Applied_Any_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Applied_Any_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
 	

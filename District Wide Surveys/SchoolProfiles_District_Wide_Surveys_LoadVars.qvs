@@ -100,7 +100,141 @@
   let vAnswerText_YTD = Concat(Distinct {1<[QuestionCode]={"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [IsHighest]={1}>}[AnswerText]);
 
 ///  Construct
-///  Selected
+///  Selected Respondant and Construct
   let vCount_Responses_Survey_Construct_YTD = RangeMax(Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_7));
+  let vCount_Respondents_Survey_Construct_YTD = Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} CountRespondents);
   let vAvg_PMP_Survey_Construct_YTD = RangeAvg(Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NHighest_1)/Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NHighest_2)/Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NHighest_3)/Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NHighest_4)/Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NHighest_5)/Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NHighest_6)/Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NHighest_7)/Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_7));
-    
+  let vAvg_ScaledScore_Survey_Construct_YTD = RangeAvg(Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_1)/Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_2)/Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_3)/Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_4)/Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_5)/Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_6)/Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_7)/Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_7));
+
+/// Selected Respondent, all Constructs 
+  let vCount_Respondents_Survey_YTD = Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} CountRespondents);
+  let vCount1_Respondents_Survey_YTD = Sum({1<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} CountRespondents);
+  let vAvg_ScaledScore_Survey_YTD = RangeAvg(Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_1)/Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_2)/Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_3)/Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_4)/Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_5)/Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_6)/Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_7)/Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_7));
+  let vmmAvg_ScaledScore_Survey_YTD = IF($(vCount_Respondents_Survey_YTD($1, $2)) >= $(vMin$1s),
+    $(vAvg_ScaledScore_Survey_YTD($1, $2))
+  );
+
+/// Across respondents (not principal) Selected Construct - for table
+  let vCount_Respondents_AcrossSurveys_Construct_YTD = RangeSum(
+    Sum({<[Survey] = {"Student"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} CountRespondents),
+    Sum({<[Survey] = {"Parent"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} CountRespondents),
+    Sum({<[Survey] = {"Teacher"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} CountRespondents)
+  );
+  let vAvg_ScaledScore_AcrossSurveys_Construct_YTD = RangeAvg(
+    Sum({<[Survey] = {"Student"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_1)/Sum({<[Survey] = {"Student"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[Survey] = {"Student"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_2)/Sum({<[Survey] = {"Student"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[Survey] = {"Student"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_3)/Sum({<[Survey] = {"Student"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[Survey] = {"Student"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_4)/Sum({<[Survey] = {"Student"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[Survey] = {"Student"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_5)/Sum({<[Survey] = {"Student"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[Survey] = {"Student"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_6)/Sum({<[Survey] = {"Student"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[Survey] = {"Student"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_7)/Sum({<[Survey] = {"Student"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_7),
+    Sum({<[Survey] = {"Parent"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_1)/Sum({<[Survey] = {"Parent"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[Survey] = {"Parent"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_2)/Sum({<[Survey] = {"Parent"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[Survey] = {"Parent"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_3)/Sum({<[Survey] = {"Parent"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[Survey] = {"Parent"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_4)/Sum({<[Survey] = {"Parent"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[Survey] = {"Parent"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_5)/Sum({<[Survey] = {"Parent"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[Survey] = {"Parent"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_6)/Sum({<[Survey] = {"Parent"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[Survey] = {"Parent"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_7)/Sum({<[Survey] = {"Parent"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_7),
+    Sum({<[Survey] = {"Teacher"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_1)/Sum({<[Survey] = {"Teacher"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[Survey] = {"Teacher"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_2)/Sum({<[Survey] = {"Teacher"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[Survey] = {"Teacher"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_3)/Sum({<[Survey] = {"Teacher"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[Survey] = {"Teacher"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_4)/Sum({<[Survey] = {"Teacher"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[Survey] = {"Teacher"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_5)/Sum({<[Survey] = {"Teacher"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[Survey] = {"Teacher"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_6)/Sum({<[Survey] = {"Teacher"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[Survey] = {"Teacher"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_7)/Sum({<[Survey] = {"Teacher"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_7)
+    );
+  let vmmAvg_ScaledScore_AcrossSurveys_Construct_YTD = IF($(vCount_Respondents_AcrossSurveys_Construct_YTD($1, $2)) >= $(vMinStudents) or 
+    (('$(vTopic_Selected)' = 'Professional Capacity' or Only([Topic]) = 'Professional Capacity' or Only([Survey]) = 'Teacher') and $(vCount_Respondents_AcrossSurveys_Construct_YTD($1, $2)) >= $(vMinTeachers)),
+   $(vAvg_ScaledScore_AcrossSurveys_Construct_YTD($1, $2))
+  );
+
+/// Across respondents (not principal, all constructs) - for table
+  let vCount_Respondents_AcrossSurveys_YTD = RangeSum(
+    Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} CountRespondents),
+    Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} CountRespondents),
+    Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} CountRespondents)
+  );
+  let vCount1_Respondents_AcrossSurveys_YTD = RangeSum(
+    Sum({1<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} CountRespondents),
+    Sum({1<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} CountRespondents),
+    Sum({1<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} CountRespondents)
+  );
+  let vAvg_ScaledScore_AcrossSurveys_YTD = RangeAvg(
+    Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_1)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_2)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_3)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_4)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_5)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_6)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_7)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_7),
+    Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_1)/Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_2)/Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_3)/Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_4)/Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_5)/Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_6)/Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_7)/Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_7),
+    Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_1)/Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_2)/Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_3)/Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_4)/Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_5)/Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_6)/Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_7)/Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_7)
+    );
+  let vmmAvg_ScaledScore_AcrossSurveys_YTD = IF($(vCount_Respondents_AcrossSurveys_YTD($1)) >= $(vMinStudents) or 
+    (('$(vTopic_Selected)' = 'Professional Capacity' or Only([Topic]) = 'Professional Capacity' or Only([Survey]) = 'Teacher') and $(vCount_Respondents_AcrossSurveys_YTD($1)) >= $(vMinTeachers)),
+   $(vAvg_ScaledScore_AcrossSurveys_YTD($1))
+  );
+
+/// Across respondents (not principal, all constructs) - for radar and line
+
+  let vCount_Respondents_AcrossSurveys = RangeSum(
+    Sum({<[Survey] = {"Student"}, [_Construct_Flag]={1}>} CountRespondents),
+    Sum({<[Survey] = {"Parent"}, [_Construct_Flag]={1}>} CountRespondents),
+    Sum({<[Survey] = {"Teacher"}, [_Construct_Flag]={1}>} CountRespondents)
+  );
+  let vAvg_ScaledScore_AcrossSurveys = RangeAvg(
+    Sum({<[Survey] = {"Student"}, [_Construct_Flag]={1}>} SumScaledScore_1)/Sum({<[Survey] = {"Student"}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[Survey] = {"Student"}, [_Construct_Flag]={1}>} SumScaledScore_2)/Sum({<[Survey] = {"Student"}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[Survey] = {"Student"}, [_Construct_Flag]={1}>} SumScaledScore_3)/Sum({<[Survey] = {"Student"}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[Survey] = {"Student"}, [_Construct_Flag]={1}>} SumScaledScore_4)/Sum({<[Survey] = {"Student"}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[Survey] = {"Student"}, [_Construct_Flag]={1}>} SumScaledScore_5)/Sum({<[Survey] = {"Student"}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[Survey] = {"Student"}, [_Construct_Flag]={1}>} SumScaledScore_6)/Sum({<[Survey] = {"Student"}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[Survey] = {"Student"}, [_Construct_Flag]={1}>} SumScaledScore_7)/Sum({<[Survey] = {"Student"}, [_Construct_Flag]={1}>} NCompleted_7),
+    Sum({<[Survey] = {"Parent"}, [_Construct_Flag]={1}>} SumScaledScore_1)/Sum({<[Survey] = {"Parent"}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[Survey] = {"Parent"}, [_Construct_Flag]={1}>} SumScaledScore_2)/Sum({<[Survey] = {"Parent"}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[Survey] = {"Parent"}, [_Construct_Flag]={1}>} SumScaledScore_3)/Sum({<[Survey] = {"Parent"}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[Survey] = {"Parent"}, [_Construct_Flag]={1}>} SumScaledScore_4)/Sum({<[Survey] = {"Parent"}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[Survey] = {"Parent"}, [_Construct_Flag]={1}>} SumScaledScore_5)/Sum({<[Survey] = {"Parent"}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[Survey] = {"Parent"}, [_Construct_Flag]={1}>} SumScaledScore_6)/Sum({<[Survey] = {"Parent"}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[Survey] = {"Parent"}, [_Construct_Flag]={1}>} SumScaledScore_7)/Sum({<[Survey] = {"Parent"}, [_Construct_Flag]={1}>} NCompleted_7),
+    Sum({<[Survey] = {"Teacher"}, [_Construct_Flag]={1}>} SumScaledScore_1)/Sum({<[Survey] = {"Teacher"}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[Survey] = {"Teacher"}, [_Construct_Flag]={1}>} SumScaledScore_2)/Sum({<[Survey] = {"Teacher"}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[Survey] = {"Teacher"}, [_Construct_Flag]={1}>} SumScaledScore_3)/Sum({<[Survey] = {"Teacher"}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[Survey] = {"Teacher"}, [_Construct_Flag]={1}>} SumScaledScore_4)/Sum({<[Survey] = {"Teacher"}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[Survey] = {"Teacher"}, [_Construct_Flag]={1}>} SumScaledScore_5)/Sum({<[Survey] = {"Teacher"}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[Survey] = {"Teacher"}, [_Construct_Flag]={1}>} SumScaledScore_6)/Sum({<[Survey] = {"Teacher"}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[Survey] = {"Teacher"}, [_Construct_Flag]={1}>} SumScaledScore_7)/Sum({<[Survey] = {"Teacher"}, [_Construct_Flag]={1}>} NCompleted_7)
+    );
+  let vmmAvg_ScaledScore_AcrossSurveys = IF($(vCount_Respondents_AcrossSurveys) >= $(vMinStudents) or 
+    (('$(vTopic_Selected)' = 'Professional Capacity' or Only([Topic]) = 'Professional Capacity' or Only([Survey]) = 'Teacher') and $(vCount_Respondents_AcrossSurveys) >= $(vMinTeachers)),
+   $(vAvg_ScaledScore_AcrossSurveys)
+  );
+
+/// Subconstruct
+/// Selected Respondent, Selected Construct
+  let vCount_Sub_Respondents_Survey_Construct_YTD = Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_SubConstruct_Flag]={1}>} CountRespondents);
+  let vCount1_Sub_Respondents_Survey_Construct_YTD = Sum({1<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_SubConstruct_Flag]={1}>} CountRespondents);
+  let vAvg_Sub_ScaledScore_Survey_Construct_YTD = Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_SubConstruct_Flag]={1}>} SubConstruct_SumScaledScore)/Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_SubConstruct_Flag]={1}>} SubConstruct_NCompleted);
+  let vmmAvg_Sub_ScaledScore_Survey_Construct_YTD =  IF($(vCount_Sub_Respondents_Survey_Construct_YTD($1, $2, $3)) >= $(vMin$1s),
+    $(vAvg_Sub_ScaledScore_Survey_Construct_YTD($1, $2, $3))
+  );
+
+/// Across Respondents, Selected Construct
+  let vCount_Sub_Respondents_AcrossSurveys_Construct_YTD = RangeSum(
+    Sum({<[Survey] = {"Student"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_SubConstruct_Flag]={1}>} CountRespondents),
+    Sum({<[Survey] = {"Parent"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_SubConstruct_Flag]={1}>} CountRespondents),
+    Sum({<[Survey] = {"Teacher"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_SubConstruct_Flag]={1}>} CountRespondents)
+    );
+  let vCount1_Sub_Respondents_AcrossSurveys_Construct_YTD = RangeSum(
+    Sum({1<[Survey] = {"Student"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_SubConstruct_Flag]={1}>} CountRespondents),
+    Sum({1<[Survey] = {"Parent"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_SubConstruct_Flag]={1}>} CountRespondents),
+    Sum({1<[Survey] = {"Teacher"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_SubConstruct_Flag]={1}>} CountRespondents)
+    );
+  let vAvg_Sub_ScaledScore_AcrossSurveys_Construct_YTD = RangeAvg(
+    Sum({<[Survey] = {"Student"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_SubConstruct_Flag]={1}>} SubConstruct_SumScaledScore)/Sum({<[Survey] = {"Student"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_SubConstruct_Flag]={1}>} SubConstruct_NCompleted),
+    Sum({<[Survey] = {"Parent"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_SubConstruct_Flag]={1}>} SubConstruct_SumScaledScore)/Sum({<[Survey] = {"Parent"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_SubConstruct_Flag]={1}>} SubConstruct_NCompleted),
+    Sum({<[Survey] = {"Teacher"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_SubConstruct_Flag]={1}>} SubConstruct_SumScaledScore)/Sum({<[Survey] = {"Teacher"}, [Construct]={"$1"}, [_$2YTD_Flag]={1}, [_SubConstruct_Flag]={1}>} SubConstruct_NCompleted)
+    );
+  let vmmAvg_Sub_ScaledScore_AcrossSurveys_Construct_YTD = IF($(vCount_Sub_Respondents_AcrossSurveys_Construct_YTD($1, $2)) >= $(vMinStudents) or 
+    (('$(vTopic_Selected)' = 'Professional Capacity' or Only([Topic]) = 'Professional Capacity' or Only([Survey]) = 'Teacher') and $(vCount_Sub_Respondents_AcrossSurveys_Construct_YTD($1, $2)) >= $(vMinTeachers)),
+    $(vAvg_Sub_ScaledScore_AcrossSurveys_Construct_YTD($1, $2))
+  );
+
+  let vCount_Sub_Respondents_AcrossSurveys_Construct = RangeSum(
+    Sum({<[Survey] = {"Student"}, [Construct]={"$1"}, [_SubConstruct_Flag]={1}>} CountRespondents),
+    Sum({<[Survey] = {"Parent"}, [Construct]={"$1"}, [_SubConstruct_Flag]={1}>} CountRespondents),
+    Sum({<[Survey] = {"Teacher"}, [Construct]={"$1"}, [_SubConstruct_Flag]={1}>} CountRespondents)
+    );
+  let vAvg_Sub_ScaledScore_AcrossSurveys_Construct = RangeAvg(
+    Sum({<[Survey] = {"Student"}, [Construct]={"$1"}, [_SubConstruct_Flag]={1}>} SubConstruct_SumScaledScore)/Sum({<[Survey] = {"Student"}, [Construct]={"$1"}, [_SubConstruct_Flag]={1}>} SubConstruct_NCompleted),
+    Sum({<[Survey] = {"Parent"}, [Construct]={"$1"}, [_SubConstruct_Flag]={1}>} SubConstruct_SumScaledScore)/Sum({<[Survey] = {"Parent"}, [Construct]={"$1"}, [_SubConstruct_Flag]={1}>} SubConstruct_NCompleted),
+    Sum({<[Survey] = {"Teacher"}, [Construct]={"$1"}, [_SubConstruct_Flag]={1}>} SubConstruct_SumScaledScore)/Sum({<[Survey] = {"Teacher"}, [Construct]={"$1"}, [_SubConstruct_Flag]={1}>} SubConstruct_NCompleted)
+    );
+  let vmmAvg_Sub_ScaledScore_AcrossSurveys_Construct = IF($(vCount_Sub_Respondents_AcrossSurveys_Construct($1)) >= $(vMinStudents) or 
+    (('$(vTopic_Selected)' = 'Professional Capacity' or Only([Topic]) = 'Professional Capacity' or Only([Survey]) = 'Teacher') and $(vCount_Sub_Respondents_AcrossSurveys_Construct($1)) >= $(vMinTeachers)),
+    $(vAvg_Sub_ScaledScore_AcrossSurveys_Construct($1))
+  );
+
+/// Drill-downs
+
+  let vCount1_Drill_Respondents_Survey_Construct_YTD =  If('$2' = 'All Topics',
+    $(vCount1_Respondents_Survey_YTD($1, $3)),
+    $(vCount1_Sub_Respondents_Survey_Construct_YTD($1, $2, $3))  
+  );
+  let vCount1_Drill_Respondents_AcrossSurveys_Construct_YTD =  If('$1' = 'All Topics',
+    $(vCount1_Respondents_AcrossSurveys_YTD($2)),
+    $(vCount1_Sub_Respondents_AcrossSurveys_Construct_YTD($1, $2))  
+  );
+
+  let vmmAvg_Drill_ScaledScore_Survey_Construct_YTD =  If('$2' = 'All Topics',
+    $(vmmAvg_ScaledScore_Survey_YTD($1, $3)),
+    $(vmmAvg_Sub_ScaledScore_Survey_Construct_YTD($1, $2, $3))  
+  );
+
+  let vmmAvg_Drill_ScaledScore_AcrossSurveys_Construct_YTD = If('$1' = 'All Topics',
+    $(vmmAvg_ScaledScore_AcrossSurveys_YTD($2)),
+    $(vmmAvg_Sub_ScaledScore_AcrossSurveys_Construct_YTD($1, $2))  
+  );
+  let vmmAvg_Drill_ScaledScore_AcrossSurveys_Construct = If('$1' = 'All Topics',
+    $(vmmAvg_ScaledScore_AcrossSurveys),
+    $(vmmAvg_Sub_ScaledScore_AcrossSurveys_Construct($1))  
+  );
+

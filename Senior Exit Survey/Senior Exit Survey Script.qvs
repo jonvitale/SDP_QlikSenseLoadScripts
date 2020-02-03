@@ -16,8 +16,16 @@
 //////////////// GENERAL //////////////////
 
 let vMinStudents = 20;
+
+// the following statement will be evaluated in totals, because we don't want to total over student demographics, we want to suppress low-n groups
+set vTotalExclusions_demos = Ethnicity, Gender, [English Learner];
+
 let vSchoolYear_Current = =MaxString("School Year");
-let vSchoolYear_Enrollment = =(Left('$(vSchoolYear_Current)',4)+1) & '-' & (Right('$(vSchoolYear_Current)',4)+1);
+// GradCurrent refers to the school year in which we have grad and matric data - processes for spr
+let vSchoolYear_GradCurrent = =MaxString({<[ONE_gradStatus4yr_byStudent]={0, 1}>} "School Year");
+let vSchoolYear_GradPrevious = =MaxString({<[School Year]-={"$(vSchoolYear_GradCurrent)"}, [ONE_gradStatus4yr_byStudent]={0, 1}>} "School Year");
+let vSchoolYear_MatriculationCurrent = =(Left('$(vSchoolYear_GradCurrent)',4)+1) & '-' & (Right('$(vSchoolYear_GradCurrent)',4)+1);
+let vSchoolYear_MatriculationPrevious = =(Left('$(vSchoolYear_GradPrevious)',4)+1) & '-' & (Right('$(vSchoolYear_GradCurrent)',4)+1);
 let vSchoolYear_Previous = =MaxString({<[School Year]-={"$(vSchoolYear_Current)"}>}"School Year");
 let vSchoolYear_Previous2 = =MaxString({<[School Year]-={"$(vSchoolYear_Current)", "$(vSchoolYear_Previous)"}>}"School Year");
 //let vSchoolYear_Previous3 = =MaxString({<[School Year]-={"$(vSchoolYear_Current)", "$(vSchoolYear_Previous)", "$(vSchoolYear_Previous2)"}>}"School Year");
@@ -33,20 +41,24 @@ let vColor_SchoolYear = If([School Year] = '$(vSchoolYear_Current)', '#398635',
 let vNum_Count_Students = Num(Sum(ONE_enrolled),'#,##0');
 let vNum_Count_Students_Current = Num(Sum({<[School Year] = {'$(vSchoolYear_Current)'}>}ONE_enrolled),'#,##0');
 let vNum_Count_Students_Previous = Num(Sum({<[School Year] = {'$(vSchoolYear_Previous)'}>}ONE_enrolled),'#,##0');
+let vNum_Count_Students_GradCurrent = Num(Sum({<[School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_enrolled),'#,##0');
+let vNum_Count_Students_GradPrevious = Num(Sum({<[School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_enrolled),'#,##0');
 
 let vNum_Count1_Students = Num(Sum({1}ONE_enrolled),'#,##0');
 let vNum_Count1_Students_Current = Num(Sum({1<[School Year] = {'$(vSchoolYear_Current)'}>}ONE_enrolled),'#,##0');
 let vNum_Count1_Students_Previous = Num(Sum({1<[School Year] = {'$(vSchoolYear_Previous)'}>}ONE_enrolled),'#,##0');
+let vNum_Count1_Students_GradCurrent = Num(Sum({1<[School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_enrolled),'#,##0');
+let vNum_Count1_Students_GradPrevious = Num(Sum({1<[School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_enrolled),'#,##0');
 
 /// Graduated - Matriculated
 
 let vNum_Count_Graduated = Num(Sum(ONE_gradStatus4yr_byStudent),'#,##0');
-let vNum_Count_Graduated_Current = Num(Sum({<[School Year] = {'$(vSchoolYear_Current)'}>}ONE_gradStatus4yr_byStudent),'#,##0');
-let vNum_Count_Graduated_Previous = Num(Sum({<[School Year] = {'$(vSchoolYear_Previous)'}>}ONE_gradStatus4yr_byStudent),'#,##0');
+let vNum_Count_Graduated_GradCurrent = Num(Sum({<[School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_gradStatus4yr_byStudent),'#,##0');
+let vNum_Count_Graduated_GradPrevious = Num(Sum({<[School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_gradStatus4yr_byStudent),'#,##0');
 
 let vNum_Count_Matriculated = Num(Sum(ONE_firstFallMatric_byStudent),'#,##0');
-let vNum_Count_Matriculated_Current = Num(Sum({<[School Year] = {'$(vSchoolYear_Current)'}>}ONE_firstFallMatric_byStudent),'#,##0');
-let vNum_Count_Matriculated_Previous = Num(Sum({<[School Year] = {'$(vSchoolYear_Previous)'}>}ONE_firstFallMatric_byStudent),'#,##0');
+let vNum_Count_Matriculated_GradCurrent = Num(Sum({<[School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_firstFallMatric_byStudent),'#,##0');
+let vNum_Count_Matriculated_GradPrevious = Num(Sum({<[School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_firstFallMatric_byStudent),'#,##0');
 
 
 //////////////// RESPONDENTS //////////////////
@@ -54,79 +66,239 @@ let vNum_Count_Matriculated_Previous = Num(Sum({<[School Year] = {'$(vSchoolYear
 let vNum_Count_Respondents = Num(Only(Aggr(If(Sum(ONE_took_a_survey) >= $(vMinStudents), Sum(ONE_took_a_survey)), [School Year])),'#,##0');
 let vNum_Count_Respondents_Current = Num(If($(vNum_CountTotal_Respondents_Current) >= $(vMinStudents), Sum({<[School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey)),'#,##0');
 let vNum_Count_Respondents_Previous = Num(If($(vNum_CountTotal_Respondents_Previous) >= $(vMinStudents), Sum({<[School Year] = {'$(vSchoolYear_Previous)'}>}ONE_took_a_survey)),'#,##0');
+let vNum_Count_Respondents_GradCurrent = Num(If($(vNum_CountTotal_Respondents_GradCurrent) >= $(vMinStudents), Sum({<[School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey)),'#,##0');
+let vNum_Count_Respondents_GradPrevious = Num(If($(vNum_CountTotal_Respondents_GradPrevious) >= $(vMinStudents), Sum({<[School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey)),'#,##0');
 let vNum_CountTotal_Respondents = Num(Sum(Total ONE_took_a_survey),'#,##0');
 let vNum_CountTotal_Respondents_Current = Num(Sum(Total {<[School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey),'#,##0');
 let vNum_CountTotal_Respondents_Previous = Num(Sum(Total {<[School Year] = {'$(vSchoolYear_Previous)'}>}ONE_took_a_survey),'#,##0');
-
+let vNum_CountTotal_Respondents_GradCurrent = Num(Sum(Total {<[School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey),'#,##0');
+let vNum_CountTotal_Respondents_GradPrevious = Num(Sum(Total {<[School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey),'#,##0');
 
 let vNum_Count1_Respondents = Num(Sum({1}ONE_took_a_survey),'#,##0');
 let vNum_Count1_Respondents_Current = Num(Sum({1<[School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey),'#,##0');
 let vNum_Count1_Respondents_Previous = Num(Sum({1<[School Year] = {'$(vSchoolYear_Previous)'}>}ONE_took_a_survey),'#,##0');
-let vNum_Count1Total_Respondents = Num(Sum(total {1}ONE_took_a_survey),'#,##0');
-let vNum_Count1Total_Respondents_Current = Num(Sum(total {1<[School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey),'#,##0');
-let vNum_Count1Total_Respondents_Previous = Num(Sum(total {1<[School Year] = {'$(vSchoolYear_Previous)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count1_Respondents_GradCurrent = Num(Sum({1<[School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count1_Respondents_GradPrevious = Num(Sum({1<[School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count1Total_Respondents = Num(Sum(Total {1}ONE_took_a_survey),'#,##0');
+let vNum_Count1Total_Respondents_Current = Num(Sum(Total {1<[School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count1Total_Respondents_Previous = Num(Sum(Total {1<[School Year] = {'$(vSchoolYear_Previous)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count1Total_Respondents_GradCurrent = Num(Sum(Total {1<[School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count1Total_Respondents_GradPrevious = Num(Sum(Total {1<[School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey),'#,##0');
 
 // unsupressed
 let vNum_Count_Respondents_NoBlind = Num(Sum(ONE_took_a_survey),'#,##0');
 let vNum_Count_Respondents_Current_NoBlind = Num(Sum({<[School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey),'#,##0');
 let vNum_Count_Respondents_Previous_NoBlind = Num(Sum({<[School Year] = {'$(vSchoolYear_Previous)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count_Respondents_GradCurrent_NoBlind = Num(Sum({<[School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count_Respondents_GradPrevious_NoBlind = Num(Sum({<[School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey),'#,##0');
 
 
 // respondents that graduated and/or matriculated
-let vNum_Count_Respondents_Graduated = Num(Only(Aggr(If(Sum(ONE_took_a_survey*ONE_gradStatus4yr_byStudent) >= $(vMinStudents), Sum(ONE_took_a_survey*ONE_gradStatus4yr_byStudent)), [School Year])),'#,##0');
-let vNum_Count_Respondents_Graduated_Current = Num(If($(vNum_CountTotal_Respondents_Current) >= $(vMinStudents), Sum({<[School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey*ONE_gradStatus4yr_byStudent)),'#,##0');
-let vNum_Count_Respondents_Graduated_Previous = Num(If($(vNum_CountTotal_Respondents_Previous) >= $(vMinStudents), Sum({<[School Year] = {'$(vSchoolYear_Previous)'}>}ONE_took_a_survey*ONE_gradStatus4yr_byStudent)),'#,##0');
+let vNum_Count_Respondents_Graduated = Num(Only(Aggr(If($(vNum_CountTotal_Respondents_Graduated) >= $(vMinStudents), Sum(ONE_took_a_survey*ONE_gradStatus4yr_byStudent)), [School Year])),'#,##0');
+let vNum_Count_Respondents_Graduated_GradCurrent = Num(If($(vNum_CountTotal_Respondents_Graduated_GradCurrent) >= $(vMinStudents), Sum({<[School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey*ONE_gradStatus4yr_byStudent)),'#,##0');
+let vNum_Count_Respondents_Graduated_GradPrevious = Num(If($(vNum_CountTotal_Respondents_Graduated_GradPrevious) >= $(vMinStudents), Sum({<[School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey*ONE_gradStatus4yr_byStudent)),'#,##0');
 let vNum_CountTotal_Respondents_Graduated = Num(Sum(Total ONE_took_a_survey*ONE_gradStatus4yr_byStudent),'#,##0');
-let vNum_CountTotal_Respondents_Graduated_Current = Num(Sum(Total {<[School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey*ONE_gradStatus4yr_byStudent),'#,##0');
-let vNum_CountTotal_Respondents_Graduated_Previous = Num(Sum(Total {<[School Year] = {'$(vSchoolYear_Previous)'}>}ONE_took_a_survey*ONE_gradStatus4yr_byStudent),'#,##0');
+let vNum_CountTotal_Respondents_Graduated_GradCurrent = Num(Sum(Total {<[School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey*ONE_gradStatus4yr_byStudent),'#,##0');
+let vNum_CountTotal_Respondents_Graduated_GradPrevious = Num(Sum(Total {<[School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey*ONE_gradStatus4yr_byStudent),'#,##0');
 
 let vNum_Count1_Respondents_Graduated = Num(Sum({1}ONE_took_a_survey*ONE_gradStatus4yr_byStudent),'#,##0');
-let vNum_Count1_Respondents_Graduated_Current = Num(Sum({1<[School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey*ONE_gradStatus4yr_byStudent),'#,##0');
-let vNum_Count_Respondents_Graduated_Previous = Num(Sum({1<[School Year] = {'$(vSchoolYear_Previous)'}>}ONE_took_a_survey*ONE_gradStatus4yr_byStudent),'#,##0');
+let vNum_Count1_Respondents_Graduated_GradCurrent = Num(Sum({1<[School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey*ONE_gradStatus4yr_byStudent),'#,##0');
+let vNum_Count_Respondents_Graduated_GradPrevious = Num(Sum({1<[School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey*ONE_gradStatus4yr_byStudent),'#,##0');
 let vNum_Count1Total_Respondents_Graduated = Num(Sum(Total {1}ONE_took_a_survey*ONE_gradStatus4yr_byStudent),'#,##0');
-let vNum_Count1Total_Respondents_Graduated_Current = Num(Sum(Total {1<[School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey*ONE_gradStatus4yr_byStudent),'#,##0');
-let vNum_Count1Total_Respondents_Graduated_Previous = Num(Sum(Total {1<[School Year] = {'$(vSchoolYear_Previous)'}>}ONE_took_a_survey*ONE_gradStatus4yr_byStudent),'#,##0');
+let vNum_Count1Total_Respondents_Graduated_GradCurrent = Num(Sum(Total {1<[School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey*ONE_gradStatus4yr_byStudent),'#,##0');
+let vNum_Count1Total_Respondents_Graduated_GradPrevious = Num(Sum(Total {1<[School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey*ONE_gradStatus4yr_byStudent),'#,##0');
 
 
-let vNum_Count_Respondents_Matriculated = Num(Only(Aggr(If(Sum(ONE_took_a_survey*ONE_firstFallMatric_byStudent) >= $(vMinStudents), Sum(ONE_took_a_survey*ONE_firstFallMatric_byStudent)), [School Year])),'#,##0');
-let vNum_Count_Respondents_Matriculated_Current = Num(If($(vNum_CountTotal_Respondents_Current) >= $(vMinStudents), Sum({<[School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey*ONE_firstFallMatric_byStudent)),'#,##0');
-let vNum_Count_Respondents_Matriculated_Previous = Num(If($(vNum_CountTotal_Respondents_Previous) >= $(vMinStudents), Sum({<[School Year] = {'$(vSchoolYear_Previous)'}>}ONE_took_a_survey*ONE_firstFallMatric_byStudent)),'#,##0');
+let vNum_Count_Respondents_Matriculated = Num(Only(Aggr(If($(vNum_CountTotal_Respondents_Matriculated) >= $(vMinStudents), Sum(ONE_took_a_survey*ONE_firstFallMatric_byStudent)), [School Year])),'#,##0');
+let vNum_Count_Respondents_Matriculated_GradCurrent = Num(If($(vNum_CountTotal_Respondents_Matriculated_GradCurrent) >= $(vMinStudents), Sum({<[School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey*ONE_firstFallMatric_byStudent)),'#,##0');
+let vNum_Count_Respondents_Matriculated_GradPrevious = Num(If($(vNum_CountTotal_Respondents_Matriculated_GradPrevious) >= $(vMinStudents), Sum({<[School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey*ONE_firstFallMatric_byStudent)),'#,##0');
 let vNum_CountTotal_Respondents_Matriculated = Num(Sum(Total ONE_took_a_survey*ONE_firstFallMatric_byStudent),'#,##0');
-let vNum_CountTotal_Respondents_Matriculated_Current = Num(Sum(Total {<[School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey*ONE_firstFallMatric_byStudent),'#,##0');
-let vNum_CountTotal_Respondents_Matriculated_Previous = Num(Sum(Total {<[School Year] = {'$(vSchoolYear_Previous)'}>}ONE_took_a_survey*ONE_firstFallMatric_byStudent),'#,##0');
+let vNum_CountTotal_Respondents_Matriculated_GradCurrent = Num(Sum(Total {<[School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey*ONE_firstFallMatric_byStudent),'#,##0');
+let vNum_CountTotal_Respondents_Matriculated_GradPrevious = Num(Sum(Total {<[School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey*ONE_firstFallMatric_byStudent),'#,##0');
 
 let vNum_Count1_Respondents_Matriculated = Num(Sum({1}ONE_took_a_survey*ONE_firstFallMatric_byStudent),'#,##0');
-let vNum_Count1_Respondents_Matriculated_Current = Num(Sum({1<[School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey*ONE_firstFallMatric_byStudent),'#,##0');
-let vNum_Count_Respondents_Matriculated_Previous = Num(Sum({1<[School Year] = {'$(vSchoolYear_Previous)'}>}ONE_took_a_survey*ONE_firstFallMatric_byStudent),'#,##0');
+let vNum_Count1_Respondents_Matriculated_GradCurrent = Num(Sum({1<[School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey*ONE_firstFallMatric_byStudent),'#,##0');
+let vNum_Count_Respondents_Matriculated_GradPrevious = Num(Sum({1<[School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey*ONE_firstFallMatric_byStudent),'#,##0');
 let vNum_Count1Total_Respondents_Matriculated = Num(Sum(Total {1}ONE_took_a_survey*ONE_firstFallMatric_byStudent),'#,##0');
-let vNum_Count1Total_Respondents_Matriculated_Current = Num(Sum(Total {1<[School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey*ONE_firstFallMatric_byStudent),'#,##0');
-let vNum_Count1Total_Respondents_Matriculated_Previous = Num(Sum(Total {1<[School Year] = {'$(vSchoolYear_Previous)'}>}ONE_took_a_survey*ONE_gradStatus4yr_byStudent),'#,##0');
+let vNum_Count1Total_Respondents_Matriculated_GradCurrent = Num(Sum(Total {1<[School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey*ONE_firstFallMatric_byStudent),'#,##0');
+let vNum_Count1Total_Respondents_Matriculated_GradPrevious = Num(Sum(Total {1<[School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey*ONE_gradStatus4yr_byStudent),'#,##0');
 
 
-/// plans for 4 year college
+// plans to continue education (any type)
+let vNum_Count_EducationPlans = Num(If($(vNum_CountTotal_Respondents) >= $(vMinStudents), Sum({<[Flag_Education]={1}}>}ONE_took_a_survey)),'#,##0');
+let vNum_Count_EducationPlans_Current = Num(If($(vNum_CountTotal_Respondents_Current) >= $(vMinStudents), Sum({<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey)),'#,##0');
+let vNum_Count_EducationPlans_Previous = Num(If($(vNum_CountTotal_Respondents_Previous) >= $(vMinStudents), Sum({<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_Previous)'}>}ONE_took_a_survey)),'#,##0');
+let vNum_Count1_EducationPlans_Current = Num(Sum({1<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey),'#,##0');
+
+let vNum_CountTotal_EducationPlans_Current = Num(Sum(Total {<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey),'#,##0');
+let vNum_CountTotal_EducationPlans_Previous = Num(Sum(Total {<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_Previous)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count1Total_EducationPlans_Current = Num(Sum(Total {1<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey),'#,##0');
+
+// only using complted graduation years
+let vNum_Count_EducationPlans_GradCurrent = Num(If($(vNum_CountTotal_Respondents_GradCurrent) >= $(vMinStudents), Sum({<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey)),'#,##0');
+let vNum_Count_EducationPlans_GradPrevious = Num(If($(vNum_CountTotal_Respondents_GradPrevious) >= $(vMinStudents), Sum({<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey)),'#,##0');
+let vNum_CountTotal_EducationPlans_GradCurrent = Num(Sum(Total {<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey),'#,##0');
+let vNum_CountTotal_EducationPlans_GradPrevious = Num(Sum(Total {<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count1_EducationPlans_GradCurrent = Num(Sum({1<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count1Total_EducationPlans_GradCurrent = Num(Sum(Total {1<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count1_EducationPlans_GradPrevious = Num(Sum({1<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count1Total_EducationPlans_GradPrevious = Num(Sum(Total {1<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey),'#,##0');
+
+// education plans - who graduated, who matriculated, who didn't matriculate
+let vNum_Count_EducationPlans_Graduated_GradCurrent = Num(If($(vNum_CountTotal_Respondents_GradCurrent) >= $(vMinStudents), Sum({<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_gradStatus4yr_byStudent)), '#,##0');
+let vNum_Count_EducationPlans_Graduated_GradPrevious = Num(If($(vNum_CountTotal_Respondents_GradPrevious) >= $(vMinStudents), Sum({<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_gradStatus4yr_byStudent)), '#,##0');
+let vNum_Count_EducationPlans_Matriculated_GradCurrent = Num(If($(vNum_CountTotal_Respondents_GradCurrent) >= $(vMinStudents), Sum({<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_firstFallMatric_byStudent)), '#,##0');
+let vNum_Count_EducationPlans_Matriculated_GradPrevious = Num(If($(vNum_CountTotal_Respondents_GradPrevious) >= $(vMinStudents), Sum({<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_firstFallMatric_byStudent)), '#,##0');
+let vNum_Count_EducationPlans_NotMatriculated_GradCurrent = Num(If($(vNum_CountTotal_Respondents_GradCurrent) >= $(vMinStudents), Sum({<[Flag_Education]={1}, [ONE_firstFallMatric_byStudent]-={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey)), '#,##0');
+let vNum_Count_EducationPlans_NotMatriculated_GradPrevious = Num(If($(vNum_CountTotal_Respondents_GradPrevious) >= $(vMinStudents), Sum({<[Flag_Education]={1}, [ONE_firstFallMatric_byStudent]-={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey)), '#,##0');
+let vNum_Count_EducationPlans_MatriculatedIntended_GradCurrent = Num(If($(vNum_CountTotal_Respondents_GradCurrent) >= $(vMinStudents), 
+		Sum({<[ONE_firstFallMatric_byStudent]={1}, [SchoolType_firstFallMatric_byStudent]={4}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}Flag_4Year) +
+		Sum({<[ONE_firstFallMatric_byStudent]={1}, [SchoolType_firstFallMatric_byStudent]-={4}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}Flag_2YearOther))
+	, '#,##0');
+
+let vNum_CountTotal_EducationPlans_Matriculated_GradCurrent = Num(If($(vNum_CountTotal_Respondents_GradCurrent) >= $(vMinStudents), Sum(total {<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_firstFallMatric_byStudent)), '#,##0');
+let vNum_CountTotal_EducationPlans_NotMatriculated_GradCurrent = Num(If($(vNum_CountTotal_Respondents_GradCurrent) >= $(vMinStudents), Sum(total {<[Flag_Education]={1}, [ONE_firstFallMatric_byStudent]-={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey)), '#,##0');
+
+
+let vNum_Count1_EducationPlans_Graduated_GradCurrent = Num(Sum({1<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_gradStatus4yr_byStudent), '#,##0');
+let vNum_Count1_EducationPlans_Graduated_GradPrevious = Num(Sum({1<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_gradStatus4yr_byStudent), '#,##0');
+let vNum_Count1_EducationPlans_Matriculated_GradCurrent = Num(Sum({1<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_firstFallMatric_byStudent), '#,##0');
+let vNum_Count1_EducationPlans_Matriculated_GradPrevious = Num(Sum({1<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_firstFallMatric_byStudent), '#,##0');
+let vNum_Count1_EducationPlans_NotMatriculated_GradCurrent = Num(Sum({1<[Flag_Education]={1}, [ONE_firstFallMatric_byStudent]-={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey), '#,##0');
+let vNum_Count1_EducationPlans_NotMatriculated_GradPrevious = Num(Sum({1<[Flag_Education]={1}, [ONE_firstFallMatric_byStudent]-={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey), '#,##0');
+let vNum_Count1_EducationPlans_MatriculatedIntended_GradCurrent = Num( 
+		Sum({1<[ONE_firstFallMatric_byStudent]={1}, [SchoolType_firstFallMatric_byStudent]={4}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}Flag_4Year) +
+		Sum({1<[ONE_firstFallMatric_byStudent]={1}, [SchoolType_firstFallMatric_byStudent]-={4}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}Flag_2YearOther)
+	, '#,##0');
+
+let vNum_Count1Total_EducationPlans_Matriculated_GradCurrent = Num(Sum(total {1<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_firstFallMatric_byStudent), '#,##0');
+let vNum_Count1Total_EducationPlans_NotMatriculated_GradCurrent = Num(Sum(total {1<[Flag_Education]={1}, [ONE_firstFallMatric_byStudent]-={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey), '#,##0');
+  
+
+
+// plans to continue 4 year education
+let vNum_Count_4YearPlans = Num(If($(vNum_CountTotal_Respondents) >= $(vMinStudents), Sum({<[Flag_4Year]={1}}>}ONE_took_a_survey)),'#,##0');
 let vNum_Count_4YearPlans_Current = Num(If($(vNum_CountTotal_Respondents_Current) >= $(vMinStudents), Sum({<[Flag_4Year]={1}, [School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey)),'#,##0');
 let vNum_Count_4YearPlans_Previous = Num(If($(vNum_CountTotal_Respondents_Previous) >= $(vMinStudents), Sum({<[Flag_4Year]={1}, [School Year] = {'$(vSchoolYear_Previous)'}>}ONE_took_a_survey)),'#,##0');
 let vNum_Count1_4YearPlans_Current = Num(Sum({1<[Flag_4Year]={1}, [School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey),'#,##0');
 
-// plans to continue education (any type)
-let vNum_Count_EducationPlans_Current = Num(If($(vNum_CountTotal_Respondents_Current) >= $(vMinStudents), Sum({<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey)),'#,##0');
-let vNum_Count_EducationPlans_Previous = Num(If($(vNum_CountTotal_Respondents_Previous) >= $(vMinStudents), Sum({<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_Previous)'}>}ONE_took_a_survey)),'#,##0');
-let vNum_CountTotal_EducationPlans_Current = Num(If($(vNum_CountTotal_Respondents_Current) >= $(vMinStudents), Sum(Total {<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey)),'#,##0');
-let vNum_CountTotal_EducationPlans_Previous = Num(If($(vNum_CountTotal_Respondents_Previous) >= $(vMinStudents), Sum(Total {<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_Previous)'}>}ONE_took_a_survey)),'#,##0');
-let vNum_Count1_EducationPlans_Current = Num(Sum({1<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey),'#,##0');
-let vNum_Count1Total_EducationPlans_Current = Num(Sum(Total {1<[Flag_Education]={1}, [School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey),'#,##0');
+let vNum_CountTotal_4YearPlans_Current = Num(Sum(Total {<[Flag_4Year]={1}, [School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey),'#,##0');
+let vNum_CountTotal_4YearPlans_Previous = Num(Sum(Total {<[Flag_4Year]={1}, [School Year] = {'$(vSchoolYear_Previous)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count1Total_4YearPlans_Current = Num(Sum(Total {1<[Flag_4Year]={1}, [School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey),'#,##0');
+
+// only using complted graduation years
+let vNum_Count_4YearPlans_GradCurrent = Num(If($(vNum_CountTotal_Respondents_GradCurrent) >= $(vMinStudents), Sum({<[Flag_4Year]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey)),'#,##0');
+let vNum_Count_4YearPlans_GradPrevious = Num(If($(vNum_CountTotal_Respondents_GradPrevious) >= $(vMinStudents), Sum({<[Flag_4Year]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey)),'#,##0');
+let vNum_CountTotal_4YearPlans_GradCurrent = Num(Sum(Total {<[Flag_4Year]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey),'#,##0');
+let vNum_CountTotal_4YearPlans_GradPrevious = Num(Sum(Total {<[Flag_4Year]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count1_4YearPlans_GradCurrent = Num(Sum({1<[Flag_4Year]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count1Total_4YearPlans_GradCurrent = Num(Sum(Total {1<[Flag_4Year]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count1_4YearPlans_GradPrevious = Num(Sum({1<[Flag_4Year]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count1Total_4YearPlans_GradPrevious = Num(Sum(Total {1<[Flag_4Year]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey),'#,##0');
+
+// education plans - who graduated, who matriculated, who didn't matriculate
+let vNum_Count_4YearPlans_Graduated_GradCurrent = Num(If($(vNum_CountTotal_Respondents_GradCurrent) >= $(vMinStudents), Sum({<[Flag_4Year]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_gradStatus4yr_byStudent)), '#,##0');
+let vNum_Count_4YearPlans_Graduated_GradPrevious = Num(If($(vNum_CountTotal_Respondents_GradPrevious) >= $(vMinStudents), Sum({<[Flag_4Year]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_gradStatus4yr_byStudent)), '#,##0');
+let vNum_Count_4YearPlans_Matriculated_GradCurrent = Num(If($(vNum_CountTotal_Respondents_GradCurrent) >= $(vMinStudents), Sum({<[Flag_4Year]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_firstFallMatric_byStudent)), '#,##0');
+let vNum_Count_4YearPlans_Matriculated_GradPrevious = Num(If($(vNum_CountTotal_Respondents_GradPrevious) >= $(vMinStudents), Sum({<[Flag_4Year]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_firstFallMatric_byStudent)), '#,##0');
+let vNum_Count_4YearPlans_NotMatriculated_GradCurrent = Num(If($(vNum_CountTotal_Respondents_GradCurrent) >= $(vMinStudents), Sum({<[Flag_4Year]={1}, [ONE_firstFallMatric_byStudent]-={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey)), '#,##0');
+let vNum_Count_4YearPlans_NotMatriculated_GradPrevious = Num(If($(vNum_CountTotal_Respondents_GradPrevious) >= $(vMinStudents), Sum({<[Flag_4Year]={1}, [ONE_firstFallMatric_byStudent]-={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey)), '#,##0');
+let vNum_Count_4YearPlans_MatriculatedIntended_GradCurrent = Num(If($(vNum_CountTotal_Respondents_GradCurrent) >= $(vMinStudents), 
+		Sum({<[ONE_firstFallMatric_byStudent]={1}, [SchoolType_firstFallMatric_byStudent]={4}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}Flag_4Year))
+	, '#,##0');
+
+let vNum_CountTotal_4YearPlans_Matriculated_GradCurrent = Num(If($(vNum_CountTotal_Respondents_GradCurrent) >= $(vMinStudents), Sum(total {<[Flag_4Year]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_firstFallMatric_byStudent)), '#,##0');
+let vNum_CountTotal_4YearPlans_NotMatriculated_GradCurrent = Num(If($(vNum_CountTotal_Respondents_GradCurrent) >= $(vMinStudents), Sum(total {<[Flag_4Year]={1}, [ONE_firstFallMatric_byStudent]-={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey)), '#,##0');
+
+
+let vNum_Count1_4YearPlans_Graduated_GradCurrent = Num(Sum({1<[Flag_4Year]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_gradStatus4yr_byStudent), '#,##0');
+let vNum_Count1_4YearPlans_Graduated_GradPrevious = Num(Sum({1<[Flag_4Year]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_gradStatus4yr_byStudent), '#,##0');
+let vNum_Count1_4YearPlans_Matriculated_GradCurrent = Num(Sum({1<[Flag_4Year]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_firstFallMatric_byStudent), '#,##0');
+let vNum_Count1_4YearPlans_Matriculated_GradPrevious = Num(Sum({1<[Flag_4Year]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_firstFallMatric_byStudent), '#,##0');
+let vNum_Count1_4YearPlans_NotMatriculated_GradCurrent = Num(Sum({1<[Flag_4Year]={1}, [ONE_firstFallMatric_byStudent]-={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey), '#,##0');
+let vNum_Count1_4YearPlans_NotMatriculated_GradPrevious = Num(Sum({1<[Flag_4Year]={1}, [ONE_firstFallMatric_byStudent]-={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey), '#,##0');
+let vNum_Count1_4YearPlans_MatriculatedIntended_GradCurrent = Num( 
+		Sum({1<[ONE_firstFallMatric_byStudent]={1}, [SchoolType_firstFallMatric_byStudent]={4}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}Flag_4Year)
+	, '#,##0');
+
+let vNum_Count1Total_4YearPlans_Matriculated_GradCurrent = Num(Sum(total {1<[Flag_4Year]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_firstFallMatric_byStudent), '#,##0');
+let vNum_Count1Total_4YearPlans_NotMatriculated_GradCurrent = Num(Sum(total {1<[Flag_4Year]={1}, [ONE_firstFallMatric_byStudent]-={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey), '#,##0');
+  
+
+
+// plans to continue 2 year (or other) education
+let vNum_Count_2YearOtherPlans = Num(If($(vNum_CountTotal_Respondents) >= $(vMinStudents), Sum({<[Flag_2YearOther]={1}}>}ONE_took_a_survey)),'#,##0');
+let vNum_Count_2YearOtherPlans_Current = Num(If($(vNum_CountTotal_Respondents_Current) >= $(vMinStudents), Sum({<[Flag_2YearOther]={1}, [School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey)),'#,##0');
+let vNum_Count_2YearOtherPlans_Previous = Num(If($(vNum_CountTotal_Respondents_Previous) >= $(vMinStudents), Sum({<[Flag_2YearOther]={1}, [School Year] = {'$(vSchoolYear_Previous)'}>}ONE_took_a_survey)),'#,##0');
+let vNum_Count1_2YearOtherPlans_Current = Num(Sum({1<[Flag_2YearOther]={1}, [School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey),'#,##0');
+
+let vNum_CountTotal_2YearOtherPlans_Current = Num(Sum(Total {<[Flag_2YearOther]={1}, [School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey),'#,##0');
+let vNum_CountTotal_2YearOtherPlans_Previous = Num(Sum(Total {<[Flag_2YearOther]={1}, [School Year] = {'$(vSchoolYear_Previous)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count1Total_2YearOtherPlans_Current = Num(Sum(Total {1<[Flag_2YearOther]={1}, [School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey),'#,##0');
+
+// only using complted graduation years
+let vNum_Count_2YearOtherPlans_GradCurrent = Num(If($(vNum_CountTotal_Respondents_GradCurrent) >= $(vMinStudents), Sum({<[Flag_2YearOther]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey)),'#,##0');
+let vNum_Count_2YearOtherPlans_GradPrevious = Num(If($(vNum_CountTotal_Respondents_GradPrevious) >= $(vMinStudents), Sum({<[Flag_2YearOther]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey)),'#,##0');
+let vNum_CountTotal_2YearOtherPlans_GradCurrent = Num(Sum(Total {<[Flag_2YearOther]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey),'#,##0');
+let vNum_CountTotal_2YearOtherPlans_GradPrevious = Num(Sum(Total {<[Flag_2YearOther]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count1_2YearOtherPlans_GradCurrent = Num(Sum({1<[Flag_2YearOther]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count1Total_2YearOtherPlans_GradCurrent = Num(Sum(Total {1<[Flag_2YearOther]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count1_2YearOtherPlans_GradPrevious = Num(Sum({1<[Flag_2YearOther]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count1Total_2YearOtherPlans_GradPrevious = Num(Sum(Total {1<[Flag_2YearOther]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey),'#,##0');
+
+// education plans - who graduated, who matriculated, who didn't matriculate
+let vNum_Count_2YearOtherPlans_Graduated_GradCurrent = Num(If($(vNum_CountTotal_Respondents_GradCurrent) >= $(vMinStudents), Sum({<[Flag_2YearOther]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_gradStatus4yr_byStudent)), '#,##0');
+let vNum_Count_2YearOtherPlans_Graduated_GradPrevious = Num(If($(vNum_CountTotal_Respondents_GradPrevious) >= $(vMinStudents), Sum({<[Flag_2YearOther]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_gradStatus4yr_byStudent)), '#,##0');
+let vNum_Count_2YearOtherPlans_Matriculated_GradCurrent = Num(If($(vNum_CountTotal_Respondents_GradCurrent) >= $(vMinStudents), Sum({<[Flag_2YearOther]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_firstFallMatric_byStudent)), '#,##0');
+let vNum_Count_2YearOtherPlans_Matriculated_GradPrevious = Num(If($(vNum_CountTotal_Respondents_GradPrevious) >= $(vMinStudents), Sum({<[Flag_2YearOther]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_firstFallMatric_byStudent)), '#,##0');
+let vNum_Count_2YearOtherPlans_NotMatriculated_GradCurrent = Num(If($(vNum_CountTotal_Respondents_GradCurrent) >= $(vMinStudents), Sum({<[Flag_2YearOther]={1}, [ONE_firstFallMatric_byStudent]-={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey)), '#,##0');
+let vNum_Count_2YearOtherPlans_NotMatriculated_GradPrevious = Num(If($(vNum_CountTotal_Respondents_GradPrevious) >= $(vMinStudents), Sum({<[Flag_2YearOther]={1}, [ONE_firstFallMatric_byStudent]-={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey)), '#,##0');
+let vNum_Count_2YearOtherPlans_MatriculatedIntended_GradCurrent = Num(If($(vNum_CountTotal_Respondents_GradCurrent) >= $(vMinStudents), 
+		Sum({<[ONE_firstFallMatric_byStudent]={1}, [SchoolType_firstFallMatric_byStudent]-={4}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}Flag_2YearOther))
+	, '#,##0');
+
+let vNum_CountTotal_2YearOtherPlans_Matriculated_GradCurrent = Num(If($(vNum_CountTotal_Respondents_GradCurrent) >= $(vMinStudents), Sum(total {<[Flag_2YearOther]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_firstFallMatric_byStudent)), '#,##0');
+let vNum_CountTotal_2YearOtherPlans_NotMatriculated_GradCurrent = Num(If($(vNum_CountTotal_Respondents_GradCurrent) >= $(vMinStudents), Sum(total {<[Flag_2YearOther]={1}, [ONE_firstFallMatric_byStudent]-={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey)), '#,##0');
+
+
+let vNum_Count1_2YearOtherPlans_Graduated_GradCurrent = Num(Sum({1<[Flag_2YearOther]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_gradStatus4yr_byStudent), '#,##0');
+let vNum_Count1_2YearOtherPlans_Graduated_GradPrevious = Num(Sum({1<[Flag_2YearOther]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_gradStatus4yr_byStudent), '#,##0');
+let vNum_Count1_2YearOtherPlans_Matriculated_GradCurrent = Num(Sum({1<[Flag_2YearOther]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_firstFallMatric_byStudent), '#,##0');
+let vNum_Count1_2YearOtherPlans_Matriculated_GradPrevious = Num(Sum({1<[Flag_2YearOther]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_firstFallMatric_byStudent), '#,##0');
+let vNum_Count1_2YearOtherPlans_NotMatriculated_GradCurrent = Num(Sum({1<[Flag_2YearOther]={1}, [ONE_firstFallMatric_byStudent]-={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey), '#,##0');
+let vNum_Count1_2YearOtherPlans_NotMatriculated_GradPrevious = Num(Sum({1<[Flag_2YearOther]={1}, [ONE_firstFallMatric_byStudent]-={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey), '#,##0');
+let vNum_Count1_2YearOtherPlans_MatriculatedIntended_GradCurrent = Num(
+		Sum({1<[ONE_firstFallMatric_byStudent]={1}, [SchoolType_firstFallMatric_byStudent]-={4}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}Flag_2YearOther)
+	, '#,##0');
+
+let vNum_Count1Total_2YearOtherPlans_Matriculated_GradCurrent = Num(Sum(total {1<[Flag_2YearOther]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_firstFallMatric_byStudent), '#,##0');
+let vNum_Count1Total_2YearOtherPlans_NotMatriculated_GradCurrent = Num(Sum(total {1<[Flag_2YearOther]={1}, [ONE_firstFallMatric_byStudent]-={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey), '#,##0');
+  
+
+
+
 
 // plans to work (no school)
 let vNum_Count_WorkOnly_Current = Num(If($(vNum_CountTotal_Respondents_Current) >= $(vMinStudents), Sum({<[Flag_WorkOnly]={1}, [School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey)),'#,##0');
 let vNum_Count_WorkOnly_Previous = Num(If($(vNum_CountTotal_Respondents_Previous) >= $(vMinStudents), Sum({<[Flag_WorkOnly]={1}, [School Year] = {'$(vSchoolYear_Previous)'}>}ONE_took_a_survey)),'#,##0');
+let vNum_Count_WorkOnly_GradCurrent = Num(If($(vNum_CountTotal_Respondents_GradCurrent) >= $(vMinStudents), Sum({<[Flag_WorkOnly]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey)),'#,##0');
+let vNum_Count_WorkOnly_GradPrevious = Num(If($(vNum_CountTotal_Respondents_GradPrevious) >= $(vMinStudents), Sum({<[Flag_WorkOnly]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey)),'#,##0');
 let vNum_CountTotal_WorkOnly_Current = Num(If($(vNum_CountTotal_Respondents_Current) >= $(vMinStudents), Sum(Total {<[Flag_WorkOnly]={1}, [School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey)),'#,##0');
 let vNum_CountTotal_WorkOnly_Previous = Num(If($(vNum_CountTotal_Respondents_Previous) >= $(vMinStudents), Sum(Total {<[Flag_WorkOnly]={1}, [School Year] = {'$(vSchoolYear_Previous)'}>}ONE_took_a_survey)),'#,##0');
+let vNum_CountTotal_WorkOnly_GradCurrent = Num(If($(vNum_CountTotal_Respondents_GradCurrent) >= $(vMinStudents), Sum(Total {<[Flag_WorkOnly]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey)),'#,##0');
+let vNum_CountTotal_WorkOnly_GradPrevious = Num(If($(vNum_CountTotal_Respondents_GradPrevious) >= $(vMinStudents), Sum(Total {<[Flag_WorkOnly]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey)),'#,##0');
 let vNum_Count1_WorkOnly_Current = Num(Sum({1<[Flag_WorkOnly]={1}, [School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey),'#,##0');
 let vNum_Count1Total_WorkOnly_Current = Num(Sum(Total {1<[Flag_WorkOnly]={1}, [School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count1_WorkOnly_GradCurrent = Num(Sum({1<[Flag_WorkOnly]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count1Total_WorkOnly_GradCurrent = Num(Sum(Total {1<[Flag_WorkOnly]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count1_WorkOnly_GradPrevious = Num(Sum({1<[Flag_WorkOnly]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey),'#,##0');
+let vNum_Count1Total_WorkOnly_GradPrevious = Num(Sum(Total {1<[Flag_WorkOnly]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey),'#,##0');
 
 // plans to work (while attending school or not)
 let vNum_Count_WorkAny_Current = Num(If($(vNum_CountTotal_Respondents_Current) >= $(vMinStudents), Sum({<[Flag_WorkAny]={1}, [School Year] = {'$(vSchoolYear_Current)'}>}ONE_took_a_survey)),'#,##0');
 let vNum_Count_WorkAny_Previous = Num(If($(vNum_CountTotal_Respondents_Previous) >= $(vMinStudents), Sum({<[Flag_WorkAny]={1}, [School Year] = {'$(vSchoolYear_Previous)'}>}ONE_took_a_survey)),'#,##0');
+let vNum_Count_WorkAny_GradCurrent = Num(If($(vNum_CountTotal_Respondents_GradCurrent) >= $(vMinStudents), Sum({<[Flag_WorkAny]={1}, [School Year] = {'$(vSchoolYear_GradCurrent)'}>}ONE_took_a_survey)),'#,##0');
+let vNum_Count_WorkAny_GradPrevious = Num(If($(vNum_CountTotal_Respondents_GradPrevious) >= $(vMinStudents), Sum({<[Flag_WorkAny]={1}, [School Year] = {'$(vSchoolYear_GradPrevious)'}>}ONE_took_a_survey)),'#,##0');
 
 
 //////////////// PARAMETER QUESTION //////////////////
@@ -248,3 +420,91 @@ let vNum_Avg1_MostPositive = Num(avg({1}any_most_positive_Q10),'#0.#%');
 let vNum_Count1_MostPositive = Num(Sum({1}any_most_positive_Q10),'#0.#%');
 let vNum_Avg1_MostPositive_Current = Num(avg({1<[School Year] = {'$(vSchoolYear_Current)'}>}any_most_positive_Q10),'#0.#%');
 let vNum_Count1_MostPositive_Current = Num(Sum({1<[School Year] = {'$(vSchoolYear_Current)'}>}any_most_positive_Q10),'#0.#%');
+
+
+let vNum_Count_Positive_ApplyingCollege = Num(
+		If($(vNum_CountTotal_Respondents) >= $(vMinStudents), Count({<[response_number]={3, 4}, [question_code] = {'Q10_applycollege1'}>}ONE_responded_to_question))		
+	, '#,##0');
+let vNum_Count_Positive_ApplyingCollege_Current = Num(
+		If($(vNum_CountTotal_Respondents_Current) >= $(vMinStudents), Count({<[response_number]={3, 4}, [School Year] = {'$(vSchoolYear_Current)'}, [question_code] = {'Q10_applycollege1'}>}ONE_responded_to_question))		
+	, '#,##0');
+let vNum_Count_Positive_ApplyingCollege_Previous = Num(
+		If($(vNum_CountTotal_Respondents_Previous) >= $(vMinStudents), Count({<[response_number]={3, 4}, [School Year] = {'$(vSchoolYear_Previous)'}, [question_code] = {'Q10_applycollege1'}>}ONE_responded_to_question))	
+	, '#,##0');
+let vNum_Count_ApplyingCollege = Num(
+		If($(vNum_CountTotal_Respondents) >= $(vMinStudents), Count({<[response_number]={">0"}, [question_code] = {'Q10_applycollege1'}>}ONE_responded_to_question))		
+	, '#,##0');
+let vNum_Count_ApplyingCollege_Current = Num(
+		If($(vNum_CountTotal_Respondents_Current) >= $(vMinStudents), Count({<[response_number]={">0"}, [School Year] = {'$(vSchoolYear_Current)'}, [question_code] = {'Q10_applycollege1'}>}ONE_responded_to_question))		
+	, '#,##0');
+let vNum_Count_ApplyingCollege_Previous = Num(
+		If($(vNum_CountTotal_Respondents_Previous) >= $(vMinStudents), Count({<[response_number]={">0"}, [School Year] = {'$(vSchoolYear_Previous)'}, [question_code] = {'Q10_applycollege1'}>}ONE_responded_to_question))	
+	, '#,##0');
+
+let vNum_Count1_Positive_ApplyingCollege_Current = Num(
+		Count({1<[response_number]={3, 4}, [School Year] = {'$(vSchoolYear_Current)'}, [question_code] = {'Q10_applycollege1'}>}ONE_responded_to_question)		
+	, '#,##0');
+let vNum_Count1_ApplyingCollege_Current = Num(
+		Count({1<[response_number]={">0"}, [School Year] = {'$(vSchoolYear_Current)'}, [question_code] = {'Q10_applycollege1'}>}ONE_responded_to_question)		
+	, '#,##0');
+
+
+////////////////////////// SORTINNG	
+let vSort_PlanCategory = If([CQ_ResponseText_Category] = 'Education (with or without work)', 1,
+	If([CQ_ResponseText_Category] = 'Work (no school)', 2,
+	If([CQ_ResponseText_Category] = 'Military', 3,
+	If([CQ_ResponseText_Category] = 'Other/Not sure', 4))));
+
+let vSort_EducationPlan = If([CQ_ResponseText_Plans] = '4-Year college or university', 1,
+	If([CQ_ResponseText_Plans] = '2-Year college', 2,
+	If([CQ_ResponseText_Plans] = 'Technical or trade school', 3,
+	If([CQ_ResponseText_Plans] = 'Other', 4,
+	))));
+
+let vSort_Major = IF([Q: Major] = 'Health & Medicine', 1,
+	IF([Q: Major] = 'Science, Math, and Technology', 2,
+	IF([Q: Major] = 'Business', 3,
+	IF([Q: Major] = 'Arts and Humanities', 4,
+	IF([Q: Major] = 'Social Sciences', 5,
+	IF([Q: Major] = 'Trades and Personal Services', 6,
+	IF([Q: Major] = 'Public and Social Services', 7,
+	IF([Q: Major] = 'Multi-/Interdisciplinary Studies', 8,
+	IF([Q: Major] = 'Other', 9, 10
+	)))))))));
+
+let vSort_Career =  IF([Q: Work Plans] = 'Retail/sales', 1,
+	IF([Q: Work Plans] = 'Professional', 2,
+	IF([Q: Work Plans] = 'Food services', 3,
+	IF([Q: Work Plans] = 'Construction', 4,
+	IF([Q: Work Plans] = 'Personal services', 5,
+	IF([Q: Work Plans] = 'Technical', 6,
+	IF([Q: Work Plans] = 'Office', 7,
+	IF([Q: Work Plans] = 'Transportation', 8,
+	IF([Q: Work Plans] = 'Laborer', 9,
+	IF([Q: Work Plans] = 'Protective services', 10,
+	IF([Q: Work Plans] = 'Production/repair', 11,
+	IF([Q: Work Plans] = 'Manufacturing', 12,
+	IF([Q: Work Plans] = 'Building services', 13,
+	IF([Q: Work Plans] = 'Agriculture/aquaculture', 14,
+	IF([Q: Work Plans] = 'Other', 15, 16
+	)))))))))))))));
+
+let vSort_HSExperiences = IF([response_text_clean] = 'Summer, after school or weekend job', 1,
+	IF([response_text_clean] = 'Volunteer work', 2,
+	IF([response_text_clean] = 'School sports', 3,
+	IF([response_text_clean] = 'School clubs', 4,
+	IF([response_text_clean] = 'Internship', 5,
+	IF([response_text_clean] = 'Sports outside of school', 6,
+	IF([response_text_clean] = 'Clubs outside of school', 7,
+	IF([response_text_clean] = 'JROTC', 8,
+	IF([response_text_clean] = 'Other', 9, 10
+	)))))))));
+
+let vSort_ReceivedSupportFrom = IF([response_text_clean] = 'Family', 1,
+	IF([response_text_clean] = 'Friends', 2,
+	IF([response_text_clean] = 'Teachers', 3,
+	IF([response_text_clean] = 'Guidance counselors', 4,
+	IF([response_text_clean] = 'People from programs outside of school, such as after school programs or mentors', 5,
+	IF([response_text_clean] = 'Other people working at my school (for example, City Year, GEAR UP)', 6,
+	IF([response_text_clean] = 'Other', 7, 8
+	)))))));

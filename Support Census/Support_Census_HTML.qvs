@@ -1,0 +1,26 @@
+let vHTML_SchoolProfiles = '<div style="color:#808080;">' &
+	If(GetPossibleCount([School Name]) > 1, 
+		'<h1 style="font-size: 15px;">Please select one school from the filter above.</h1>',
+		'<div>' & 
+			'<h1 style="font-size: 15px;">' & Only([School Name]) & ' ($(vSchoolYear_Current))</h1>' &
+			'<br>' &
+			'<span>Enrollment: </span><span style="font-weight:bold">' & $(vmmCount_Students_Current) & ' Students</span>' &
+			'<br><br>' &
+			'<span>$(vSchoolYear_SPR_Current) SPR Overall (' & FirstSortedValue({<SchoolYear={'$(vSchoolYear_SPR_Current)'}>}[SPR Report Type], [SPR Report Type]) & '): ' &
+				'<span style="font-weight:bold">' & $(vmmFirst_SPR_Overall_PercentEarned_Current) & '</span>' &
+				'<span style="font-weight:bold;color:' & $(vColor_First_SPR_Overall_PercentEarned_Current) & ';"> (' & 
+					FirstSortedValue({<SchoolYear={'$(vSchoolYear_SPR_Current)'}>}[SPR Overall Tier], [SPR Report Type]) &
+				')</span>' &
+			'<br>' &
+			If(Count({<SchoolYear={'$(vSchoolYear_SPR_Current)'}>}[SPR Report Type]) > 1, 
+				'<span>$(vSchoolYear_SPR_Current) SPR Overall (' & FirstSortedValue({<SchoolYear={'$(vSchoolYear_SPR_Current)'}>}[SPR Report Type], -1 * [SPR Report Type]) & '): ' &
+					'<span style="font-weight:bold">' & $(vmmLast_SPR_Overall_PercentEarned_Current) & '</span>' &
+					'<span style="font-weight:bold;color:' & $(vColor_Last_SPR_Overall_PercentEarned_Current) & ';"> (' & 
+						FirstSortedValue({<SchoolYear={'$(vSchoolYear_SPR_Current)'}>}[SPR Overall Tier], -1 * [SPR Report Type]) &
+					')</span>'
+				, '')
+	) & 
+	'<img style="width:10%;"src="https://' & If(ComputerName() = 'BIDEV-APP01', 'devqlik.philasd.net/', 'qlik.philasd.org/') & 'appcontent/' & Subfield(DocumentPath(), '\', -1) & 
+    	'/Partnership.png">
+	</div>';
+	
