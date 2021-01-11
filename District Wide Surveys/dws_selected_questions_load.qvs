@@ -1,0 +1,38 @@
+let qvd_path = 'lib://DevQlikDataStore (sso_9000003405)';
+
+SurveyData:
+LOAD
+    RespondentID,
+    Survey|SchoolYear|QuestionCode,
+    Survey|SchoolYear|QuestionCode|Score
+FROM [$(qvd_path)\QVDs\Layer 3\Surveys\Survey Responses Long.qvd]
+(qvd)
+Where Match(Survey|SchoolYear|QuestionCode, 'PARENT|2018-2019|Q9', 'STUDENT|2018-2019|Q10g')
+;
+
+Left Join (SurveyData)
+LOAD Distinct
+	RespondentID,
+    person_specifier as StudentID
+FROM [$(qvd_path)\QVDs\Layer 3\Surveys\Survey Demographics.qvd]
+(qvd);
+
+Left Join (SurveyData)
+LOAD
+    Survey|SchoolYear|QuestionCode,
+    QuestionDisplayText as QuestionText
+FROM [$(qvd_path)\QVDs\Layer 3\Surveys\Survey Question Crosswalk.qvd]
+(qvd);
+
+
+Left Join (SurveyData)
+LOAD
+    Survey|SchoolYear|QuestionCode|Score,
+    AnswerText,
+    Score,
+    IsHighest
+FROM [$(qvd_path)\QVDs\Layer 3\Surveys\Survey Answer Crosswalk.qvd]
+(qvd)
+Where Not(IsNull(Score)) and Len(Score) > 0
+;
+Exit Script;

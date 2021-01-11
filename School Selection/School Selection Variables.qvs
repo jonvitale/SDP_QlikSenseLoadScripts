@@ -79,7 +79,8 @@
 	Let vSetMods_IgnoreApplications = <"Student_Applied_Flag"=, $(vSetOpts_IgnoreApplications)>; 
 	
 ////// Student-Level Sets
-  	
+  
+  let vSetOpts_BG = [Ethnicity]={'Black/African American', 'Hispanic/Latino'}, ; 
 
 	Let vSetMods_dGrade = <[Sending Grade]={$(vGrade_Sending_Default)}>;
 	Let vSetMods_pSY_dGrade = <[Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}>;
@@ -88,6 +89,7 @@
 	Let vSetMods_pSY_dGrade_IgnoreApplications = <[Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}, "Student_Applied_Flag"=, "Receiving Program Name"=, "Receiving Program Type"=, "Receiving Program ULCS Code"=, "Receiving Program Code"=,"Receiving Program Type Code"=>;
 	Let vSetMods_dGrade_dSector_IgnoreApplications = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Sending Grade]={$(vGrade_Sending_Default)}, "Student_Applied_Flag"=, "Receiving Program Name"=, "Receiving Program Type"=, "Receiving Program ULCS Code"=, "Receiving Program Code"=,"Receiving Program Type Code"=>;
 	Let vSetMods_pSY_dGrade_dSector_IgnoreApplications = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}, "Student_Applied_Flag"=, "Receiving Program Name"=, "Receiving Program Type"=, "Receiving Program ULCS Code"=, "Receiving Program Code"=,"Receiving Program Type Code"=>;
+	Let vSetMods_pSY_dGrade_dSector_IgnoreApplications_BG = <$(vSetOpts_BG)[Sending Sector]={'$(vSector_Sending_Default)'}, [Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}, "Student_Applied_Flag"=, "Receiving Program Name"=, "Receiving Program Type"=, "Receiving Program ULCS Code"=, "Receiving Program Code"=,"Receiving Program Type Code"=>;
 	
 	// only students that applied to some schools
 	Let vSetMods_Applied_Any = <[Applied_Any_Flag] = {1}>;
@@ -118,6 +120,7 @@
 	Let vSetMods_Approved_Any_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Approved_Any_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
 	Let vSetMods_Approved_CW_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Approved_CW_SA_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
 	Let vSetMods_Approved_SA_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Approved_SA_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
+	Let vSetMods_Approved_SA_pSY_dGrade_dSector_BG = <$(vSetOpts_BG)[Sending Sector]={'$(vSector_Sending_Default)'}, [Approved_SA_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
 	
 
 ////// Application-Level Sets
@@ -144,11 +147,14 @@
 	Let vSetMods_StudentApplied_pSY_dGrade = <[Student_Applied_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}>;
 	Let vSetMods_StudentApplied_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Student_Applied_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}>;
 	
+
+
 	Let vSetMods_StudentApplied_SA_dGrade = <[Student_Applied_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}, [SA_Flag]={1}>;
 	Let vSetMods_StudentApplied_SA_pSY_dGrade = <[Student_Applied_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}, [SA_Flag]={1}>;
 	Let vSetMods_StudentApplied_SA_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Student_Applied_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}, [SA_Flag]={1}>;
 	Let vSetMods_StudentApplied_SA_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Student_Applied_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}, [SA_Flag]={1}>;
 	
+
 	/// pProgramResponse: Applied, ApprovedImmediately, Approved, ApprovedOrWaitlist, ApprovedOrWaitlistOrOvercrowded, Disapproved, DisapprovedForPerformance
 	Let vSetMods_pProgramResponse = <[$1_Flag] = {1}>;
 	Let vSetMods_pProgramResponse_pSY = <[$1_Flag] = {1}, [School Year]={$2}>;
@@ -232,6 +238,8 @@
 	Let vSetMods_pQualified_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [School Year]={$2}, [Sending Grade]={$(vGrade_Sending_Default)} $(=$(vSetOpts_pQualified($1)))>;
 	Let vSetMods_StudentApplied_pQualified_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Student_Applied_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)} $(=$(vSetOpts_pQualified($1)))>;
 	Let vSetMods_StudentApplied_pQualified_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Student_Applied_Flag]={1}, [School Year]={$2}, [Sending Grade]={$(vGrade_Sending_Default)} $(=$(vSetOpts_pQualified($1)))>;
+	Let vSetMods_StudentApplied_pQualified_pSY_dGrade_dSector_BG = <$(vSetOpts_BG)[Sending Sector]={'$(vSector_Sending_Default)'}, [Student_Applied_Flag]={1}, [School Year]={$2}, [Sending Grade]={$(vGrade_Sending_Default)} $(=$(vSetOpts_pQualified($1)))>;
+	
 	Let vSetMods_pProgramResponse_pQualified_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [$1_Flag] = {1}, [School Year]={$3}, [Sending Grade]={$(vGrade_Sending_Default)} $(=$(vSetOpts_pQualified($2)))>;
 
 ////// Count-related (in app use combination of sets and the count-on)
@@ -256,7 +264,7 @@
 	Let vCount_Enrolled_ProjectedActual_Current =Num(
 		Sum({<[School Year]={'$(vSchoolYear_Applying_Current)'}, [Receiving Grade]={$(vGrade_Receiving_Default)}>}"Receiving Grade Enrollment")
 	    , '#,##0');
-	Let vLabel_Enrolled_ProjectedActual_Current = If(Max({<[School Year]={'$(vSchoolYear_Applying_Current)'}>}From_Enrollment_Flag)) = 1,
+	Let vLabel_Enrolled_ProjectedActual_Current = If(Max({<[School Year]={'$(vSchoolYear_Applying_Current)'}>}From_Enrollment_Flag) = 1,
 			'# Enrolled (Oct 1st)',
 			'# Projected'
 		);

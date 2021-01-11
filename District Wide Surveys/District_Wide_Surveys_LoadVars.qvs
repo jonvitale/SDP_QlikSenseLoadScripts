@@ -3,7 +3,7 @@
 *	Jonathan Vitale
 *	Changes:
 *
-*	Version 1.0.5.1:
+*	Version 1.7.x:
 *		- The counts for the focus questions include non score responses (but not skips)
 *
 *	Reminders:
@@ -30,6 +30,7 @@ let vSetOpts_EPD = =IF(Len('$(vPartnerNameForApp)') > 0,
   let vMaxYear = (max(left([SchoolYear],4))) & '-' & (max(right([SchoolYear],4)));
   let vLastYear = (max(left([SchoolYear],4))-1) & '-' & (max(right([SchoolYear],4))-1);
   let vLastLastYear = (max(left([SchoolYear],4))-2) & '-' & (max(right([SchoolYear],4))-2);
+  let vDate_Enrollment = =if($(vMaxYearEnd) = 2020, 'March 13th', 'May 31st');
 
 ///// what is the minimum number of individuals and percent of respondents for an analysis
   let vMinStudents = 25; 
@@ -42,6 +43,14 @@ let vSetOpts_EPD = =IF(Len('$(vPartnerNameForApp)') > 0,
   let vMinParentsPerc = 0;
   let vMinTeachersPerc = 0;
   let vMinPrincipalsPerc = 0;
+
+// an expression providing either Teacher or Student based upon selected construct or group
+  // let vTeacherOrStudent = =If(Only([Construct]) = 'Professional Capacity' or Only([Respondent Group]), 'Teacher', 'Student');
+  let vTeacherOrStudentCurrentTopic = =If(WildMatch(Concat(distinct {<[Construct]={$(vCurrentTopic)}>}[Respondent Group]), '*Teacher*', '*Principal*') > 0, 'Teacher', 'Student');
+  let vTeacherOrStudentCurrentSubTopic = =If(WildMatch(
+    Concat(distinct {<[Construct]={$(vCurrentTopic)}, [SubConstruct]={'$(=$(v_no_amp($(vCurrentSubTopic_$(vCurrentTopic_alpha)))))'}>}[Respondent Group]),
+      '*Teacher*', '*Principal*') > 0, 
+      'Teacher', 'Student');
   
 let vCol_Respondent = 
     If([Survey] = 'STUDENT', '#0B315B',
@@ -59,38 +68,38 @@ let vCol_Respondent =
       // Note, these don't take sample size into account, but if they do here is a sample of how:
       let vCount_Responded_Student = Num(Sum({<[Respondent Group] = {"Student"} $(vSetOpts_EPD)>} [Responded]), '#,##0');
       let vCount_Responded_Parent = Num(Sum({<[Respondent Group] = {"Parent"} $(vSetOpts_EPD)>} [Responded]), '#,##0');
-      let vCount_Responded_ParentHousehold = Num(Count(distinct {<[Respondent Group] = {"Parent"}, [Responded]={1}, $(vSetOpts_EPD)>} [%ULCS|household]), '#,##0');
+      let vCount_Responded_ParentHousehold = Num(Sum({<[Respondent Group] = {"Parent"} $(vSetOpts_EPD)>} [Responded_Household]), '#,##0');
       let vCount_Responded_Teacher = Num(Sum({<[Respondent Group] = {"Teacher"} $(vSetOpts_EPD)>} [Responded]),'#,##0');
       let vCount_Responded_Principal = Num(Sum({<[Respondent Group] = {"Principal"} $(vSetOpts_EPD)>} [Responded]),'#,##0');
 
       let vCount1_Responded_Student = Num(Sum({1<[Respondent Group] = {"Student"} $(vSetOpts_EPD)>} [Responded]), '#,##0');
       let vCount1_Responded_Parent = Num(Sum({1<[Respondent Group] = {"Parent"} $(vSetOpts_EPD)>} [Responded]), '#,##0');
-      let vCount1_Responded_ParentHousehold = Num(Count(distinct {1<[Respondent Group] = {"Parent"}, [Responded]={1}, $(vSetOpts_EPD)>} [%ULCS|household]), '#,##0');
+      let vCount1_Responded_ParentHousehold = Num(Sum({1<[Respondent Group] = {"Parent"} $(vSetOpts_EPD)>} [Responded_Household]), '#,##0');
       let vCount1_Responded_Teacher = Num(Sum({1<[Respondent Group] = {"Teacher"} $(vSetOpts_EPD)>} [Responded]),'#,##0');
       let vCount1_Responded_Principal = Num(Sum({1<[Respondent Group] = {"Principal"} $(vSetOpts_EPD)>} [Responded]),'#,##0');
 
       let vCount_Responded_Student_Current = Num(Sum({<[Respondent Group] = {"Student"}, YearEnd = {$(=$(vMaxYearEnd))} $(vSetOpts_EPD)>} [Responded]), '#,##0');
       let vCount_Responded_Parent_Current = Num(Sum({<[Respondent Group] = {"Parent"}, YearEnd = {$(=$(vMaxYearEnd))} $(vSetOpts_EPD)>} [Responded]), '#,##0');
-      let vCount_Responded_ParentHousehold_Current = Num(Count(distinct {<[Respondent Group] = {"Parent"}, [Responded]={1}, YearEnd = {$(=$(vMaxYearEnd))}, $(vSetOpts_EPD)>} [%ULCS|household]), '#,##0');
+      let vCount_Responded_ParentHousehold_Current = Num(Sum({<[Respondent Group] = {"Parent"}, YearEnd = {$(=$(vMaxYearEnd))} $(vSetOpts_EPD)>} [Responded_Household]), '#,##0');
       let vCount_Responded_Teacher_Current = Num(Sum({<[Respondent Group] = {"Teacher"}, YearEnd = {$(=$(vMaxYearEnd))} $(vSetOpts_EPD)>} [Responded]),'#,##0');
       let vCount_Responded_Principal_Current = Num(Sum({<[Respondent Group] = {"Principal"}, YearEnd = {$(=$(vMaxYearEnd))} $(vSetOpts_EPD)>} [Responded]),'#,##0');
       
       let vCount1_Responded_Student_Current = Num(Sum({1<[Respondent Group] = {"Student"}, YearEnd = {$(=$(vMaxYearEnd))} $(vSetOpts_EPD)>} [Responded]), '#,##0');
       let vCount1_Responded_Parent_Current = Num(Sum({1<[Respondent Group] = {"Parent"}, YearEnd = {$(=$(vMaxYearEnd))} $(vSetOpts_EPD)>} [Responded]), '#,##0');
-      let vCount1_Responded_ParentHousehold_Current = Num(Count(distinct {1<[Respondent Group] = {"Parent"}, [Responded]={1}, YearEnd = {$(=$(vMaxYearEnd))}, $(vSetOpts_EPD)>} [%ULCS|household]), '#,##0');
+      let vCount1_Responded_ParentHousehold_Current = Num(Sum({1<[Respondent Group] = {"Parent"}, YearEnd = {$(=$(vMaxYearEnd))} $(vSetOpts_EPD)>} [Responded_Household]), '#,##0');
       let vCount1_Responded_Teacher_Current = Num(Sum({1<[Respondent Group] = {"Teacher"}, YearEnd = {$(=$(vMaxYearEnd))} $(vSetOpts_EPD)>} [Responded]),'#,##0');
       let vCount1_Responded_Principal_Current = Num(Sum({1<[Respondent Group] = {"Principal"}, YearEnd = {$(=$(vMaxYearEnd))} $(vSetOpts_EPD)>} [Responded]),'#,##0');
        
 
       let vCount_Responded_Student_Previous = Num(Sum({<[Respondent Group] = {"Student"}, YearEnd = {$(=$(vLastYearEnd))} $(vSetOpts_EPD)>} [Responded]), '#,##0');
       let vCount_Responded_Parent_Previous = Num(Sum({<[Respondent Group] = {"Parent"}, YearEnd = {$(=$(vLastYearEnd))} $(vSetOpts_EPD)>} [Responded]), '#,##0');
-      let vCount_Responded_ParentHousehold_Previous = Num(Count(distinct {<[Respondent Group] = {"Parent"}, [Responded]={1}, YearEnd = {$(=$(vLastYearEnd))}, $(vSetOpts_EPD)>} [%ULCS|household]), '#,##0');
+      let vCount_Responded_ParentHousehold_Previous = Num(Sum({<[Respondent Group] = {"Parent"}, YearEnd = {$(=$(vLastYearEnd))} $(vSetOpts_EPD)>} [Responded_Household]), '#,##0');
       let vCount_Responded_Teacher_Previous = Num(Sum({<[Respondent Group] = {"Teacher"}, YearEnd = {$(=$(vLastYearEnd))} $(vSetOpts_EPD)>} [Responded]),'#,##0');
       let vCount_Responded_Principal_Previous = Num(Sum({<[Respondent Group] = {"Principal"}, YearEnd = {$(=$(vLastYearEnd))} $(vSetOpts_EPD)>} [Responded]),'#,##0');
 
       let vCount1_Responded_Student_Previous = Num(Sum({1<[Respondent Group] = {"Student"}, YearEnd = {$(=$(vLastYearEnd))} $(vSetOpts_EPD)>} [Responded]), '#,##0');
       let vCount1_Responded_Parent_Previous = Num(Sum({1<[Respondent Group] = {"Parent"}, YearEnd = {$(=$(vLastYearEnd))} $(vSetOpts_EPD)>} [Responded]), '#,##0');
-      let vCount1_Responded_ParentHousehold_Previous = Num(Count(distinct {<[Respondent Group] = {"Parent"}, [Responded]={1}, YearEnd = {$(=$(vLastYearEnd))}, $(vSetOpts_EPD)>} [%ULCS|household]), '#,##0');
+      let vCount1_Responded_ParentHousehold_Previous = Num(Sum({1<[Respondent Group] = {"Parent"}, YearEnd = {$(=$(vLastYearEnd))} $(vSetOpts_EPD)>} [Responded_Household]), '#,##0');
       let vCount1_Responded_Teacher_Previous = Num(Sum({1<[Respondent Group] = {"Teacher"}, YearEnd = {$(=$(vLastYearEnd))} $(vSetOpts_EPD)>} [Responded]),'#,##0');
       let vCount1_Responded_Principal_Previous = Num(Sum({1<[Respondent Group] = {"Principal"}, YearEnd = {$(=$(vLastYearEnd))} $(vSetOpts_EPD)>} [Responded]),'#,##0');
 
@@ -149,11 +158,12 @@ let vCol_Respondent =
           $(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>} [Responded]), '#.#%');
       let vmmRatio_Responded_by_Total_ParentHousehold_Current = Num(If($(vCount_ParentHousehold_Current) > 0, 
         RangeMin(1, 
-            Count(distinct {<[Respondent Group] = {"Parent"}, [Responded]={1}, YearEnd = {$(=$(vMaxYearEnd))}, $(vSetOpts_EPD)>} [%ULCS|household])
+            Sum({<[Respondent Group] = {"Parent"},
+          YearEnd = {$(=$(vMaxYearEnd))} $(vSetOpts_EPD)>} [Responded_Household])
        /
-          Count(distinct {<[Respondent Group] = {"Parent"}, InEnrollmentCounter={1}, 
-            YearEnd = {$(=$(vMaxYearEnd))},
-            $(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>} [%ULCS|household]))), '#.#%');
+          Count({<[Respondent Group] = {"Parent"}, InEnrollmentCounter_Household={1}, 
+          YearEnd = {$(=$(vMaxYearEnd))},
+          $(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>} [Responded]))), '#.#%');
       let vmmRatio_Responded_by_Total_Teacher_Current = Num(Sum({<[Respondent Group] = {"Teacher"},
           YearEnd = {$(=$(vMaxYearEnd))} $(vSetOpts_EPD)>} [Responded]) /
         Count({<[Respondent Group] = {"Teacher"}, InEnrollmentCounter={1},
@@ -220,17 +230,21 @@ let vCol_Respondent =
       let vmmRatio_Responded_by_Total_ParentHousehold_YOY = Num(
         If($(vCount_ParentHousehold_Current) > 0, 
           RangeMin(1, 
-            Count(distinct {<[Respondent Group] = {"Parent"}, [Responded]={1}, YearEnd = {$(=$(vMaxYearEnd))}, $(vSetOpts_EPD)>} [%ULCS|household]) /
-            Count(distinct {<[Respondent Group] = {"Parent"}, InEnrollmentCounter={1}, 
-              YearEnd = {$(=$(vMaxYearEnd))},
-              $(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>} [%ULCS|household])))
+            Sum({<[Respondent Group] = {"Parent"},
+          YearEnd = {$(=$(vMaxYearEnd))} $(vSetOpts_EPD)>} [Responded_Household]) /
+            Count({<[Respondent Group] = {"Parent"}, InEnrollmentCounter_Household={1}, 
+          YearEnd = {$(=$(vMaxYearEnd))},
+          $(vSetOps_IgnoreConstructQuestion)
+          $(vSetOpts_EPD)>} [Responded])))
         -
         If($(vCount_ParentHousehold_Previous) > 0, 
           RangeMin(1, 
-            Count(distinct {<[Respondent Group] = {"Parent"}, [Responded]={1}, YearEnd = {$(=$(vLastYearEnd))}, $(vSetOpts_EPD)>} [%ULCS|household]) /
-            Count(distinct {<[Respondent Group] = {"Parent"}, InEnrollmentCounter={1}, 
-              YearEnd = {$(=$(vLastYearEnd))},
-              $(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>} [%ULCS|household]))), '#.#%');
+            Sum({<[Respondent Group] = {"Parent"},
+          YearEnd = {$(=$(vLastYearEnd))} $(vSetOpts_EPD)>} [Responded_Household]) /
+            Count({<[Respondent Group] = {"Parent"}, InEnrollmentCounter_Household={1}, 
+          YearEnd = {$(=$(vLastYearEnd))},
+          $(vSetOps_IgnoreConstructQuestion)
+          $(vSetOpts_EPD)>} [Responded]))), '#.#%');
       let vmmRatio_Responded_by_Total_Teacher_YOY = Num(
         Sum({<[Respondent Group] = {"Teacher"},
           YearEnd = {$(=$(vMaxYearEnd))} $(vSetOpts_EPD)>} [Responded]) /
@@ -274,9 +288,11 @@ let vCol_Respondent =
           $(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>} [Responded]), '#.#%');
       let vmmRatio_Responded_by_Total_ParentHousehold_AllYears = Num(If($(vCount_ParentHousehold) > 0, 
         RangeMin(1, 
-          Count(distinct {<[Respondent Group] = {"Parent"}, [Responded]={1}, YearEnd= $(vSetOpts_EPD)>} [%ULCS|household]) /
-          Count(distinct {<[Respondent Group] = {"Parent"}, InEnrollmentCounter={1}, YearEnd = ,
-            $(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>} [%ULCS|household]))), '#.#%');
+          Sum({<[Respondent Group] = {"Parent"},
+          YearEnd = $(vSetOpts_EPD)>} [Responded_Household]) /
+          Count({<[Respondent Group] = {"Parent"}, InEnrollmentCounter_Household={1}, 
+          YearEnd = ,
+          $(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>} [Responded]))), '#.#%');
       let vmmRatio_Responded_by_Total_Teacher_AllYears = Num(Sum({<[Respondent Group] = {"Teacher"},
           YearEnd =  $(vSetOpts_EPD)>} [Responded]) /
         Count({<[Respondent Group] = {"Teacher"}, InEnrollmentCounter={1},
@@ -945,7 +961,8 @@ let vCol_Respondent =
       let vFirstQuestion = MinString({<[%Survey|SchoolYear|QuestionCode]={"$(=$(vFirstQuestionKey))"}$(vSetOpts_EPD)>}[QuestionText]);
       let vFirstQuestionRespondent = Only(total {<[%Survey|SchoolYear|QuestionCode]={"$(=$(vFirstQuestionKey))"}$(vSetOpts_EPD)>}[Respondent Group]);
       let vFirstQuestionTopic = Only({<[%Survey|SchoolYear|QuestionCode]={"$(=$(vFirstQuestionKey))"}$(vSetOpts_EPD)>}[Construct]);
-  
+      let vFirstQuestionMostPositive = Mode({1<[%Survey|SchoolYear|QuestionCode]={"$(=$(vFirstQuestionKey))"}, IsHighest={1}$(vSetOpts_EPD)>} [AnswerText]);
+
       // measures for the graph.
       let vCount_Respondent_Topic_Question_Current = Count(total {<[Survey|QuestionCode]={"$(=$(vFirstQuestionCode))"}, YearEnd={$(=$(vMaxYearEnd))}$(vSetOpts_EPD)>}[DisplayScore]);
       
@@ -1474,7 +1491,7 @@ let vCol_Respondent =
         let vmmPercMP_Principal_SchoolLeadership_Previous = Num(IF($(vMinPrincipals) <= $(vCount_Principal_SchoolLeadership_Previous), $(vPercMP_Principal_SchoolLeadership_Previous), Null()),'#.#%');
                
 ///// Survey Constructs and Subconstruct - Scaled Score
-    /// NOTES: For the school-level reports we will display both Avg scaled scores rolled up to the respondent-topic-year level
+    /// NOTES: For the school-level reports we will display both Avg scaled scores rolled up to the respondentgroup-topic-year level
     /// as well as the topic-year level. For the latter, new business rules are needed to combine multiple respondents groups
     /// i.e., we cannot take a straight average of all of "Construct 1" across all users because: 
     /// a) Construct 1 will be different by group
@@ -1822,7 +1839,18 @@ let vCol_Respondent =
         $(vmmAvgScore_pRespondent_AllConstructs_YOY($1)), $(vmmAvgScore_pRespondent_AllSubConstructs_YOY($1))
       );
 
-
+///// Board Goal Questions - Scaled Score
+  //// Single Questions
+     //// Board Goal questions: PARENT|Q2f  PARENT|Q26d
+     ///  create paramaterized question, respondent
+     let vSet_pSurvey_pQuestionCode_Current = {<[Survey|QuestionCode]={"$1|$2"}, YearEnd={$(=$(vMaxYearEnd))}$(vSetOpts_EPD)>};
+     let vCount_pSurvey_pQuestionCode_Current = Sum($(vSet_pSurvey_pQuestionCode_Current($1, $2)) Responded);
+     let vAvgScore_pSurvey_pQuestionCode_Current = Avg($(vSet_pSurvey_pQuestionCode_Current($1, $2)) [ScaledScore]);
+     let vmmAvgScore_pSurvey_pQuestionCode_Current = Num(
+      IF(($(vCount_pSurvey_pQuestionCode_Current($1, $2)) > $(vMinStudents)) or
+        (('$1' = 'TEACHER' or '$1' = 'PRINCIPAL') and ($(vCount_pSurvey_pQuestionCode_Current($1, $2)) > $(vMinTeachers)))
+        , 
+        $(vAvgScore_pSurvey_pQuestionCode_Current($1, $2)), Null()),'##0.#');
 
 /*
 

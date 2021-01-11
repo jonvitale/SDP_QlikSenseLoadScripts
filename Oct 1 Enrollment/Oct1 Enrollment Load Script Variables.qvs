@@ -74,6 +74,20 @@ let vSY_2Previous = =Left('$(vSchoolYear_Previous)', 5) & Right('$(vSchoolYear_P
 			Sum({<[School Year] = {'$(vSchoolYear_Previous)'},Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [FromOtherCatchmentFlag])
 		, '#,##0');
 
+	/////////// Capacity and Utilization
+	let vCount_Capacity_Current = Num(
+		If(Sum({<[School Year] = {'$(vSchoolYear_Current)'}>}[Building Capacity]) > 0,
+			Sum({<[School Year] = {'$(vSchoolYear_Current)'}>}[Building Capacity]))
+		, '#,##0'
+	);
+
+	let vAvg_Utilization_Current = Num(
+		$(vCount_Enrollment_Current) / $(vCount_Capacity_Current)
+		, '##0.#%'
+	);
+
+	//////// Selections of schools
+
 	let vCount_Enrollment_NonCharter = Num(
 			Sum({<[School Reporting Category] -= {'Charter Schools'}, Flag_Inclusion_App_Enrollment={1} $(vSetOpts_EPD)>} [InCatchmentFlag])
 			+

@@ -1,0 +1,78 @@
+/**
+*	Loading Constant: District Wide Surveys
+*	Jonathan Vitale
+*	Changes:
+*
+*	Version 1.8.0:
+*		- The counts for the focus questions include non score responses (but not skips)
+*
+*	Reminders:
+*	- leave as is, do not convert to strings
+**/
+
+///// Survey Focus Questions - Percent Most Positive
+  //// Question codes
+    set vStudentQuestionCode1 = STUDENT|Q3f;
+    set vStudentQuestionCode2 = STUDENT|Q1b;
+    set vStudentQuestionCode3 = STUDENT|Q3k;
+    set vStudentQuestionCode4 = STUDENT|Q3a;
+
+    set vParentQuestionCode1 = PARENT|Q7f;
+    set vParentQuestionCode2 = PARENT|Q2c;
+    set vParentQuestionCode3 = PARENT|Q7d;
+    set vParentQuestionCode4 = PARENT|Q3g;
+
+    set vTeacherQuestionCode1 = TEACHER|Q5a;
+    set vTeacherQuestionCode2 = TEACHER|Q3e;
+    set vTeacherQuestionCode3 = TEACHER|Q3i;
+    set vTeacherQuestionCode4 = TEACHER|Q4e;
+
+  //// Question text (originally I was figuring this out by code, but this will make it faster)
+    set vStudentQuestion1 = I enjoy being in school.;
+    set vStudentQuestion2 = My teachers have high expectations for me in school.;
+    set vStudentQuestion3 = My school is clean.;
+    set vStudentQuestion4 = I am bullied at school.;
+    
+    set vParentQuestion1 = I am pleased with the quality of education my child's school is providing for my child.;
+    set vParentQuestion2 = I am treated with respect in my child's school.; 
+    set vParentQuestion3 = Teachers at my child's school encourage my child to work hard.;
+    set vParentQuestion4 = My child feels safe at school.;
+    // '
+
+    set vTeacherQuestion1 = The principal communicates a clear mission for our school.;
+    set vTeacherQuestion2 = My students are motivated to learn.;
+    set vTeacherQuestion3 = My students influence decisions regarding learning activities.;
+    set vTeacherQuestion4 = My students are more focused on grades than learning.;
+
+  //// Question abbreviation
+    set vStudentQuestion1Abbr = I enjoy being in school;
+    set vStudentQuestion2Abbr = My teachers have high expectations;
+    set vStudentQuestion3Abbr = My school is clean;
+    set vStudentQuestion4Abbr = I am bullied;
+    
+    set vParentQuestion1Abbr = Pleased with quality of education;
+    set vParentQuestion2Abbr = I am treated with respect;
+    set vParentQuestion3Abbr = Teachers encourage hard work;    
+    set vParentQuestion4Abbr = My child feels safe;
+
+    set vTeacherQuestion1Abbr = Clear mission by principal;
+    set vTeacherQuestion2Abbr = My students are motivated;
+    set vTeacherQuestion3Abbr = Students influence decisions;
+    set vTeacherQuestion4Abbr = Students focus on grades over learning;
+
+  //// Question best "most positive" responses
+    set vStudentQuestion1MostPositive = Most or all the time;
+    set vStudentQuestion2MostPositive = Most or all the time;
+    set vStudentQuestion3MostPositive = Most or all the time;
+    set vStudentQuestion4MostPositive = Never;
+    
+    set vParentQuestion1MostPositive = Strongly Agree;
+    set vParentQuestion2MostPositive = Strongly Agree;
+    set vParentQuestion3MostPositive = Strongly Agree;    
+    set vParentQuestion4MostPositive = Most or all the time;
+
+    set vTeacherQuestion1MostPositive = Strongly Agree;
+    set vTeacherQuestion2MostPositive = Most or all the time;
+    set vTeacherQuestion3MostPositive = Most or all the time;
+    set vTeacherQuestion4MostPositive = Never;
+
