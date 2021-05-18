@@ -23,7 +23,9 @@
 
 let v_cy = =MaxString([School Year]);
 let v_py = =MaxString({<[School Year]-={'$(v_cy)'}>}[School Year]);
-
+let v_total = if(lower('$1')='total', 'total ', '');
+let v_alt_set = if(len(trim(purgechar('$1', '$')))>1, '$1', '');
+let v_alt_set_bracketed = if(len(trim(purgechar('$1', '$')))>1, '{$1}', '');
 //////////////////////////////////////////////////////////////////////// 
 /// Testing
 ////////////////////////////////////////////////////////////////////////
@@ -75,6 +77,7 @@ let v_pset_hybrid = if(lower('$1') = 'hybrid', ',[Is Hybrid]={1}', '');
  * $2: when (all years[blank], year [cy, py], a week [todo])
  * $3: where (anywhere[blank], IS/OS/SS)
  * $4: hybrid students only (all students[blank], hybrid, or group)
+ * $5: alt set (e.g., allschools)
  */
 let v_count_tested = Sum({<x=1 $(=$(v_pset_time($2))) $(=$(v_pset_test_location($3))) $(=$(v_pset_hybrid($4)))>}[$(=$(v_student_or_staff($1))) Test Count]);
 
@@ -183,19 +186,20 @@ let v_count_tested_positive_days_todate = if(len(Only([Date])),
  * $2: when (all years[blank], year [cy, py], a week [todo])
  * $3: hybrid students only (all students[blank], hybrid, or group), do not use if who includes Hybrid students
  * $4: total
+ * $5: alt set (e.g., allschools)
  */
-let v_count_enrolled = if(len(Only([Date])),
-	Sum($(=if('$4'='total', 'total ', '')){<x=1 $(=$(v_pset_time($2))) $(=$(v_pset_hybrid($3)))>}[$(=$(v_student_or_staff($1))) Count]),
-	if(len(Only([Week])),
+let v_count_enrolled = if(len(Only($(=$(v_alt_set_bracketed($5)))[Date])),
+	Sum($(=$(v_total($4))){$(=$(v_alt_set($5)))<x=1 $(=$(v_pset_time($2))) $(=$(v_pset_hybrid($3)))>}[$(=$(v_student_or_staff($1))) Count]),
+	if(len(Only($(=$(v_alt_set_bracketed($5)))[Week])),
 		// are we at a specified week?
-		Sum($(=if('$4'='total', 'total ', '')){<[Date]=, [flag_week_end]={1} $(=$(v_pset_time($2))) $(=$(v_pset_hybrid($3)))>}[$(=$(v_student_or_staff($1))) Count]),
+		Sum($(=$(v_total($4))){$(=$(v_alt_set($5)))<[Date]=, [flag_week_end]={1} $(=$(v_pset_time($2))) $(=$(v_pset_hybrid($3)))>}[$(=$(v_student_or_staff($1))) Count]),
 		// are we at a specific month? use the last day of the month
-		if(len(Only([Month])),
-			Sum($(=if('$4'='total', 'total ', '')){<[Date]=, [Week]=, [flag_month_end]={1} $(=$(v_pset_time($2))) $(=$(v_pset_hybrid($3)))>}[$(=$(v_student_or_staff($1))) Count]),
+		if(len(Only($(=$(v_alt_set_bracketed($5)))[Month])),
+			Sum($(=$(v_total($4))){$(=$(v_alt_set($5)))<[Date]=, [Week]=, [flag_month_end]={1} $(=$(v_pset_time($2))) $(=$(v_pset_hybrid($3)))>}[$(=$(v_student_or_staff($1))) Count]),
 			// are we at a specific year? use the last day (current) of the year
-			if(len(Only([School Year])),
-				Sum($(=if('$4'='total', 'total ', '')){<[Date]=, [Week]=, [Month]=, [flag_year_end]={1} $(=$(v_pset_time($2))) $(=$(v_pset_hybrid($3)))>}[$(=$(v_student_or_staff($1))) Count]), 
-				Sum($(=if('$4'='total', 'total ', '')){<[Date]=, [Week]=, [Month]=, [School Year]= $(=$(v_pset_time($2))) $(=$(v_pset_hybrid($3)))>}[$(=$(v_student_or_staff($1))) Count])
+			if(len(Only($(=$(v_alt_set_bracketed($5)))[School Year])),
+				Sum($(=$(v_total($4))){$(=$(v_alt_set($5)))<[Date]=, [Week]=, [Month]=, [flag_year_end]={1} $(=$(v_pset_time($2))) $(=$(v_pset_hybrid($3)))>}[$(=$(v_student_or_staff($1))) Count]), 
+				Sum($(=$(v_total($4))){$(=$(v_alt_set($5)))<[Date]=, [Week]=, [Month]=, [School Year]= $(=$(v_pset_time($2))) $(=$(v_pset_hybrid($3)))>}[$(=$(v_student_or_staff($1))) Count])
 			)
 		)	
 	)
