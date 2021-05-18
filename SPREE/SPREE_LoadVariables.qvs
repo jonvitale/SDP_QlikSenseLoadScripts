@@ -1,0 +1,240 @@
+/**
+*	Loading Variables: SPREE Display
+*	Jonathan Vitale
+*	Changes:
+*
+*	Version 0.0:
+
+*	Reminder:
+*	THIS FILE IS THE RAW QLIK CODE. IT **MUST** BE COMPILED INTO STRINGS TO BE LOADED INTO A SCRIPT.
+*   Make sure to save the formatted code in a separate file and keep this file raw. 
+*	For SUBLIME TEXT use the RegReplace package with custom rules and commands
+*   Note: I am using the RegEx instead of the default py regualar expression engine (v.1). Set this in package settings.
+*	Also, instead of using single quotes for final strings, use ` to avoid unnecessary replacements
+**/
+
+///// Universal Variables
+	// Note Years, the following have been established elsewhere in the code and can be used instead of heard-coding
+	
+	// NOTE COLORS
+		// Intervene: rgb(192,80,77) #c0504d
+		// Watch: rgb(247,150,70) #f79646
+		// Reinforce: rgb(0,176,80) #00b050
+		// Model: rgb(0,112,192) #0070c0
+
+//////////////////////////////////////////////////////////////////////// 
+/// Universal values: evaluate immediately
+////////////////////////////////////////////////////////////////////////
+
+let v_cy = =MaxString([year_academic]);
+let v_py = =MaxString({<[year_academic]=-{'$(v_cy)'}>}[year_academic]);
+let v_py2 = =MaxString({<[year_academic]=-{'$(v_cy)', '$(v_py)'}>}[year_academic]);
+
+//////////////////////////////////////////////////////////////////////// 
+/// Universal expressions: evaluate in context
+////////////////////////////////////////////////////////////////////////
+let v_overall_domain_metric = If(GetPossibleCount([metric_code]) = 1 or Count(distinct [metric_code]) = 1, 
+	'metric',
+	If(GetPossibleCount([domain]) = 1 or Count(distinct [domain]) = 1, 
+		'domain',
+    'overall'
+    )
+	);
+let v_domain_metric = If(GetPossibleCount([domain]) = 1 or Count(distinct [domain]) = 1, 
+	'metric',
+	'domain'
+	);
+
+let v_label_overall_domain_metric = If($(v_overall_domain_metric) = 'overall', 'Overall',
+		If($(v_overall_domain_metric) = 'domain', Only([domain]) & ' Domain',
+			If($(v_overall_domain_metric) = 'metric', Only([metric_label]) & ' Metric', '')
+		)
+	);
+
+// use this label to display either the name of a specific domain, or a metric within that domain
+// parameters
+// $1: domain code: CC, CLIMATE, ELA, MATH
+let v_label_domain_selected_metric = If(Match('$1', 'CC', 'CLIMATE', 'ELA', 'MATH'),
+		Coalesce(Only({<[domain_code]={'$1'}>}[metric_label]),  Only({<[domain_code]={'$1'}>}[domain]))
+	, '');
+
+let v_label_domain_metric = If($(v_domain_metric) = 'domain', 'By Domain',
+			If($(v_domain_metric) = 'metric', Only([domain]) & ' Domain', '')
+	);
+
+// In set expression {<>} use this to add a year_academic set option, will return with a comma in
+// front, so make sure there is something ahead of this like: {<x={1} $(=$(v_pset_year(cy)))>}
+// parameters
+// $1: cy, py, <blank> (i.e., all years)
+let v_pset_year = if(len(trim(purgechar('$1', '$')))>1, ',[year_academic]={"$(v_$1)"}', '');
+
+let v_pset_domain_code = If(Match('$1', 'CC', 'CLIMATE', 'ELA', 'MATH'), ',[domain_code]={"$1"}', '');
+let v_pset_metric = if(len(trim(purgechar('$1', '$')))>1, ',[metric_code]={"$1"}', '');
+let v_pset_metric_group = if(len(trim(purgechar('$1', '$')))>1, ',[metric_code_group]={"$1"}', '');
+
+// this variable takes a domain and a metric order number and provides the code
+// parameters:
+// $1 domain
+// $2 metric_order_domain
+let v_map_metric_order_domain_to_metric_code = Only({<[domain]={'$1'}, [metric_order_domain]={$2}>}[metric_code]);
+
+// this variable takes a metric code and provides a label
+// parameters:
+// $1 metric_code
+let v_map_metric_code_to_metric_label = Only({<[metric_code]={'$1'}>}[metric_label]);
+//////////////////////////////////////////////////////////////////////// 
+/// School-related
+////////////////////////////////////////////////////////////////////////
+let v_enrollment = Num(
+	Sum({<[metric_code]={'ENR'} $(=$(v_pset_year($1)))>}score)
+    , '#,##0');
+
+//////////////////////////////////////////////////////////////////////// 
+/// Score-related
+////////////////////////////////////////////////////////////////////////
+
+// counts metrics
+// parameters:
+// $1 year: cy, py, py2 (blank is all years)
+// $2 metric type: atabove_target (blank), eligible, improving, eligible_improving, improving_equitable, eligible_improving_equitable 
+// $3 level: overall (blank), domain, metric
+let v_count_metrics = Sum({<x={1} $(=$(v_pset_year($1)))>}
+	[count_metrics_$(=if(len(trim(purgechar('$2', '$')))>1, '$2', 'atabove_target'))_$(=if(len(trim(purgechar('$3', '$')))>1, '$3', 'overall'))]);
+	
+let v_count_metrics_overall_to_metric = if($(v_overall_domain_metric) = 'overall', $(v_count_metrics($1, $2, overall)),
+	if($(v_overall_domain_metric) = 'domain', $(v_count_metrics($1, $2, domain)),
+		if($(v_overall_domain_metric) = 'metric', $(v_count_metrics($1, $2, metric)))));
+
+// counts metrics
+// parameters:
+// $1 year: cy, py, py2 (blank is all years)
+// $2 metric type: atabove_target (blank), eligible, improving, eligible_improving, improving_equitable, eligible_improving_equitable 
+// $3 domain_code
+let v_count_metrics_domain_selected_to_metric = Sum({<x={1} $(=$(v_pset_year($1))) $(=$(v_pset_domain_code($3)))>}
+	[count_metrics_$(=if(len(trim(purgechar('$2', '$')))>1, '$2', 'atabove_target'))_$(=if($(v_overall_domain_metric)='metric', 'metric', 'domain'))]);
+
+/// denominator
+
+// how many metrics are we at target or above?
+// parameters:
+// $1 year: cy, py, py2 (blank is all years)
+// $2 metric type: atabove_target (default), improving, improving_equitable
+let v_pct_metrics_overall_to_metric = Num(
+		if($(v_count_metrics_overall_to_metric($1, eligible$(=if(len(trim(purgechar('$2', '$')))>1 and '$2' <> 'atabove_target', '_$2', '')))) > 0,
+			RangeMin(1, 
+				$(v_count_metrics_overall_to_metric($1, $(=if(len(trim(purgechar('$2', '$')))>1, '$2', 'atabove_target'))))
+				/
+				$(v_count_metrics_overall_to_metric($1, eligible$(=if(len(trim(purgechar('$2', '$')))>1 and '$2' <> 'atabove_target', '_$2', ''))))
+			  + 0.0000000001
+			)
+		),
+    '#0.#%'
+);
+
+// counts metrics
+// parameters:
+// $1 year: cy, py, py2 (blank is all years)
+// $2 metric type: atabove_target (blank), eligible, improving, eligible_improving, improving_equitable, eligible_improving_equitable 
+// $3 domain_code: ELA, MATH, CLIMATE, CC
+let v_pct_metrics_domain_selected_to_metric = Num(
+		if($(v_count_metrics_domain_selected_to_metric($1, eligible$(=if(len(trim(purgechar('$2', '$')))>1 and '$2' <> 'atabove_target', '_$2', '')), $3)) > 0,
+			RangeMin(1, 
+				$(v_count_metrics_domain_selected_to_metric($1, $(=if(len(trim(purgechar('$2', '$')))>1, '$2', 'atabove_target')), $3))
+				/
+				$(v_count_metrics_domain_selected_to_metric($1, eligible$(=if(len(trim(purgechar('$2', '$')))>1 and '$2' <> 'atabove_target', '_$2', '')), $3))
+			  + 0.0000000001
+			)
+		),
+    '#0.#%'
+);
+
+
+// color by tier
+// parameters:
+// $1 year: cy, py, py2 (blank is all years)
+// $2 metric type: atabove_target (default), improving, improving_equitable
+let v_tier_pct_metric = if(len(trim(purgechar('$2', '$'))) <= 1 or '$2' = 'atabove_target' or '$2' = 'equitable',
+		if($(v_pct_metrics_overall_to_metric($1, $2)) > 0.8, 'high',
+			if($(v_pct_metrics_overall_to_metric($1, $2)) >= 0.5, 'medium',
+				if($(v_pct_metrics_overall_to_metric($1, $2)) >= 0, 'low')))
+	,
+	if('$2' = 'improving',
+		if($(v_pct_metrics_overall_to_metric($1, $2)) >= 0.5, 'improving',
+			if($(v_pct_metrics_overall_to_metric($1, $2)) >= 0, 'notimproving')),
+	if('$2' = 'improving_equitable',
+		if($(v_pct_metrics_overall_to_metric($1, $2)) >= 0.5, 'equitable',
+			if($(v_pct_metrics_overall_to_metric($1, $2)) >= 0, 'notequitable'))
+	)));
+
+// color by tier
+// parameters:
+// $1 year: cy, py, py2 (blank is all years)
+// $2 metric type: atabove_target (default), improving, improving_equitable
+// $3 show blanks for notimproving and notequitable (1 yes, blank no)
+let v_tier_label_pct_metric = If(WildMatch($(v_tier_pct_metric($1, $2)), 'not*'), 
+		if('$3' = '1', '', 'Not ' & Capitalize(Mid($(v_tier_pct_metric($1, $2)), 4))), 
+		Capitalize($(v_tier_pct_metric($1, $2))));
+
+let v_color_tier_pct_metric = Pick(
+	Match($(v_tier_pct_metric($1, $2)),
+		'high',
+		'medium',
+		'low',
+		'improving',
+		'notimproving',
+		'equitable',
+		'notequitable'
+	),
+	'#0070c0',
+	'#00b050',
+	'#c0504d',
+	'#0070c0',
+	'#00b050',
+	'#0070c0',
+	'#00b050'
+);
+
+
+let v_pset_metric_agglevel = if(Match('$1', '1', '2'), 
+	if($1 = 1, ',[flag_agg_all]={0}', '')
+	, ',[flag_agg_all]={1}');
+
+let v_pset_subgroup = if(len(trim(purgechar('$1', '$')))>1, ',[subgroup_agg]={"$1"}', '');
+
+/// This score will calculate the avg of all available metrics, defaulting to the overall (non-breakout level)
+/// however, if, at a dimensional level there is a single subgroup, will display that
+/// parameters:
+/// $1: sy
+/// $2: metric
+/// $3: calculate for a specific subgroup demographic (e.g. ASIAN)
+/// $4: alternatives to score: score_min, score_max, target_at, target_approaching, target_above
+let v_score_metric = if(len(trim(purgechar('$3', '$')))>1 or Not(IsNull(Only([subgroup_agg]))),
+		Num(
+			Avg({<[x]={1} $(=$(v_pset_year($1))) $(=$(v_pset_metric($2))) $(=$(v_pset_subgroup($3))) >}
+				[$(=if(len(trim(purgechar('$4', '$')))>1, '$4', 'score'))]
+			)
+			,
+		  MaxString({<[x]={1} $(=$(v_pset_year($1))) $(=$(v_pset_metric($2)))>}[score_format])
+		)
+	  ,
+	  Num(
+	  // else for overall
+		  Avg({<[flag_agg_all]={1} $(=$(v_pset_year($1))) $(=$(v_pset_metric($2))) $(=$(v_pset_subgroup($3))) >}
+				[$(=if(len(trim(purgechar('$4', '$')))>1, '$4', 'score'))]
+			)
+			,
+		  MaxString({<[flag_agg_all]={1} $(=$(v_pset_year($1))) $(=$(v_pset_metric($2)))>}[score_format])
+		)
+);
+
+/// parameters:
+/// $1: sy
+/// $2: metric
+/// $3: calculate for a specific subgroup demographic ($3 should be 1 or 2)
+let v_color_metric = Pick(
+		Round($(v_score_metric($1, $2, $3, tier_level))),
+		'#c0504d',
+		'#f79646',
+		'#00b050',
+		'#0070c0'
+	);

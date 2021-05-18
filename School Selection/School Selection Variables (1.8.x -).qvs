@@ -3,8 +3,8 @@
 *	Jonathan Vitale
 *	Changes:
 *
-*	Version 1.0
-*		- The counts for the focus questions include non score responses (but not skips)
+*	Version 1.8
+*		- The USL is now qualified for Sending, Receiving and Next (with period after each)
 *
 *	Reminders:
 *	- All the let statements will be strings, if you want an actual single quote in the string, use '
@@ -69,42 +69,42 @@
   	//=IF(GetPossibleCount([Receiving Grade]) = 1, Only([Receiving Grade]), 9);
 
   // we will use District as the default sector when looking at potential application qualifications and application rates
-  //Let vSector_Sending_Default = =IF(GetPossibleCount([Sending Sector]) = 1, Only([Sending Sector]), 'District');
-  Let vSector_Sending_Default = =IF(GetSelectedCount([Sending Sector]) > 0 or GetSelectedCount([Sending Current Network]) > 0 or GetSelectedCount([Sending School Name]) > 0, Concat(distinct [Sending Sector], chr(39)&','&chr(39)), 'District');
-  Let vSector_Sending_Default_label = =IF(GetSelectedCount([Sending Sector]) > 0 or GetSelectedCount([Sending Current Network]) > 0 or GetSelectedCount([Sending School Name]) > 0, Concat(distinct [Sending Sector], ', '), 'District');
+  //Let vSector_Sending_Default = =IF(GetPossibleCount([Sending.Sector]) = 1, Only([Sending.Sector]), 'District');
+  Let vSector_Sending_Default = =IF(GetSelectedCount([Sending.Sector]) > 0 or GetSelectedCount([Sending.Current Network]) > 0 or GetSelectedCount([Sending School Name]) > 0, Concat(distinct [Sending.Sector], chr(39)&','&chr(39)), 'District');
+  Let vSector_Sending_Default_label = =IF(GetSelectedCount([Sending.Sector]) > 0 or GetSelectedCount([Sending.Current Network]) > 0 or GetSelectedCount([Sending School Name]) > 0, Concat(distinct [Sending.Sector], ', '), 'District');
 ////// General Sets
 	Let vSetMods_pSY = <[School Year]={$1}>;
-	Let vSetOpts_IgnoreApplications = [Receiving Program Name]=,[Receiving Program ULCS Code]=, [Receiving Abbreviated School Name]=, [Receiving Admission Type]=, [Receiving Current Network]=, [Receiving PA School ID]=, [Receiving Program Type]=, [Receiving Program Type Code]=, [Receiving School Name]=, ReceivingProgram_SY_Key=, ReceivingSchool_SY_Key=, ReceivingSchool_SY_Grade_Key=;
+	Let vSetOpts_IgnoreApplications = [Receiving Program Name]=,[Receiving Program ULCS Code]=, [Receiving.School (abbrev name)]=, [Receiving.Admission Type]=, [Receiving.Current Network]=, [Receiving.PA Code]=, [Receiving Program Type]=, [Receiving Program Type Code]=, [Receiving.School Name]=, [Receiving.SchoolYearKey]=, [ReceivingSchool_SY_Grade_Key]=;
 	//Let vSetMods_IgnoreApplications = <"Student_Applied_Flag"=, "Receiving Program Name"=, "Receiving Program Type"=, "Receiving Program ULCS Code"=, "Receiving Program Code"=,"Receiving Program Type Code"=>; 
 	Let vSetMods_IgnoreApplications = <"Student_Applied_Flag"=, $(vSetOpts_IgnoreApplications)>; 
 	
 ////// Student-Level Sets
   
-  let vSetOpts_BG = [Ethnicity]={'Black/African American', 'Hispanic/Latino'}, ; 
+  let vSetOpts_BG = [Race/Ethnicity]={'Black/African American', 'Hispanic/Latino'}, ; 
 
 	Let vSetMods_dGrade = <[Sending Grade]={$(vGrade_Sending_Default)}>;
 	Let vSetMods_pSY_dGrade = <[Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}>;
-	Let vSetMods_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}>;
+	Let vSetMods_pSY_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}>;
 	Let vSetMods_dGrade_IgnoreApplications = <[Sending Grade]={$(vGrade_Sending_Default)}, "Student_Applied_Flag"=, "Receiving Program Name"=, "Receiving Program Type"=, "Receiving Program ULCS Code"=, "Receiving Program Code"=,"Receiving Program Type Code"=>;
 	Let vSetMods_pSY_dGrade_IgnoreApplications = <[Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}, "Student_Applied_Flag"=, "Receiving Program Name"=, "Receiving Program Type"=, "Receiving Program ULCS Code"=, "Receiving Program Code"=,"Receiving Program Type Code"=>;
-	Let vSetMods_dGrade_dSector_IgnoreApplications = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Sending Grade]={$(vGrade_Sending_Default)}, "Student_Applied_Flag"=, "Receiving Program Name"=, "Receiving Program Type"=, "Receiving Program ULCS Code"=, "Receiving Program Code"=,"Receiving Program Type Code"=>;
-	Let vSetMods_pSY_dGrade_dSector_IgnoreApplications = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}, "Student_Applied_Flag"=, "Receiving Program Name"=, "Receiving Program Type"=, "Receiving Program ULCS Code"=, "Receiving Program Code"=,"Receiving Program Type Code"=>;
-	Let vSetMods_pSY_dGrade_dSector_IgnoreApplications_BG = <$(vSetOpts_BG)[Sending Sector]={'$(vSector_Sending_Default)'}, [Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}, "Student_Applied_Flag"=, "Receiving Program Name"=, "Receiving Program Type"=, "Receiving Program ULCS Code"=, "Receiving Program Code"=,"Receiving Program Type Code"=>;
+	Let vSetMods_dGrade_dSector_IgnoreApplications = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Sending Grade]={$(vGrade_Sending_Default)}, "Student_Applied_Flag"=, "Receiving Program Name"=, "Receiving Program Type"=, "Receiving Program ULCS Code"=, "Receiving Program Code"=,"Receiving Program Type Code"=>;
+	Let vSetMods_pSY_dGrade_dSector_IgnoreApplications = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}, "Student_Applied_Flag"=, "Receiving Program Name"=, "Receiving Program Type"=, "Receiving Program ULCS Code"=, "Receiving Program Code"=,"Receiving Program Type Code"=>;
+	Let vSetMods_pSY_dGrade_dSector_IgnoreApplications_BG = <$(vSetOpts_BG)[Sending.Sector]={'$(vSector_Sending_Default)'}, [Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}, "Student_Applied_Flag"=, "Receiving Program Name"=, "Receiving Program Type"=, "Receiving Program ULCS Code"=, "Receiving Program Code"=,"Receiving Program Type Code"=>;
 	
 	// only students that applied to some schools
 	Let vSetMods_Applied_Any = <[Applied_Any_Flag] = {1}>;
 	Let vSetMods_Applied_Any_pSY = <[Applied_Any_Flag] = {1}, [School Year]={$1}>;
 	Let vSetMods_Applied_Any_pSY_dGrade = <[Applied_Any_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
-	Let vSetMods_Applied_Any_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Applied_Any_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
+	Let vSetMods_Applied_Any_pSY_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Applied_Any_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
 	
 	Let vSetMods_Applied_CW_dGrade = <[Applied_CW_Flag] = {1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
 	Let vSetMods_Applied_SA_dGrade = <[Applied_SA_Flag] = {1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
-	Let vSetMods_Applied_CW_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Applied_CW_Flag] = {1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
-	Let vSetMods_Applied_SA_dGrade_dSectore = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Applied_SA_Flag] = {1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
+	Let vSetMods_Applied_CW_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Applied_CW_Flag] = {1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
+	Let vSetMods_Applied_SA_dGrade_dSectore = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Applied_SA_Flag] = {1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
 	Let vSetMods_Applied_CW_pSY_dGrade = <[Applied_CW_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
-	Let vSetMods_Applied_CW_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Applied_CW_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
+	Let vSetMods_Applied_CW_pSY_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Applied_CW_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
 	Let vSetMods_Applied_SA_pSY_dGrade = <[Applied_SA_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
-	Let vSetMods_Applied_SA_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Applied_SA_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
+	Let vSetMods_Applied_SA_pSY_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Applied_SA_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
 
 
 	// students who were approved
@@ -114,13 +114,13 @@
 	Let vSetMods_Approved_Any_pSY_dGrade = <[Approved_Any_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
 	Let vSetMods_Approved_CW_pSY_dGrade = <[Approved_CW_SA_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
 	Let vSetMods_Approved_SA_pSY_dGrade = <[Approved_SA_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
-	Let vSetMods_Approved_Any_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Approved_Any_Flag] = {1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
-	Let vSetMods_Approved_CW_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Approved_CW_SA_Flag] = {1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
-	Let vSetMods_Approved_SA_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Approved_SA_Flag] = {1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
-	Let vSetMods_Approved_Any_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Approved_Any_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
-	Let vSetMods_Approved_CW_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Approved_CW_SA_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
-	Let vSetMods_Approved_SA_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Approved_SA_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
-	Let vSetMods_Approved_SA_pSY_dGrade_dSector_BG = <$(vSetOpts_BG)[Sending Sector]={'$(vSector_Sending_Default)'}, [Approved_SA_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
+	Let vSetMods_Approved_Any_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Approved_Any_Flag] = {1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
+	Let vSetMods_Approved_CW_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Approved_CW_SA_Flag] = {1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
+	Let vSetMods_Approved_SA_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Approved_SA_Flag] = {1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
+	Let vSetMods_Approved_Any_pSY_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Approved_Any_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
+	Let vSetMods_Approved_CW_pSY_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Approved_CW_SA_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
+	Let vSetMods_Approved_SA_pSY_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Approved_SA_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
+	Let vSetMods_Approved_SA_pSY_dGrade_dSector_BG = <$(vSetOpts_BG)[Sending.Sector]={'$(vSector_Sending_Default)'}, [Approved_SA_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
 	
 
 ////// Application-Level Sets
@@ -129,30 +129,30 @@
 	
 	Let vSetMods_StudentAccepted = <[Student_Accepted_Flag]={1}>;
 	Let vSetMods_StudentAccepted_dGrade = <[Student_Accepted_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
-	Let vSetMods_StudentAccepted_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Student_Accepted_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
+	Let vSetMods_StudentAccepted_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Student_Accepted_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
 	Let vSetMods_StudentAccepted_pSY = <[Student_Accepted_Flag]={1}, [School Year]={$1}>;
 	Let vSetMods_StudentAccepted_pSY_dGrade = <[Student_Accepted_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}>;
-	Let vSetMods_StudentAccepted_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Student_Accepted_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}>;
+	Let vSetMods_StudentAccepted_pSY_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Student_Accepted_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}>;
 
 	Let vSetMods_StudentAccepted_SA_dGrade = <[Student_Accepted_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}, [SA_Flag]={1}>;
 	Let vSetMods_StudentAccepted_SA_pSY_dGrade = <[Student_Accepted_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}, [SA_Flag]={1}>;
-	Let vSetMods_StudentAccepted_SA_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Student_Accepted_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}, [SA_Flag]={1}>;
-	Let vSetMods_StudentAccepted_SA_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Student_Accepted_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}, [SA_Flag]={1}>;
+	Let vSetMods_StudentAccepted_SA_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Student_Accepted_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}, [SA_Flag]={1}>;
+	Let vSetMods_StudentAccepted_SA_pSY_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Student_Accepted_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}, [SA_Flag]={1}>;
 
 
 	Let vSetMods_StudentApplied = <[Student_Applied_Flag]={1}>;
 	Let vSetMods_StudentApplied_dGrade = <[Student_Applied_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
-	Let vSetMods_StudentApplied_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Student_Applied_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
+	Let vSetMods_StudentApplied_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Student_Applied_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
 	Let vSetMods_StudentApplied_pSY = <[Student_Applied_Flag]={1}, [School Year]={$1}>;
 	Let vSetMods_StudentApplied_pSY_dGrade = <[Student_Applied_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}>;
-	Let vSetMods_StudentApplied_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Student_Applied_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}>;
+	Let vSetMods_StudentApplied_pSY_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Student_Applied_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}>;
 	
 
 
 	Let vSetMods_StudentApplied_SA_dGrade = <[Student_Applied_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}, [SA_Flag]={1}>;
 	Let vSetMods_StudentApplied_SA_pSY_dGrade = <[Student_Applied_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}, [SA_Flag]={1}>;
-	Let vSetMods_StudentApplied_SA_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Student_Applied_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}, [SA_Flag]={1}>;
-	Let vSetMods_StudentApplied_SA_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Student_Applied_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}, [SA_Flag]={1}>;
+	Let vSetMods_StudentApplied_SA_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Student_Applied_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}, [SA_Flag]={1}>;
+	Let vSetMods_StudentApplied_SA_pSY_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Student_Applied_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)}, [School Year]={$1}, [SA_Flag]={1}>;
 	
 
 	/// pProgramResponse: Applied, ApprovedImmediately, Approved, ApprovedOrWaitlist, ApprovedOrWaitlistOrOvercrowded, Disapproved, DisapprovedForPerformance
@@ -161,17 +161,17 @@
 	Let vSetMods_pProgramResponse_dGrade = <[$1_Flag] = {1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
 	Let vSetMods_pProgramResponse_pSY_dGrade = <[$1_Flag] = {1}, [School Year]={$2}, [Sending Grade]={$(vGrade_Sending_Default)}>;
 	Let vSetMods_pNotProgramResponse_pSY_dGrade = <[$1_Flag] -= {1}, [School Year]={$2}, [Sending Grade]={$(vGrade_Sending_Default)}>;
-	Let vSetMods_pProgramResponse_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [$1_Flag] = {1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
-	Let vSetMods_pProgramResponse_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [$1_Flag] = {1}, [School Year]={$2}, [Sending Grade]={$(vGrade_Sending_Default)}>;
-	Let vSetMods_pNotProgramResponse_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [$1_Flag] -= {1}, [School Year]={$2}, [Sending Grade]={$(vGrade_Sending_Default)}>;
+	Let vSetMods_pProgramResponse_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [$1_Flag] = {1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
+	Let vSetMods_pProgramResponse_pSY_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [$1_Flag] = {1}, [School Year]={$2}, [Sending Grade]={$(vGrade_Sending_Default)}>;
+	Let vSetMods_pNotProgramResponse_pSY_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [$1_Flag] -= {1}, [School Year]={$2}, [Sending Grade]={$(vGrade_Sending_Default)}>;
 	
 	// for students that eventually did not accept
 	Let vSetMods_NotAccepted_pProgramResponse = <[Student_Accepted_Flag]-={1}, [$1_Flag] = {1}>;
 	Let vSetMods_NotAccepted_pProgramResponse_pSY = <[Student_Accepted_Flag]-={1}, [$1_Flag] = {1}, [School Year]={$2}>;
 	Let vSetMods_NotAccepted_pProgramResponse_pSY_dGrade = <[Student_Accepted_Flag]-={1}, [$1_Flag] = {1}, [School Year]={$2}, [Sending Grade]={$(vGrade_Sending_Default)}>;
 	Let vSetMods_NotAccepted_pNotProgramResponse_pSY_dGrade = <[Student_Accepted_Flag]-={1}, [$1_Flag] -= {1}, [School Year]={$2}, [Sending Grade]={$(vGrade_Sending_Default)}>;
-	Let vSetMods_NotAccepted_pProgramResponse_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Student_Accepted_Flag]-={1}, [$1_Flag] = {1}, [School Year]={$2}, [Sending Grade]={$(vGrade_Sending_Default)}>;
-	Let vSetMods_NotAccepted_pNotProgramResponse_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Student_Accepted_Flag]-={1}, [$1_Flag] -= {1}, [School Year]={$2}, [Sending Grade]={$(vGrade_Sending_Default)}>;
+	Let vSetMods_NotAccepted_pProgramResponse_pSY_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Student_Accepted_Flag]-={1}, [$1_Flag] = {1}, [School Year]={$2}, [Sending Grade]={$(vGrade_Sending_Default)}>;
+	Let vSetMods_NotAccepted_pNotProgramResponse_pSY_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Student_Accepted_Flag]-={1}, [$1_Flag] -= {1}, [School Year]={$2}, [Sending Grade]={$(vGrade_Sending_Default)}>;
 	
 
 	/// Qualified: using the student-application-level flag (only includes applied students)
@@ -197,11 +197,11 @@
 	Let vSetMods_Qualified_pNotProgramResponse_pSY_dGrade = <[$1_Flag] -= {1}, [Sending Grade]={$(vGrade_Sending_Default)}, [Qualified_Flag] = {1}, [School Year]={$2}>;
 	Let vSetMods_NotQualified_pProgramResponse_pSY_dGrade = <[$1_Flag] = {1}, [Sending Grade]={$(vGrade_Sending_Default)}, [Qualified_Flag] -= {1}, [School Year]={$2}>;
 	Let vSetMods_NotQualified_pNotProgramResponse_pSY_dGrade = <[$1_Flag] -= {1}, [Sending Grade]={$(vGrade_Sending_Default)}, [Qualified_Flag] -= {1}, [School Year]={$2}>;
-	Let vSetMods_Qualified_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Qualified_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
-	Let vSetMods_Qualified_pProgramResponse_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [$1_Flag] = {1}, [Sending Grade]={$(vGrade_Sending_Default)}, [Qualified_Flag] = {1}, [School Year]={$2}>;
-	Let vSetMods_Qualified_pNotProgramResponse_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [$1_Flag] -= {1}, [Sending Grade]={$(vGrade_Sending_Default)}, [Qualified_Flag] = {1}, [School Year]={$2}>;
-	Let vSetMods_NotQualified_pProgramResponse_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [$1_Flag] = {1}, [Sending Grade]={$(vGrade_Sending_Default)}, [Qualified_Flag] -= {1}, [School Year]={$2}>;
-	Let vSetMods_NotQualified_pNotProgramResponse_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [$1_Flag] -= {1}, [Sending Grade]={$(vGrade_Sending_Default)}, [Qualified_Flag] -= {1}, [School Year]={$2}>;
+	Let vSetMods_Qualified_pSY_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Qualified_Flag] = {1}, [School Year]={$1}, [Sending Grade]={$(vGrade_Sending_Default)}>;
+	Let vSetMods_Qualified_pProgramResponse_pSY_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [$1_Flag] = {1}, [Sending Grade]={$(vGrade_Sending_Default)}, [Qualified_Flag] = {1}, [School Year]={$2}>;
+	Let vSetMods_Qualified_pNotProgramResponse_pSY_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [$1_Flag] -= {1}, [Sending Grade]={$(vGrade_Sending_Default)}, [Qualified_Flag] = {1}, [School Year]={$2}>;
+	Let vSetMods_NotQualified_pProgramResponse_pSY_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [$1_Flag] = {1}, [Sending Grade]={$(vGrade_Sending_Default)}, [Qualified_Flag] -= {1}, [School Year]={$2}>;
+	Let vSetMods_NotQualified_pNotProgramResponse_pSY_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [$1_Flag] -= {1}, [Sending Grade]={$(vGrade_Sending_Default)}, [Qualified_Flag] -= {1}, [School Year]={$2}>;
 	
 
 
@@ -215,6 +215,11 @@
 	Let vQualification_CourseMarks_C_Max_default = 0;
 	Let vQualified_default = SA;
 
+	/**
+	 * parameters
+	 * $1: Custom (use the calculator values), SA, SAMax, CW, CW_NoOSS, SA_NoOss, any other will be used as a flag field
+	 * @type {[type]}
+	 */
 	Let vSetOpts_pQualified = IF('$1' = 'Custom', 
 		If(IsNull($(vQualification_OSS_Max)),'', ', OSS_Zero_Flag={1} ' ) &
 		If(IsNull($(vQualification_Attendance_Min)),'', ', [% Attendance]={">=$(vQualification_Attendance_Min)"} ' ) &
@@ -224,7 +229,10 @@
 		If(IsNull($(vQualification_PSSA_ELA_Min)),'', ', [PSSA ELA Percentile]={">=$(vQualification_PSSA_ELA_Min)"} ' ) &
 		If(IsNull($(vQualification_PSSA_Math_Min)),'', ', [PSSA Math Percentile]={">=$(vQualification_PSSA_Math_Min)"} ' )
 		, 
-		', [Qualified_$1_Flag] = {1}');
+		IF(Match('$1', 'SA', 'SAMax', 'CW', 'CW_NoOSS', 'SA_NoOss', 'SAMax_NoOSS'),
+			', [Qualified_$1_Flag] = {1}',
+			', [$1]={1}'
+		));
 	Let vSetMods_pQualified = <[School Year] = P([School Year]) $(=$(vSetOpts_pQualified($1)))>;
 	Let vSetMods_pQualified_pSY = <[School Year]={$2} $(=$(vSetOpts_pQualified($1)))>;
 	Let vSetMods_StudentApplied_pQualified = <[Student_Applied_Flag]={1} $(=$(vSetOpts_pQualified($1)))>;
@@ -235,12 +243,13 @@
 	Let vSetMods_StudentApplied_pQualified_dGrade = <[Student_Applied_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)} $(=$(vSetOpts_pQualified($1)))>;
 	Let vSetMods_StudentApplied_pQualified_pSY_dGrade = <[Student_Applied_Flag]={1}, [School Year]={$2}, [Sending Grade]={$(vGrade_Sending_Default)} $(=$(vSetOpts_pQualified($1)))>;
 	Let vSetMods_pProgramResponse_pQualified_pSY_dGrade = <[$1_Flag] = {1}, [School Year]={$3}, [Sending Grade]={$(vGrade_Sending_Default)} $(=$(vSetOpts_pQualified($2)))>;
-	Let vSetMods_pQualified_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [School Year]={$2}, [Sending Grade]={$(vGrade_Sending_Default)} $(=$(vSetOpts_pQualified($1)))>;
-	Let vSetMods_StudentApplied_pQualified_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Student_Applied_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)} $(=$(vSetOpts_pQualified($1)))>;
-	Let vSetMods_StudentApplied_pQualified_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [Student_Applied_Flag]={1}, [School Year]={$2}, [Sending Grade]={$(vGrade_Sending_Default)} $(=$(vSetOpts_pQualified($1)))>;
-	Let vSetMods_StudentApplied_pQualified_pSY_dGrade_dSector_BG = <$(vSetOpts_BG)[Sending Sector]={'$(vSector_Sending_Default)'}, [Student_Applied_Flag]={1}, [School Year]={$2}, [Sending Grade]={$(vGrade_Sending_Default)} $(=$(vSetOpts_pQualified($1)))>;
+	Let vSetMods_pQualified_pSY_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [School Year]={$2}, [Sending Grade]={$(vGrade_Sending_Default)} $(=$(vSetOpts_pQualified($1)))>;
+	Let vSetMods_pQualified_pSY_dGrade_dSector_BG = <$(vSetOpts_BG)[Sending.Sector]={'$(vSector_Sending_Default)'}, [School Year]={$2}, [Sending Grade]={$(vGrade_Sending_Default)} $(=$(vSetOpts_pQualified($1)))>;
+	Let vSetMods_StudentApplied_pQualified_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Student_Applied_Flag]={1}, [Sending Grade]={$(vGrade_Sending_Default)} $(=$(vSetOpts_pQualified($1)))>;
+	Let vSetMods_StudentApplied_pQualified_pSY_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [Student_Applied_Flag]={1}, [School Year]={$2}, [Sending Grade]={$(vGrade_Sending_Default)} $(=$(vSetOpts_pQualified($1)))>;
+	Let vSetMods_StudentApplied_pQualified_pSY_dGrade_dSector_BG = <$(vSetOpts_BG)[Sending.Sector]={'$(vSector_Sending_Default)'}, [Student_Applied_Flag]={1}, [School Year]={$2}, [Sending Grade]={$(vGrade_Sending_Default)} $(=$(vSetOpts_pQualified($1)))>;
 	
-	Let vSetMods_pProgramResponse_pQualified_pSY_dGrade_dSector = <[Sending Sector]={'$(vSector_Sending_Default)'}, [$1_Flag] = {1}, [School Year]={$3}, [Sending Grade]={$(vGrade_Sending_Default)} $(=$(vSetOpts_pQualified($2)))>;
+	Let vSetMods_pProgramResponse_pQualified_pSY_dGrade_dSector = <[Sending.Sector]={'$(vSector_Sending_Default)'}, [$1_Flag] = {1}, [School Year]={$3}, [Sending Grade]={$(vGrade_Sending_Default)} $(=$(vSetOpts_pQualified($2)))>;
 
 ////// Count-related (in app use combination of sets and the count-on)
 		// e.g. Count(distinct {$(vSetMod_pSY)} $(vField_CountDistinct_Enrollment))
@@ -488,16 +497,16 @@
 
 		//// Receiving Program Layer
 			/// Location
-				Let vLocation_Map_ReceivingProgram = If(vRQ_Map = 'applied_to', If($(vMeasure_Map_Size_ReceivingProgram) > 0, MaxString(Longitude_Latitude_Receiving)),
-					If(vRQ_Map = 'approved_to', If($(vMeasure_Map_Size_ReceivingProgram) > 0, MaxString(Longitude_Latitude_Receiving)),
-					If(vRQ_Map = 'accepted_to', If($(vMeasure_Map_Size_ReceivingProgram) > 0, MaxString(Longitude_Latitude_Receiving)),
+				Let vLocation_Map_ReceivingProgram = If(vRQ_Map = 'applied_to', If($(vMeasure_Map_Size_ReceivingProgram) > 0, MaxString(Receiving.Latitude_Longitude)),
+					If(vRQ_Map = 'approved_to', If($(vMeasure_Map_Size_ReceivingProgram) > 0, MaxString(Receiving.Latitude_Longitude)),
+					If(vRQ_Map = 'accepted_to', If($(vMeasure_Map_Size_ReceivingProgram) > 0, MaxString(Receiving.Latitude_Longitude)),
 					If(vRQ_Map = 'applied_from', Null(),
 					If(vRQ_Map = 'approved_from', Null(),
 					If(vRQ_Map = 'accepted_from', Null(),
 					If(vRQ_Map = 'participation', Null(),
 			 		If(vRQ_Map = 'qualified', Null(),
-					If(vRQ_Map = 'applications', If($(vMeasure_Map_Size_ReceivingProgram) > 0, MaxString(Longitude_Latitude_Receiving)),
-					If(vRQ_Map = 'relationships', If($(vMeasure_Map_Size_ReceivingProgram) > 5, MaxString(Longitude_Latitude_Receiving))
+					If(vRQ_Map = 'applications', If($(vMeasure_Map_Size_ReceivingProgram) > 0, MaxString(Receiving.Latitude_Longitude)),
+					If(vRQ_Map = 'relationships', If($(vMeasure_Map_Size_ReceivingProgram) > 5, MaxString(Receiving.Latitude_Longitude))
 					))))))))));
 
 
@@ -580,30 +589,30 @@
 
 		//// Sending School Layer
 			/// Location
-				Let vLocation_Map_SendingSchool_NotCharter = If(Only([Sending Sector]) <> 'Charter',
+				Let vLocation_Map_SendingSchool_NotCharter = If(Only([Sending.Sector]) <> 'Charter',
 					If(vRQ_Map = 'applied_to', Null(),
 					If(vRQ_Map = 'approved_to', Null(),
 					If(vRQ_Map = 'accepted_to', Null(),
-					If(vRQ_Map = 'applied_from', If($(vMeasure_Map_Size_SendingSchool) > 0, MaxString(Longitude_Latitude_Sending)),
-					If(vRQ_Map = 'approved_from', If($(vMeasure_Map_Size_SendingSchool) > 0, MaxString(Longitude_Latitude_Sending)),
-					If(vRQ_Map = 'accepted_from', If($(vMeasure_Map_Size_SendingSchool) > 0, MaxString(Longitude_Latitude_Sending)),
-					If(vRQ_Map = 'participation', If($(vMeasure_Map_Size_SendingSchool) > 0, MaxString(Longitude_Latitude_Sending)),
-					If(vRQ_Map = 'qualified', If($(vMeasure_Map_Size_SendingSchool) > 0, MaxString(Longitude_Latitude_Sending)),
+					If(vRQ_Map = 'applied_from', If($(vMeasure_Map_Size_SendingSchool) > 0, MaxString(Sending.Latitude_Longitude)),
+					If(vRQ_Map = 'approved_from', If($(vMeasure_Map_Size_SendingSchool) > 0, MaxString(Sending.Latitude_Longitude)),
+					If(vRQ_Map = 'accepted_from', If($(vMeasure_Map_Size_SendingSchool) > 0, MaxString(Sending.Latitude_Longitude)),
+					If(vRQ_Map = 'participation', If($(vMeasure_Map_Size_SendingSchool) > 0, MaxString(Sending.Latitude_Longitude)),
+					If(vRQ_Map = 'qualified', If($(vMeasure_Map_Size_SendingSchool) > 0, MaxString(Sending.Latitude_Longitude)),
 					If(vRQ_Map = 'applications', Null(),
-					If(vRQ_Map = 'relationships', If($(vMeasure_Map_Size_SendingSchool) > 5, MaxString(Longitude_Latitude_Sending))
+					If(vRQ_Map = 'relationships', If($(vMeasure_Map_Size_SendingSchool) > 5, MaxString(Sending.Latitude_Longitude))
 					)))))))))));
 
-				Let vLocation_Map_SendingSchool_Charter = If(Only([Sending Sector]) = 'Charter',
+				Let vLocation_Map_SendingSchool_Charter = If(Only([Sending.Sector]) = 'Charter',
 					If(vRQ_Map = 'applied_to', Null(),
 					If(vRQ_Map = 'approved_to', Null(),
 					If(vRQ_Map = 'accepted_to', Null(),
-					If(vRQ_Map = 'applied_from', If($(vMeasure_Map_Size_SendingSchool) > 0, MaxString(Longitude_Latitude_Sending)),
-					If(vRQ_Map = 'approved_from', If($(vMeasure_Map_Size_SendingSchool) > 0, MaxString(Longitude_Latitude_Sending)),
-					If(vRQ_Map = 'accepted_from', If($(vMeasure_Map_Size_SendingSchool) > 0, MaxString(Longitude_Latitude_Sending)),
-					If(vRQ_Map = 'participation', If($(vMeasure_Map_Size_SendingSchool) > 0, MaxString(Longitude_Latitude_Sending)),
-					If(vRQ_Map = 'qualified', If($(vMeasure_Map_Size_SendingSchool) > 0, MaxString(Longitude_Latitude_Sending)),
+					If(vRQ_Map = 'applied_from', If($(vMeasure_Map_Size_SendingSchool) > 0, MaxString(Sending.Latitude_Longitude)),
+					If(vRQ_Map = 'approved_from', If($(vMeasure_Map_Size_SendingSchool) > 0, MaxString(Sending.Latitude_Longitude)),
+					If(vRQ_Map = 'accepted_from', If($(vMeasure_Map_Size_SendingSchool) > 0, MaxString(Sending.Latitude_Longitude)),
+					If(vRQ_Map = 'participation', If($(vMeasure_Map_Size_SendingSchool) > 0, MaxString(Sending.Latitude_Longitude)),
+					If(vRQ_Map = 'qualified', If($(vMeasure_Map_Size_SendingSchool) > 0, MaxString(Sending.Latitude_Longitude)),
 					If(vRQ_Map = 'applications', Null(),
-					If(vRQ_Map = 'relationships', If($(vMeasure_Map_Size_SendingSchool) > 5, MaxString(Longitude_Latitude_Sending))
+					If(vRQ_Map = 'relationships', If($(vMeasure_Map_Size_SendingSchool) > 5, MaxString(Sending.Latitude_Longitude))
 					)))))))))));
 
 
@@ -691,7 +700,7 @@
 		
 		//// Zip Code Area Layer
 			/// Location
-				Let vLocation_Map_ZipArea = If(Only([Sending Sector]) <> 'Charter',
+				Let vLocation_Map_ZipArea = If(Only([Sending.Sector]) <> 'Charter',
 					If(vRQ_Map = 'applied_to', Null(),
 					If(vRQ_Map = 'approved_to', Null(),
 					If(vRQ_Map = 'accepted_to', Null(),

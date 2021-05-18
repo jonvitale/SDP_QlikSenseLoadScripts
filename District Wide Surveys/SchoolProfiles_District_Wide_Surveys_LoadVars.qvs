@@ -78,6 +78,7 @@
   let vCount_Responses_Grade0003_YTD = Sum({<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [Grade] = {"00", "01", "02", "03"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [_Ans_Display_Flag]={1}>}[CountResponses]);
   let vCount1_Responses_YTD = Sum({1<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [_Ans_Display_Flag]={1}>}[CountResponses]);
   let vCountAlt1_Responses_YTD = Sum({Alt1 * 1<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [_Ans_Display_Flag]={1}>}[CountResponses]);
+  let vCount_District_Responses_YTD = Sum({1<[Sector]={'District'}, [QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [_Ans_Display_Flag]={1}>}[CountResponses]);
   
 
 /// Percent most Positive, uses a parameter for question code
@@ -87,6 +88,7 @@
   let vCount_PMP_Grade0003_YTD = Sum({<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [Grade] = {"00", "01", "02", "03"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [IsHighest]={1}>}[CountResponses]);
   let vCount1_PMP_YTD = Sum({1<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [IsHighest]={1}>}[CountResponses]);
   let vCountAlt1_PMP_YTD = Sum({Alt1 * 1<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [IsHighest]={1}>}[CountResponses]);
+  let vCount_District_PMP_YTD = Sum({1<[Sector]={'District'}, [QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [IsHighest]={1}>}[CountResponses]);
   
   
 ///// Response Count, with Total keyword, per Question, uses a parameter for question code
@@ -95,14 +97,16 @@
   let vCountTotal_Responses_Grade0912_YTD = Sum(Total {<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_Ans_Display_Flag]={1}, [Grade] = {"09", "10", "11", "12"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}>}[CountResponses]);
   let vCountTotal_Responses_Grade0003_YTD = Sum(Total {<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_Ans_Display_Flag]={1}, [Grade] = {"00", "01", "02", "03"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}>}[CountResponses]);
   let vCountTotalAlt1_Responses_YTD = Sum(Total {Alt1 * 1<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_Ans_Display_Flag]={1}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}>}[CountResponses]);
-   
+  let vCountTotal_District_Responses_YTD = Sum(Total {1<[Sector]={'District'}, [QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_Ans_Display_Flag]={1}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}>}[CountResponses]);
+  
 // this flag is to determine at a dimennsional level whether there are any responses
   let vFlag_Responses_YTD = Max({1<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [_Ans_Display_Flag]={1}>}[_Question_Flag]);
   let vFlag_Responses_Grade0912_YTD = Max({1<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [Grade] = {"09", "10", "11", "12"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [_Ans_Display_Flag]={1}>}[_Question_Flag]);
   let vFlag_Responses_Grade0003_YTD = Max({1<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [Grade] = {"00", "01", "02", "03"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [_Ans_Display_Flag]={1}>}[_Question_Flag]);
   let vQuestionText_YTD = Concat(Distinct {1<[QuestionCode]={"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [IsHighest]={1}>}[QuestionText]);
   let vAnswerText_YTD = Concat(Distinct {1<[QuestionCode]={"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [IsHighest]={1}>}[AnswerText]);
-
+  let vFlag_District_Responses_YTD = Max({1<[Sector]={'District'}, [QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag] = {1}, [_Question_Flag] = {1}, [_Ans_Display_Flag]={1}>}[_Question_Flag]);
+  
 ///  Construct
 ///  Selected Respondant and Construct
   let vCount_Responses_Survey_Construct_YTD = RangeMax(Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[Survey] = {"$1"}, [Construct]={"$2"}, [_$3YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_7));
@@ -116,6 +120,20 @@
   let vAvg_ScaledScore_Survey_YTD = RangeAvg(Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_1)/Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_2)/Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_3)/Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_4)/Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_5)/Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_6)/Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_7)/Sum({<[Survey] = {"$1"}, [_$2YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_7));
   let vmmAvg_ScaledScore_Survey_YTD = IF($(vCount_Respondents_Survey_YTD($1, $2)) >= $(vMin$1s),
     $(vAvg_ScaledScore_Survey_YTD($1, $2))
+  );
+
+/// Selected Question 
+  let vCount_Respondents_Question_YTD = Sum({<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag]={1}, [_Question_Flag]={1}>} CountResponses);
+  let vCount1_Respondents_Question_YTD = Sum({1<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag]={1}, [_Question_Flag]={1}>} CountResponses);
+  let vAvg_ScaledScore_Question_YTD = Sum({<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag]={1}, [_Question_Flag]={1}>} SumScaledScore)/Sum({<[QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag]={1}, [_Question_Flag]={1}>} CountResponses);
+  let vmmAvg_ScaledScore_Question_YTD = IF($(vCount_Respondents_Question_YTD($1, $2, $3)) >= $(vMin$2s),
+    $(vAvg_ScaledScore_Question_YTD($1, $2, $3))
+  );
+
+  let vCount_District_Respondents_Question_YTD = Sum({1<[Sector]={'District'}, [QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag]={1}, [_Question_Flag]={1}>} CountResponses);
+  let vAvg_District_ScaledScore_Question_YTD = Sum({1<[Sector]={'District'}, [QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag]={1}, [_Question_Flag]={1}>} SumScaledScore)/Sum({1<[Sector]={'District'}, [QuestionCode] = {"$1"}, [Survey] = {"$2"}, [_$3YTD_Flag]={1}, [_Question_Flag]={1}>} CountResponses);
+  let vmmAvg_District_ScaledScore_Question_YTD = IF($(vCount_District_Respondents_Question_YTD($1, $2, $3)) >= $(vMin$2s),
+    $(vAvg_District_ScaledScore_Question_YTD($1, $2, $3))
   );
 
 /// Across respondents (not principal) Selected Construct - for table

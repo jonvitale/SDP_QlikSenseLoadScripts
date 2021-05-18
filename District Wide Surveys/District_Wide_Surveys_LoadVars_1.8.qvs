@@ -3,7 +3,8 @@
 *	Jonathan Vitale
 *	Changes:
 *
-*	Version 1.8.0:
+*	Version 1.8.1:
+*   - updated for inappropriate use of = for variable
 *		- The counts for the focus questions include non score responses (but not skips)
 *
 *	Reminders:
@@ -12,6 +13,9 @@
 *   - A $(somevar) tells click to substitute whatever is somevar immediately. If you want to prevent this expansion replace $ with $
 *   - Similarly $(=$(somevar)) tells Qlik to evaluate the somevar expression, if you do not want this done in the load script replace both $ with chr(36)
 **/
+
+// the following needs to be set in editor
+//set v_format_yoy = '+##0.#%;-##0.#%;0%';
 
 let vPartnerDataLimiter = ='"'&Maxstring(PROGRAM_NAME)&'"';
 
@@ -39,9 +43,10 @@ let vSetOpts_EPD = =IF(Len('$(vPartnerNameForApp)') > 0,
   let vMinPrincipals = 5;
 
   // an expression providing either Teacher or Student based upon selected construct or group
-  let vTeacherOrStudent = =If(Only([Construct]) = 'Professional Capacity' or Only([Respondent Group]), 'Teacher', 'Student');
-  let vTeacherOrStudentCurrentTopic = =If(WildMatch(Concat(distinct {<[Construct]={'$(vCurrentTopic)'}>}[Respondent Group]), '*Teacher*', '*Principal*') > 0, 'Teacher', 'Student');
-  let vTeacherOrStudentCurrentSubTopic = =If(WildMatch(
+  let vTeacherOrStudent = If(Only([Construct]) = 'Professional Capacity' or Only([Respondent Group]) = 'Teacher', 'Teacher', 'Student');
+  // these are used on the map
+  let vTeacherOrStudentCurrentTopic = If(WildMatch(Concat(distinct {<[Construct]={'$(vCurrentTopic)'}>}[Respondent Group]), '*Teacher*', '*Principal*') > 0, 'Teacher', 'Student');
+  let vTeacherOrStudentCurrentSubTopic = If(WildMatch(
   Concat(distinct {<[Construct]={'$(vCurrentTopic)'}, [SubConstruct]={'$(=$(v_no_amp($(vCurrentSubTopic_$(vCurrentTopic_alpha)))))'}>}[Respondent Group]),
     '*Teacher*', '*Principal*') > 0, 
     'Teacher', 'Student');
@@ -115,24 +120,24 @@ let vCol_Respondent = Pick(
 
   //// Denominator - total # in respective groups
     /// Master Measure: vCount_Student - the number of students in [Grade]s 3 - 12
-      let vCount_Student = Num(Sum({<[Respondent Group] = {"Student"},[Grade] -= {"00", "01", "02"}$(vSetOpts_EPD)>} [InEnrollmentCounter]), '#,##0');
-      let vCount_Parent = Num(Sum({<[Respondent Group] = {"Parent"}$(vSetOpts_EPD)>} [InEnrollmentCounter]), '#,##0');
-      let vCount_ParentHousehold = Num(Sum({<[Respondent Group] = {"Parent"}, YearEnd = P({<YearEnd={">=2019"}$(vSetOpts_EPD)>}YearEnd)$(vSetOpts_EPD)>} [InEnrollmentCounter_Household]), '#,##0');
-      let vCount_Teacher = Num(Sum({<[Respondent Group] = {"Teacher"}$(vSetOpts_EPD)>} [InEnrollmentCounter]), '#,##0');
-      let vCount_Principal = Num(Sum({<[Respondent Group] = {"Principal"}$(vSetOpts_EPD)>} [InEnrollmentCounter]), '#,##0');
+      let vCount_Student = Num(Sum({<[Respondent Group] = {"Student"},[Grade] -= {"00", "01", "02"},$(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>} [InEnrollmentCounter]), '#,##0');
+      let vCount_Parent = Num(Sum({<[Respondent Group] = {"Parent"},$(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>} [InEnrollmentCounter]), '#,##0');
+      let vCount_ParentHousehold = Num(Sum({<[Respondent Group] = {"Parent"}, YearEnd = P({<YearEnd={">=2019"},$(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>}YearEnd),$(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>} [InEnrollmentCounter_Household]), '#,##0');
+      let vCount_Teacher = Num(Sum({<[Respondent Group] = {"Teacher"},$(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>} [InEnrollmentCounter]), '#,##0');
+      let vCount_Principal = Num(Sum({<[Respondent Group] = {"Principal"},$(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>} [InEnrollmentCounter]), '#,##0');
 
-      let vCount_Student_Current = Num(Sum({<[Respondent Group] = {"Student"}, YearEnd = {$(vMaxYearEnd)}, [Grade] -= {"00", "01", "02"}$(vSetOpts_EPD)>} [InEnrollmentCounter]), '#,##0');
-      let vCount_Parent_Current = Num(Sum({<[Respondent Group] = {"Parent"}, YearEnd = {$(vMaxYearEnd)}$(vSetOpts_EPD)>} [InEnrollmentCounter]), '#,##0');
-      let vCount_ParentHousehold_Current = Num(Sum({<[Respondent Group] = {"Parent"}, YearEnd = {$(vMaxYearEnd)}$(vSetOpts_EPD)>} [InEnrollmentCounter_Household]), '#,##0');
-      let vCount_Teacher_Current = Num(Sum({<[Respondent Group] = {"Teacher"}, YearEnd = {$(vMaxYearEnd)} $(vSetOpts_EPD)>} [InEnrollmentCounter]), '#,##0');
-      let vCount_Principal_Current = Num(Sum({<[Respondent Group] = {"Principal"}, YearEnd = {$(vMaxYearEnd)}$(vSetOpts_EPD)>} [InEnrollmentCounter]), '#,##0');
+      let vCount_Student_Current = Num(Sum({<[Respondent Group] = {"Student"}, YearEnd = {$(vMaxYearEnd)}, [Grade] -= {"00", "01", "02"},$(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>} [InEnrollmentCounter]), '#,##0');
+      let vCount_Parent_Current = Num(Sum({<[Respondent Group] = {"Parent"}, YearEnd = {$(vMaxYearEnd)},$(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>} [InEnrollmentCounter]), '#,##0');
+      let vCount_ParentHousehold_Current = Num(Sum({<[Respondent Group] = {"Parent"}, YearEnd = {$(vMaxYearEnd)},$(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>} [InEnrollmentCounter_Household]), '#,##0');
+      let vCount_Teacher_Current = Num(Sum({<[Respondent Group] = {"Teacher"}, YearEnd = {$(vMaxYearEnd)},$(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>} [InEnrollmentCounter]), '#,##0');
+      let vCount_Principal_Current = Num(Sum({<[Respondent Group] = {"Principal"}, YearEnd = {$(vMaxYearEnd)},$(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>} [InEnrollmentCounter]), '#,##0');
       let vCount_Selected_Current = $(vCount_$(vCurrentOrFirstRespondent)_Current);
 
-      let vCount_Student_Previous = Num(Sum({<[Respondent Group] = {"Student"}, YearEnd = {$(vLastYearEnd)}, [Grade] -= {"00", "01", "02"}$(vSetOpts_EPD)>} [InEnrollmentCounter]), '#,##0');
-      let vCount_Parent_Previous = Num(Sum({<[Respondent Group] = {"Parent"}, YearEnd = {$(vLastYearEnd)}$(vSetOpts_EPD)>} [InEnrollmentCounter]), '#,##0');
-      let vCount_ParentHousehold_Previous = Num(Sum({<[Respondent Group] = {"Parent"}, YearEnd = {$(vLastYearEnd)}$(vSetOpts_EPD)>} [InEnrollmentCounter_Household]), '#,##0');
-      let vCount_Teacher_Previous = Num(Sum({<[Respondent Group] = {"Teacher"}, YearEnd = {$(vLastYearEnd)} $(vSetOpts_EPD)>} [InEnrollmentCounter]), '#,##0');
-      let vCount_Principal_Previous = Num(Sum({<[Respondent Group] = {"Principal"}, YearEnd = {$(vLastYearEnd)}$(vSetOpts_EPD)>} [InEnrollmentCounter]), '#,##0');
+      let vCount_Student_Previous = Num(Sum({<[Respondent Group] = {"Student"}, YearEnd = {$(vLastYearEnd)}, [Grade] -= {"00", "01", "02"},$(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>} [InEnrollmentCounter]), '#,##0');
+      let vCount_Parent_Previous = Num(Sum({<[Respondent Group] = {"Parent"}, YearEnd = {$(vLastYearEnd)},$(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>} [InEnrollmentCounter]), '#,##0');
+      let vCount_ParentHousehold_Previous = Num(Sum({<[Respondent Group] = {"Parent"}, YearEnd = {$(vLastYearEnd)},$(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>} [InEnrollmentCounter_Household]), '#,##0');
+      let vCount_Teacher_Previous = Num(Sum({<[Respondent Group] = {"Teacher"}, YearEnd = {$(vLastYearEnd)},$(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>} [InEnrollmentCounter]), '#,##0');
+      let vCount_Principal_Previous = Num(Sum({<[Respondent Group] = {"Principal"}, YearEnd = {$(vLastYearEnd)},$(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>} [InEnrollmentCounter]), '#,##0');
 
   //// Rate - Numerator / Denominator for current [SchoolYear]
       let vmmRatio_Responded_by_Total_Student_Current = Num(Sum({<[Respondent Group] = {"Student"},
@@ -154,7 +159,7 @@ let vCol_Respondent = Pick(
        /
           Sum({<[Respondent Group] = {"Parent"},
           YearEnd = {$(vMaxYearEnd)},
-          $(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>} [Responded]))), '#.#%');
+          $(vSetOps_IgnoreConstructQuestion)$(vSetOpts_EPD)>} [InEnrollmentCounter_Household]))), '#.#%');
       let vmmRatio_Responded_by_Total_Teacher_Current = Num(Sum({<[Respondent Group] = {"Teacher"},
           YearEnd = {$(vMaxYearEnd)} $(vSetOpts_EPD)>} [Responded]) /
         Sum({<[Respondent Group] = {"Teacher"},
@@ -308,7 +313,7 @@ let vCol_Respondent = Pick(
   //// Master Measures for KPIs - YOY
     let vmmPercMP_pSurveyQuestionCode_pYear_p1_pTotal_YOY = Num(
       $(vmmPercMP_pSurveyQuestionCode_pYear_p1_pTotal($1, current, $2, $3)) - 
-      $(vmmPercMP_pSurveyQuestionCode_pYear_p1_pTotal($1, previous, $2, $3)), '+##0.#%;-##0.#%;0%');
+      $(vmmPercMP_pSurveyQuestionCode_pYear_p1_pTotal($1, previous, $2, $3)), $(v_format_yoy));
 
     let vmmRatio_pSurveyQuestionCode_pYear_p1_pTotal_Zero = Num(
       If($(vMin$(=Capitalize(Subfield('$1','|',1)))s) <= $(vCount_pSurveyQuestionCode_pYear_p1_pTotal($1, $2, $3, Total)),
@@ -1600,6 +1605,7 @@ let vCol_Respondent = Pick(
     /// Create parameterized single respondent - all topics measures
       let vSet_pRespondent_AllConstructs = <[Respondent Group]={"$1"}$(vSetOpts_EPD)>;
       let vSet_pRespondent_AllConstructs_Current = <[Respondent Group]={"$1"}, YearEnd={$(vMaxYearEnd)}$(vSetOpts_EPD)>;
+      let vSet_pRespondent_AllConstructs_KeepConstruct_Current = <[Respondent Group]={"$1"}, YearEnd={$(vMaxYearEnd)}, [Construct]=P([Construct])$(vSetOpts_EPD)>;
       let vCount_pRespondent_AllConstructs_Current = Sum({$(vSet_pRespondent_AllConstructs_Current($1))} [Responded]);
       let vCount1_pRespondent_AllConstructs_Current = Sum({1$(vSet_pRespondent_AllConstructs_Current($1))} [Responded]);
       let vCount1_pRespondent_AllConstructs_KeepConstruct_Current = Sum({1$(vSet_pRespondent_AllConstructs_KeepConstruct_Current($1))} [Responded]);
@@ -1669,7 +1675,7 @@ let vCol_Respondent = Pick(
       let vSet_pRespondent_pConstruct_pSubConstruct_Current = <[Respondent Group]={"$1"}, [Construct]={"$2"}, [SubConstruct]={"$3"}, YearEnd={$(vMaxYearEnd)}$(vSetOpts_EPD)>;
       let vCount_pRespondent_pConstruct_pSubConstruct_Current = Sum({$(vSet_pRespondent_pConstruct_pSubConstruct_Current($1, $2, $3))} [Responded]);
       let vAvgScore_pRespondent_pConstruct_pSubConstruct_Current = Sum({$(vSet_pRespondent_pConstruct_pSubConstruct_Current($1, $2, $3))} SubConstruct_SumScaledScore)/Sum({$(vSet_pRespondent_pConstruct_pSubConstruct_Current($1, $2, $3))} SubConstruct_NCompleted);
-      let vmmAvgScore_pRespondent_pConstruct_pSubConstruct_Current = Num(IF($(vMinTeachers) <= $(vCount_pRespondent_pConstruct_pSubConstruct_Current($1, $2, $3)), $(vAvgScore_pRespondent_pConstruct_pSubConstruct_Current($1, $2, $3)), Null()),'##0.#');
+      let vmmAvgScore_pRespondent_pConstruct_pSubConstruct_Current = Num(IF($(vMin$1s) <= $(vCount_pRespondent_pConstruct_pSubConstruct_Current($1, $2, $3)), $(vAvgScore_pRespondent_pConstruct_pSubConstruct_Current($1, $2, $3)), Null()),'##0.#');
       let vCol_pRespondent_pConstruct_pSubConstruct_pOffset_Current = Pick(
           RangeMax(1, Floor((10*Round($(vmmAvgScore_pRespondent_pConstruct_pSubConstruct_Current($1, $2, $3)), 0.1) - 40 - $4 * 10) / 10) + 2),
           $(vColor_Construct_Insufficient), '#ae1c3e', '#ed875e', '#f2d2ae', '#d1ebfb', '#5ea4d9', '#3c52a1', '#3c52a1', '#3c52a1', '#3c52a1', '#3c52a1');
@@ -1677,7 +1683,7 @@ let vCol_Respondent = Pick(
       let vSet_pRespondent_pConstruct_pSubConstruct_Previous = <[Respondent Group]={"$1"}, [Construct]={"$2"}, [SubConstruct]={"$3"}, YearEnd={$(vMaxYearEnd)}$(vSetOpts_EPD)>;
       let vCount_pRespondent_pConstruct_pSubConstruct_Previous = Sum({$(vSet_pRespondent_pConstruct_pSubConstruct_Previous($1, $2, $3))} [Responded]);
       let vAvgScore_pRespondent_pConstruct_pSubConstruct_Previous = Sum({$(vSet_pRespondent_pConstruct_pSubConstruct_Previous($1, $2, $3))} SubConstruct_SumScaledScore)/Sum({$(vSet_pRespondent_pConstruct_pSubConstruct_Previous($1, $2, $3))} SubConstruct_NCompleted);
-      let vmmAvgScore_pRespondent_pConstruct_pSubConstruct_Previous = Num(IF($(vMinTeachers) <= $(vCount_pRespondent_pConstruct_pSubConstruct_Previous($1, $2, $3)), $(vAvgScore_pRespondent_pConstruct_pSubConstruct_Previous($1, $2, $3)), Null()),'##0.#');
+      let vmmAvgScore_pRespondent_pConstruct_pSubConstruct_Previous = Num(IF($(vMin$1s) <= $(vCount_pRespondent_pConstruct_pSubConstruct_Previous($1, $2, $3)), $(vAvgScore_pRespondent_pConstruct_pSubConstruct_Previous($1, $2, $3)), Null()),'##0.#');
       
       let vmmAvgScore_pRespondent_pConstruct_pSubConstruct_YOY = Num($(vmmAvgScore_pRespondent_pConstruct_pSubConstruct_Current($1, $2, $3)) - $(vmmAvgScore_pRespondent_pConstruct_pSubConstruct_Previous($1, $2, $3)),'##0.#');
         
@@ -1709,7 +1715,7 @@ let vCol_Respondent = Pick(
         Sum({$(vSet_pRespondent_pConstruct_Current(Teacher, $1))} SumScaledScore_1)/Sum({$(vSet_pRespondent_pConstruct_Current(Teacher, $1))} NCompleted_1), Sum({$(vSet_pRespondent_pConstruct_Current(Teacher, $1))} SumScaledScore_2)/Sum({$(vSet_pRespondent_pConstruct_Current(Teacher, $1))} NCompleted_2), Sum({$(vSet_pRespondent_pConstruct_Current(Teacher, $1))} SumScaledScore_3)/Sum({$(vSet_pRespondent_pConstruct_Current(Teacher, $1))} NCompleted_3), Sum({$(vSet_pRespondent_pConstruct_Current(Teacher, $1))} SumScaledScore_4)/Sum({$(vSet_pRespondent_pConstruct_Current(Teacher, $1))} NCompleted_4), Sum({$(vSet_pRespondent_pConstruct_Current(Teacher, $1))} SumScaledScore_5)/Sum({$(vSet_pRespondent_pConstruct_Current(Teacher, $1))} NCompleted_5), Sum({$(vSet_pRespondent_pConstruct_Current(Teacher, $1))} SumScaledScore_6)/Sum({$(vSet_pRespondent_pConstruct_Current(Teacher, $1))} NCompleted_6), Sum({$(vSet_pRespondent_pConstruct_Current(Teacher, $1))} SumScaledScore_7)/Sum({$(vSet_pRespondent_pConstruct_Current(Teacher, $1))} NCompleted_7)
       );
       let vmmAvgScore_AcrossRespondents_pConstruct_Current = Num(
-          If($(vMin$(vTeacherOrStudent)s) <= $(vCount_AcrossRespondents_pConstruct_Current($1)), $(vAvgScore_AcrossRespondents_pConstruct_Current($1)), Null())
+          If(If($(vTeacherOrStudent) = 'Teacher', $(vMinTeachers), $(vMinStudents)) <= $(vCount_AcrossRespondents_pConstruct_Current($1)), $(vAvgScore_AcrossRespondents_pConstruct_Current($1)), Null())
         , '#0.#');
 
       let vCol_AcrossRespondents_pConstruct_Current = Pick(
@@ -1740,7 +1746,7 @@ let vCol_Respondent = Pick(
         Sum({$(vSet_pRespondent_pConstruct_Previous(Teacher, $1))} SumScaledScore_1)/Sum({$(vSet_pRespondent_pConstruct_Previous(Teacher, $1))} NCompleted_1), Sum({$(vSet_pRespondent_pConstruct_Previous(Teacher, $1))} SumScaledScore_2)/Sum({$(vSet_pRespondent_pConstruct_Previous(Teacher, $1))} NCompleted_2), Sum({$(vSet_pRespondent_pConstruct_Previous(Teacher, $1))} SumScaledScore_3)/Sum({$(vSet_pRespondent_pConstruct_Previous(Teacher, $1))} NCompleted_3), Sum({$(vSet_pRespondent_pConstruct_Previous(Teacher, $1))} SumScaledScore_4)/Sum({$(vSet_pRespondent_pConstruct_Previous(Teacher, $1))} NCompleted_4), Sum({$(vSet_pRespondent_pConstruct_Previous(Teacher, $1))} SumScaledScore_5)/Sum({$(vSet_pRespondent_pConstruct_Previous(Teacher, $1))} NCompleted_5), Sum({$(vSet_pRespondent_pConstruct_Previous(Teacher, $1))} SumScaledScore_6)/Sum({$(vSet_pRespondent_pConstruct_Previous(Teacher, $1))} NCompleted_6), Sum({$(vSet_pRespondent_pConstruct_Previous(Teacher, $1))} SumScaledScore_7)/Sum({$(vSet_pRespondent_pConstruct_Previous(Teacher, $1))} NCompleted_7)
       );
       let vmmAvgScore_AcrossRespondents_pConstruct_Previous = Num(
-          If($(vMin$(vTeacherOrStudent)s) <= $(vCount_AcrossRespondents_pConstruct_Previous($1)), $(vAvgScore_AcrossRespondents_pConstruct_Previous($1)), Null())
+          If(If($(vTeacherOrStudent) = 'Teacher', $(vMinTeachers), $(vMinStudents)) <= $(vCount_AcrossRespondents_pConstruct_Previous($1)), $(vAvgScore_AcrossRespondents_pConstruct_Previous($1)), Null())
         , '#0.#');
 
       let vmmAvgScore_AcrossRespondents_pConstruct_YOY = Num($(vmmAvgScore_AcrossRespondents_pConstruct_Current($1)) - $(vmmAvgScore_AcrossRespondents_pConstruct_Previous($1)),'##0.#');
@@ -1779,10 +1785,10 @@ let vCol_Respondent = Pick(
         Sum({$(vSet_pRespondent_pConstruct_AllSubConstructs_Current(Teacher, $1))} SubConstruct_SumScaledScore)/Sum({$(vSet_pRespondent_pConstruct_AllSubConstructs_Current(Teacher, $1))} SubConstruct_NCompleted)
       );
       let vmmAvgScore_AcrossRespondents_pConstruct_AllSubConstructs_Current = Num(
-          If($(vMin$(vTeacherOrStudent)s) <= $(vCount_AcrossRespondents_pConstruct_AllSubConstructs_Current($1)), $(vAvgScore_AcrossRespondents_pConstruct_AllSubConstructs_Current($1)), Null())
+          If(If($(vTeacherOrStudent) = 'Teacher', $(vMinTeachers), $(vMinStudents)) <= $(vCount_AcrossRespondents_pConstruct_AllSubConstructs_Current($1)), $(vAvgScore_AcrossRespondents_pConstruct_AllSubConstructs_Current($1)), Null())
         , '#0.#');
       let vCol_AcrossRespondents_pConstruct_AllSubConstructs_Current = Pick(
-          RangeMax(-1 * ($(vCount1_AcrossRespondents_pConstruct_AllSubConstructs_Current($1)) >= $(vMin$(vTeacherOrStudent)s)) + 1, 
+          RangeMax(-1 * ($(vCount1_AcrossRespondents_pConstruct_AllSubConstructs_Current($1)) >= If($(vTeacherOrStudent) = 'Teacher', $(vMinTeachers), $(vMinStudents))) + 1, 
             Floor((10*Round($(vmmAvgScore_AcrossRespondents_pConstruct_AllSubConstructs_Current($1)), 0.1) - 40) / 10) + 3),
           $(vColor_Construct_NA), $(vColor_Construct_Insufficient), '#ae1c3e', '#ed875e', '#f2d2ae', '#d1ebfb', '#5ea4d9', '#3c52a1', '#3c52a1');
 
@@ -1794,7 +1800,7 @@ let vCol_Respondent = Pick(
         Sum({$(vSet_pRespondent_pConstruct_AllSubConstructs_Previous(Teacher, $1))} SubConstruct_SumScaledScore)/Sum({$(vSet_pRespondent_pConstruct_AllSubConstructs_Previous(Teacher, $1))} SubConstruct_NCompleted)
       );
       let vmmAvgScore_AcrossRespondents_pConstruct_AllSubConstructs_Previous = Num(
-          If($(vMin$(vTeacherOrStudent)s) <= $(vCount_AcrossRespondents_pConstruct_AllSubConstructs_Previous($1)), $(vAvgScore_AcrossRespondents_pConstruct_AllSubConstructs_Previous($1)), Null())
+          If(If($(vTeacherOrStudent) = 'Teacher', $(vMinTeachers), $(vMinStudents)) <= $(vCount_AcrossRespondents_pConstruct_AllSubConstructs_Previous($1)), $(vAvgScore_AcrossRespondents_pConstruct_AllSubConstructs_Previous($1)), Null())
         , '#0.#');
 
       let vmmAvgScore_AcrossRespondents_pConstruct_AllSubConstructs_YOY = Num($(vmmAvgScore_AcrossRespondents_pConstruct_AllSubConstructs_Current($1)) - $(vmmAvgScore_AcrossRespondents_pConstruct_AllSubConstructs_Previous($1)),'##0.#');
@@ -1808,7 +1814,7 @@ let vCol_Respondent = Pick(
         Sum({$(vSet_pRespondent_pConstruct_pSubConstruct_Current(Teacher, $1, $2))} SubConstruct_SumScaledScore)/Sum({$(vSet_pRespondent_pConstruct_pSubConstruct_Current(Teacher, $1, $2))} SubConstruct_NCompleted)
       );
       let vmmAvgScore_AcrossRespondents_pConstruct_pSubConstruct_Current = Num(
-          If($(vMin$(vTeacherOrStudent)s) <= $(vCount_AcrossRespondents_pConstruct_pSubConstruct_Current($1, $2)), $(vAvgScore_AcrossRespondents_pConstruct_pSubConstruct_Current($1, $2)), Null())
+          If(If($(vTeacherOrStudent) = 'Teacher', $(vMinTeachers), $(vMinStudents)) <= $(vCount_AcrossRespondents_pConstruct_pSubConstruct_Current($1, $2)), $(vAvgScore_AcrossRespondents_pConstruct_pSubConstruct_Current($1, $2)), Null())
         , '#0.#');
 
       let vSet_AcrossRespondents_pConstruct_pSubConstruct_Previous = <[Respondent Group]-={"Principal"}, [Construct]={"$1"}, [SubConstruct]={"$2"}, YearEnd={$(vMaxYearEnd)}$(vSetOpts_EPD)>;
@@ -1819,7 +1825,7 @@ let vCol_Respondent = Pick(
         Sum({$(vSet_pRespondent_pConstruct_pSubConstruct_Previous(Teacher, $1, $2))} SubConstruct_SumScaledScore)/Sum({$(vSet_pRespondent_pConstruct_pSubConstruct_Previous(Teacher, $1, $2))} SubConstruct_NCompleted)
       );
       let vmmAvgScore_AcrossRespondents_pConstruct_pSubConstruct_Previous = Num(
-          If($(vMin$(vTeacherOrStudent)s) <= $(vCount_AcrossRespondents_pConstruct_pSubConstruct_Previous($1, $2)), $(vAvgScore_AcrossRespondents_pConstruct_pSubConstruct_Previous($1, $2)), Null())
+          If(If($(vTeacherOrStudent) = 'Teacher', $(vMinTeachers), $(vMinStudents)) <= $(vCount_AcrossRespondents_pConstruct_pSubConstruct_Previous($1, $2)), $(vAvgScore_AcrossRespondents_pConstruct_pSubConstruct_Previous($1, $2)), Null())
         , '#0.#');
       let vmmAvgScore_AcrossRespondents_pConstruct_pSubConstruct_YOY = Num($(vmmAvgScore_AcrossRespondents_pConstruct_pSubConstruct_Current($1, $2)) - $(vmmAvgScore_AcrossRespondents_pConstruct_pSubConstruct_Previous($1, $2)),'##0.#');
         
@@ -1832,7 +1838,7 @@ let vCol_Respondent = Pick(
         Sum({$(vSet_pRespondent_AllConstructs(Teacher))} SumScaledScore_1)/Sum({$(vSet_pRespondent_AllConstructs(Teacher))} NCompleted_1), Sum({$(vSet_pRespondent_AllConstructs(Teacher))} SumScaledScore_2)/Sum({$(vSet_pRespondent_AllConstructs(Teacher))} NCompleted_2), Sum({$(vSet_pRespondent_AllConstructs(Teacher))} SumScaledScore_3)/Sum({$(vSet_pRespondent_AllConstructs(Teacher))} NCompleted_3), Sum({$(vSet_pRespondent_AllConstructs(Teacher))} SumScaledScore_4)/Sum({$(vSet_pRespondent_AllConstructs(Teacher))} NCompleted_4), Sum({$(vSet_pRespondent_AllConstructs(Teacher))} SumScaledScore_5)/Sum({$(vSet_pRespondent_AllConstructs(Teacher))} NCompleted_5), Sum({$(vSet_pRespondent_AllConstructs(Teacher))} SumScaledScore_6)/Sum({$(vSet_pRespondent_AllConstructs(Teacher))} NCompleted_6), Sum({$(vSet_pRespondent_AllConstructs(Teacher))} SumScaledScore_7)/Sum({$(vSet_pRespondent_AllConstructs(Teacher))} NCompleted_7)
       );
       let vmmAvgScore_AcrossRespondents_AllConstructs = Num(
-          If($(vMin$(vTeacherOrStudent)s) <= $(vCount_AcrossRespondents_AllConstructs), $(vAvgScore_AcrossRespondents_AllConstructs), Null())
+          If(If($(vTeacherOrStudent) = 'Teacher', $(vMinTeachers), $(vMinStudents)) <= $(vCount_AcrossRespondents_AllConstructs), $(vAvgScore_AcrossRespondents_AllConstructs), Null())
         , '#0.#');      
 
       let vSet_AcrossRespondents_AllConstructs_Current = <[Respondent Group]-={"Principal"}, YearEnd={$(vMaxYearEnd)}$(vSetOpts_EPD)>;
@@ -1846,12 +1852,12 @@ let vCol_Respondent = Pick(
         Sum({$(vSet_pRespondent_AllConstructs_Current(Teacher))} SumScaledScore_1)/Sum({$(vSet_pRespondent_AllConstructs_Current(Teacher))} NCompleted_1), Sum({$(vSet_pRespondent_AllConstructs_Current(Teacher))} SumScaledScore_2)/Sum({$(vSet_pRespondent_AllConstructs_Current(Teacher))} NCompleted_2), Sum({$(vSet_pRespondent_AllConstructs_Current(Teacher))} SumScaledScore_3)/Sum({$(vSet_pRespondent_AllConstructs_Current(Teacher))} NCompleted_3), Sum({$(vSet_pRespondent_AllConstructs_Current(Teacher))} SumScaledScore_4)/Sum({$(vSet_pRespondent_AllConstructs_Current(Teacher))} NCompleted_4), Sum({$(vSet_pRespondent_AllConstructs_Current(Teacher))} SumScaledScore_5)/Sum({$(vSet_pRespondent_AllConstructs_Current(Teacher))} NCompleted_5), Sum({$(vSet_pRespondent_AllConstructs_Current(Teacher))} SumScaledScore_6)/Sum({$(vSet_pRespondent_AllConstructs_Current(Teacher))} NCompleted_6), Sum({$(vSet_pRespondent_AllConstructs_Current(Teacher))} SumScaledScore_7)/Sum({$(vSet_pRespondent_AllConstructs_Current(Teacher))} NCompleted_7)
       );
       let vmmAvgScore_AcrossRespondents_AllConstructs_Current = Num(
-          If($(vMin$(vTeacherOrStudent)s) <= $(vCount_AcrossRespondents_AllConstructs_Current), $(vAvgScore_AcrossRespondents_AllConstructs_Current), Null())
+          If(If($(vTeacherOrStudent) = 'Teacher', $(vMinTeachers), $(vMinStudents)) <= $(vCount_AcrossRespondents_AllConstructs_Current), $(vAvgScore_AcrossRespondents_AllConstructs_Current), Null())
         , '#0.#');
 
       let vCol_AcrossRespondents_AllConstructs_Current = Pick(
           RangeMax(
-            -1 * ($(vCount1_AcrossRespondents_AllConstructs_Current) >= $(vMin$(vTeacherOrStudent)s)) + 1, 
+            -1 * ($(vCount1_AcrossRespondents_AllConstructs_Current) >= If($(vTeacherOrStudent) = 'Teacher', $(vMinTeachers), $(vMinStudents))) + 1, 
             Floor((10*Round($(vmmAvgScore_AcrossRespondents_AllConstructs_Current), 0.1) - 40) / 10) + 3),
           $(vColor_Construct_NA), $(vColor_Construct_Insufficient), '#ae1c3e', '#ed875e', '#f2d2ae', '#d1ebfb', '#5ea4d9', '#3c52a1', '#3c52a1');
 
@@ -1863,7 +1869,7 @@ let vCol_Respondent = Pick(
         Sum({$(vSet_pRespondent_AllConstructs_Previous(Teacher))} SumScaledScore_1)/Sum({$(vSet_pRespondent_AllConstructs_Previous(Teacher))} NCompleted_1), Sum({$(vSet_pRespondent_AllConstructs_Previous(Teacher))} SumScaledScore_2)/Sum({$(vSet_pRespondent_AllConstructs_Previous(Teacher))} NCompleted_2), Sum({$(vSet_pRespondent_AllConstructs_Previous(Teacher))} SumScaledScore_3)/Sum({$(vSet_pRespondent_AllConstructs_Previous(Teacher))} NCompleted_3), Sum({$(vSet_pRespondent_AllConstructs_Previous(Teacher))} SumScaledScore_4)/Sum({$(vSet_pRespondent_AllConstructs_Previous(Teacher))} NCompleted_4), Sum({$(vSet_pRespondent_AllConstructs_Previous(Teacher))} SumScaledScore_5)/Sum({$(vSet_pRespondent_AllConstructs_Previous(Teacher))} NCompleted_5), Sum({$(vSet_pRespondent_AllConstructs_Previous(Teacher))} SumScaledScore_6)/Sum({$(vSet_pRespondent_AllConstructs_Previous(Teacher))} NCompleted_6), Sum({$(vSet_pRespondent_AllConstructs_Previous(Teacher))} SumScaledScore_7)/Sum({$(vSet_pRespondent_AllConstructs_Previous(Teacher))} NCompleted_7)
       );
       let vmmAvgScore_AcrossRespondents_AllConstructs_Previous = Num(
-          If($(vMin$(vTeacherOrStudent)s) <= $(vCount_AcrossRespondents_AllConstructs_Previous), $(vAvgScore_AcrossRespondents_AllConstructs_Previous), Null())
+          If(If($(vTeacherOrStudent) = 'Teacher', $(vMinTeachers), $(vMinStudents)) <= $(vCount_AcrossRespondents_AllConstructs_Previous), $(vAvgScore_AcrossRespondents_AllConstructs_Previous), Null())
         , '#0.#');
 
       let vmmAvgScore_AcrossRespondents_AllConstructs_YOY = Num($(vmmAvgScore_AcrossRespondents_AllConstructs_Current) - $(vmmAvgScore_AcrossRespondents_AllConstructs_Previous),'##0.#');
@@ -1877,7 +1883,7 @@ let vCol_Respondent = Pick(
         Sum({$(vSet_pRespondent_AllSubConstructs(Teacher))} SubConstruct_SumScaledScore)/Sum({$(vSet_pRespondent_AllSubConstructs(Teacher))} SubConstruct_NCompleted)
       );
       let vmmAvgScore_AcrossRespondents_AllSubConstructs = Num(
-          If($(vMin$(vTeacherOrStudent)s) <= $(vCount_AcrossRespondents_AllSubConstructs), $(vAvgScore_AcrossRespondents_AllSubConstructs), Null())
+          If(If($(vTeacherOrStudent) = 'Teacher', $(vMinTeachers), $(vMinStudents)) <= $(vCount_AcrossRespondents_AllSubConstructs), $(vAvgScore_AcrossRespondents_AllSubConstructs), Null())
         , '#0.#');
 
       let vSet_AcrossRespondents_AllSubConstructs_Current = <[Respondent Group]-={"Principal"}, YearEnd={$(vMaxYearEnd)}$(vSetOpts_EPD)>;
@@ -1889,7 +1895,7 @@ let vCol_Respondent = Pick(
         Sum({$(vSet_pRespondent_AllSubConstructs_Current(Teacher))} SubConstruct_SumScaledScore)/Sum({$(vSet_pRespondent_AllSubConstructs_Current(Teacher))} SubConstruct_NCompleted)
       );
       let vmmAvgScore_AcrossRespondents_AllSubConstructs_Current = Num(
-          If($(vMin$(vTeacherOrStudent)s) <= $(vCount_AcrossRespondents_AllSubConstructs_Current), $(vAvgScore_AcrossRespondents_AllSubConstructs_Current), Null())
+          If(If($(vTeacherOrStudent) = 'Teacher', $(vMinTeachers), $(vMinStudents)) <= $(vCount_AcrossRespondents_AllSubConstructs_Current), $(vAvgScore_AcrossRespondents_AllSubConstructs_Current), Null())
         , '#0.#');
 
       let vSet_AcrossRespondents_AllSubConstructs_Previous = <[Respondent Group]-={"Principal"}, YearEnd={$(vMaxYearEnd)}$(vSetOpts_EPD)>;
@@ -1900,7 +1906,7 @@ let vCol_Respondent = Pick(
         Sum({$(vSet_pRespondent_AllSubConstructs_Previous(Teacher))} SubConstruct_SumScaledScore)/Sum({$(vSet_pRespondent_AllSubConstructs_Previous(Teacher))} SubConstruct_NCompleted)
       );
       let vmmAvgScore_AcrossRespondents_AllSubConstructs_Previous = Num(
-          If($(vMin$(vTeacherOrStudent)s) <= $(vCount_AcrossRespondents_AllSubConstructs_Previous), $(vAvgScore_AcrossRespondents_AllSubConstructs_Previous), Null())
+          If(If($(vTeacherOrStudent) = 'Teacher', $(vMinTeachers), $(vMinStudents)) <= $(vCount_AcrossRespondents_AllSubConstructs_Previous), $(vAvgScore_AcrossRespondents_AllSubConstructs_Previous), Null())
         , '#0.#');
       let vmmAvgScore_AcrossRespondents_AllSubConstructs_YOY = Num($(vmmAvgScore_AcrossRespondents_AllSubConstructs_Current) - $(vmmAvgScore_AcrossRespondents_AllSubConstructs_Previous),'##0.#');
       

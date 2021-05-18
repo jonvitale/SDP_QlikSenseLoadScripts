@@ -1,0 +1,451 @@
+/**
+*	Loading Variables: District Wide Surveys
+*	Jonathan Vitale
+*	Changes:
+*
+*	Version 1.8.0:
+*		- The counts for the focus questions include non score responses (but not skips)
+*
+*	Reminders:
+*	- All the let statements will be strings, if you want an actual single quote in the string, use '
+*	- Alternatively, you can use double-quotes in set analyses, but these enable search and wildcards, so be careful.
+*   - A $(somevar) tells click to substitute whatever is somevar immediately. If you want to prevent this expansion replace $ with $
+*   - Similarly $(=$(somevar)) tells Qlik to evaluate the somevar expression, if you do not want this done in the load script replace both $ with chr(36)
+**/
+
+let vPartnerDataLimiter = ='"'&Maxstring(PROGRAM_NAME)&'"';
+
+let vSet_EPD = =IF(Len('$(vPartnerNameForApp)') > 0, 
+  '<PROGRAM_NAME={$(vPartnerDataLimiter)}>',
+  '');
+
+let vSetOpts_EPD = =IF(Len('$(vPartnerNameForApp)') > 0, 
+  ', PROGRAM_NAME={$(vPartnerDataLimiter)}',
+  '');
+
+let v_pset_ignore_construct_question = ,[Construct]=, [SubConstruct]=, [Essential Construct]=, [Essential SubConstruct]=, 
+    [QuestionText]=, [SurveyQuestionCode]=, [Survey|SchoolYear|QuestionCode]=, [Survey|SchoolYear|QuestionCode|Score]=; 
+ 
+
+//////////////////////////////////////////////////////////////////////// 
+/// Universal Set modifiers and variables
+////////////////////////////////////////////////////////////////////////
+
+let v_pset_cy = , YearEnd = {$(vMaxYearEnd)};
+let v_pset_py = , YearEnd = {$(vLastYearEnd)};
+let v_pset_1 = if('$1' = '1', '1', '');
+let v_pset_total = if(left(lower('$1'), 5) = 'total', '$1', '');
+let v_pset_alt_set = if(len(trim(purgechar('$1', '$')))>1, '* $1', '');
+
+let v_pset_respondent = if(len(trim(purgechar('$1', '$')))>1 and WildMatch(lower('$1'), 'any', 'all', 'overall', 'every') = 0, 
+	', [Respondent Group]={' & chr(39) & '$(=Replace(Capitalize('$1'),'_household', ''))' & chr(39) & '}', ''
+	);
+let v_pset_respondent_noprincipal = if(len(trim(purgechar('$1', '$')))>1 and WildMatch(lower('$1'), 'any', 'all', 'overall', 'every') = 0, 
+	', [Respondent Group]={' & chr(39) & '$(=Replace(Capitalize('$1'),'_household', ''))' & chr(39) & '}', 
+	if(lower('$1')<>'every', ', [Respondent Group]=P({<[Respondent Group]-={'&chr(39)&'Principal'&chr(39)&'}>}[Respondent Group])', '')
+);
+
+let v_flag_respondent_na_demo = if('$(v_respondent_selected)' <> 'Teacher' or GetSelectedCount([Race/Ethnicity]) = 0 and GetSelectedCount([Grade Level]) = 0 or GetSelectedCount(Gender) = 0, 1, 0);
+let v_label_respondent_na_demo = Teacher responses cannot be displayed by specific Grade Level, Ethnicity, or Gender. Remove any of these selections to view the data.;
+//////////////////////////////////////////////////////////////////////// 
+/// Response rate
+////////////////////////////////////////////////////////////////////////
+/**
+ * Count the # of enrolled potential survey responses
+ * parameters:
+ * $1: survey (student, parent, parent_household, teacher, principal)
+ * $2: school year (cy: current, py: previous, blank: all years)
+ * $3: ignore selections (1: yes, blank/$: no)
+ * $4: use total (total, blank: no)
+ * $5: use an alternative state (enter state name)
+ */
+let v_count_enrolled =  Sum($(=$(v_pset_total($4))) 
+	{$(=$(v_pset_1($3)))<x={1} $(=$(v_pset_respondent($1))) $(=if(wildmatch(lower('$1'), '*student*'), ', [Grade] -= {"00", "01", "02"}','')) $(v_pset_$2) $(v_pset_ignore_construct_question)$(vSetOpts_EPD)> $(=$(v_pset_alt_set($5)))} 
+	[$(=if(wildmatch(lower('$1'), '*household*'), 'InEnrollmentCounter_Household', 'InEnrollmentCounter'))]);
+
+let v_count_responded =  Sum($(=$(v_pset_total($4))) 
+	{$(=$(v_pset_1($3)))<x={1} $(=$(v_pset_respondent($1))) $(v_pset_$2) $(v_pset_ignore_construct_question)$(vSetOpts_EPD)> $(=$(v_pset_alt_set($5)))} 
+	[$(=if(wildmatch(lower('$1'), '*household*'), 'Responded_Household', 'Responded'))]);
+
+let v_avg_responded = $(v_count_responded($1, $2, $3, $4, $5)) / $(v_count_enrolled($1, $2, $3, $4, $5));
+
+//////////////////////////////////////////////////////////////////////// 
+/// Individual Question - Count, % Most Positive, Scaled Score
+////////////////////////////////////////////////////////////////////////
+
+let v_pset_surveyquestioncode = if(len(trim(purgechar('$1', '$')))>1, ', [SurveyQuestionCode]={' & chr(39) & '$1' & chr(39) & '}', '');
+// note when parameter is blank, limit to essential constructs
+let v_pset_construct_all = if(len(trim(purgechar('$1', '$')))>1 and WildMatch(lower('$1'), 'any', 'all', 'overall', 'every') = 0, ', [Construct]={' & chr(39) & '$1' & chr(39) & '}', '');
+let v_pset_construct = if(len(trim(purgechar('$1', '$')))>1 and WildMatch(lower('$1'), 'any', 'all', 'overall', 'every') = 0, 
+	', [Construct]={' & chr(39) & '$1' & chr(39) & '}', 
+	', [Construct]=P({<[Construct]-={' & chr(39) & 'none' & chr(39) & ', ' & chr(39) & 'Other' & chr(39) & '}>}[Construct])'
+	//if(lower('$1')<>'every', '[Construct]=P({<[Construct]-={"none", "Other"}>}[Construct]', ''))
+);
+
+let v_pset_subconstruct = if(len(trim(purgechar('$1', '$')))>1 and WildMatch(lower('$1'), 'any', 'all', 'overall', 'every') = 0, ', [SubConstruct]={'&chr(39)&'$(=Replace('$1', '&amp;', '&'))'&chr(39)&'}', '');
+
+/**
+ * Given a specific SurveyQuestionCode, are relevant for the given construct and respondent
+ * $1: surveyquestioncode
+ * $2: respondent (optional)
+ * $3: construct (optional)
+ * $4: sub-construct (optional)
+ */
+let v_flag_question_aligned = if(Not(IsNull(Only({<
+		[Responded]={1}
+		$(=$(v_pset_surveyquestioncode($1)))
+		$(=$(v_pset_respondent($2))) 
+		$(=$(v_pset_construct_all($3))) 
+		$(=$(v_pset_subconstruct($4))) 
+	>}[SurveyQuestionCode]))), 1, 0);
+let v_label_question_aligned = if($(v_flag_question_aligned($1, $2, $3, $4)) = 0, 'Please select a question', '');
+
+
+/**
+ * Count the # of responses with a valid response (not a skip)
+ * parameters:
+ * $1: surveyquestioncode
+ * $2: school year (cy: current, py: previous, blank: all years)
+ * $3: ignore selections (1: yes, blank/$: no)
+ * $4: use total (total, blank: no)
+ * $5: use an alternative state (enter state name)
+ */
+let v_count_responses = Sum($(=$(v_pset_total($4))) 
+	{$(=$(v_pset_1($3)))<[Responded]={1} $(=$(v_pset_surveyquestioncode($1))) $(v_pset_$2) $(vSetOpts_EPD)> $(=$(v_pset_alt_set($5)))} [IsDisplayScore]);
+
+let v_min_respondents = If(Wildmatch(Concat(distinct $(=$(v_pset_total($4))) {
+		$(=$(v_pset_1($3)))
+		<[x]={1} $(=$(v_pset_respondent($1))) $(v_pset_$2) $(vSetOpts_EPD)>
+		$(=$(v_pset_alt_set($5)))
+	} [Respondent Group], ','), '*Student*', '*Parent*'), $(vMinStudents), $(vMinTeachers));
+
+
+/**
+ * Creates a nullifying expression if the count of responded is lower than the minimum
+ * parameters:
+ * $1: surveyquestioncode
+ * $2: school year (cy: current, py: previous, blank: all years)
+ * $3: ignore selections (1: yes, blank/$: no)
+ * $4: use suppression (1: yes, 0/blank: no)
+ * $5: use an alternative state (enter state name)
+ */
+let v_suppress = if($4 = 1, 
+		if($(v_count_responses($1, $2, $3,, $5)) < $(v_min_respondents($1, $2, $3,, $5)), 
+			Null(), 
+			1
+		) 
+		, 1);
+/**
+ * Count the # of responses with the most positive answer
+ * parameters:
+ * $1: surveyquestioncode
+ * $2: school year (cy: current, py: previous, blank: all years)
+ * $3: ignore selections (1: yes, blank/$: no)
+ * $4: use suppression (1: yes, 0/blank: no)
+ * $5: use an alternative state (enter state name)
+ */
+let v_count_mostpositive = $(v_suppress($1, $2, $3, $4, $5)) * Sum({
+	$(=$(v_pset_1($3)))
+	<[IsHighest]={1} $(=$(v_pset_surveyquestioncode($1))) $(v_pset_$2) $(vSetOpts_EPD)>
+	$(=$(v_pset_alt_set($5)))
+	} [Responded]);
+
+/**
+ * Count the # of responses with an NA response
+ * parameters:
+ * $1: surveyquestioncode
+ * $2: school year (cy: current, py: previous, blank: all years)
+ * $3: ignore selections (1: yes, blank/$: no)
+ * $4: use suppression (1: yes, 0/blank: no)
+ * $5: use an alternative state (enter state name)
+ */
+let v_count_na = $(v_suppress($1, $2, $3, $4, $5)) * Sum({
+	$(=$(v_pset_1($3)))
+	<[IsDisplayScore]={0} $(=$(v_pset_surveyquestioncode($1))) $(v_pset_$2) $(vSetOpts_EPD)>
+	$(=$(v_pset_alt_set($5)))
+	} [Responded]);
+
+
+/**
+ * The percent of valid responses that were the most positive choice
+ * parameters:
+ * $1: surveyquestioncode
+ * $2: school year (current, previous, blank: all years)
+ * $3: ignore selections (1: yes, blank: no)
+ * $4: use suppression (1: yes, 0/blank: no)
+ * $5: use an alternative state (enter state name)
+ */
+// let v_perc_mostpositive = $(v_count_mostpositive($1, $2, $3, $4, $5)) / $(v_count_responses($1, $2, $3,,$5));
+
+// This is the default score to average, can also be IsHighest (todo: IsPositive)
+let v_field_question_score = ScaledScore;
+let v_label_question_score = =if('$(v_field_question_score)' = 'ScaledScore', 'Avg Scaled Score',
+	if('$(v_field_question_score)' = 'IsHighest', '% Most Positive',
+		'Please set v_field_question_score'
+		)
+	);
+
+let v_description_scaled_score = Avg Scaled Score is the average of scores on a 0 to 10 scale. For each question, each response is worth a percentage of 10 based upon the number of posslbe responses. For example, with 4 possible responses (strongly agree, agree, disagree, strongly disagree) points are worth 10, 6.7, 3.3, and 0 points, respectively.
+let v_description_scaled_score_agg = ='The average of all applicable respondent group'&chr(39)&'s applicable sub-topic avg scaled scores. The $(v_description_scaled_score)';
+let v_description_question_score = =if('$(v_field_question_score)' = 'ScaledScore', 
+	'the $(v_description_scaled_score)',
+	if('$(v_field_question_score)' = 'IsHighest',
+		'what percent of respondents chose the most positive (best) response to the selected survey question? For example: "I enjoy being in school" - most positive answer - "Most or all of the time". "I am bullied in school" - most positive answer - "Never"',
+		'Please set v_field_question_score'
+		)
+	);
+let v_max_question_score = =if('$(v_field_question_score)' = 'ScaledScore', 10,
+	if('$(v_field_question_score)' = 'IsHighest', 1,
+		1
+		)
+	);
+let v_format_question_score = =if('$(v_field_question_score)' = 'ScaledScore', '#0.#',
+	if('$(v_field_question_score)' = 'IsHighest', '##0.#%',
+		'##0.#%'
+		)
+	);
+let v_format_question_score_yoy = =if('$(v_field_question_score)' = 'ScaledScore', '+#0.#;-#0.#;0',
+	if('$(v_field_question_score)' = 'IsHighest', '+##0.#%;-##0.#%;0',
+		'+##0.#%;-##0.#%;0'
+		)
+	);
+/**
+ * For any given response, what percent of the total responses was it
+ * parameters:
+ * $1: surveyquestioncode
+ * $2: school year (current, previous, blank: all years)
+ * $3: ignore selections (1: yes, blank: no)
+ * $4: use suppression (1: yes, 0/blank: no)
+ * $5: use an alternative state (enter state name)
+ * $6: use alternative measure (default as )
+ */
+let v_perc_of_total = $(v_suppress($1, $2, $3, $4, $5)) * $(v_count_responses($1, $2, $3,, $5)) / $(v_count_responses($1, $2, $3, total, $5));
+
+
+
+let v_avg_score = $(v_suppress($1, $2, $3, $4, $5)) * Avg({
+	$(=$(v_pset_1($3)))
+	<x={1} $(=$(v_pset_surveyquestioncode($1))) $(v_pset_$2) $(vSetOpts_EPD)>
+	$(=$(v_pset_alt_set($5)))
+	} [$(=if(len(trim(purgechar('$6', '$')))>1, '$1', '$(v_field_question_score)'))]);
+
+
+// for coloring a score
+let v_color_avg_score = Pick(
+    RangeMax(1, Floor((10*Round($(v_avg_score($1, $2, $3, $4, $5)), 0.1) - 40) / 10) + 2),
+    $(vColor_Construct_Insufficient), 
+  '#ae1c3e', '#ed875e', '#f2d2ae', '#d1ebfb', '#5ea4d9', '#3c52a1', '#3c52a1');
+
+
+
+//////////////////////////////////////////////////////////////////////// 
+/// Construct/Respondent Roll-ups
+////////////////////////////////////////////////////////////////////////
+
+
+
+/**
+ * Count the # of respondents with valid responses (not skip) to selected topic
+ * parameters:
+ * $1: respondent (Student, Parent, Teacher, Principal, blank: all, not including principal)
+ * $2: construct (e.g., School Climate, etc., blank: all)
+ * $3: sub-construct (e.g., Attendance Challenges, blank: all)
+ * $4: school year (cy: current, py: previous, blank: all years)
+ * $5: ignore selections (1: yes, blank: no)
+ * $6: use total (total, blank: no)
+ * $7: use an alternative state (enter state name)
+ */
+let v_count_responded_agg = Sum($(=$(v_pset_total($6))) {
+		$(=$(v_pset_1($5)))
+		<[x]={1} $(=$(v_pset_respondent_noprincipal($1))) $(=$(v_pset_construct($2))) $(=$(v_pset_subconstruct($3))) $(v_pset_$4) $(vSetOpts_EPD)>
+	} [Responded]);
+
+/**
+ * Creates the appropriate value for minimum number of participants to display this measure
+ * $1: respondent (Student, Parent, Teacher, Principal, blank: all, not including principal)
+ * $2: construct (e.g., School Climate, etc., blank: all)
+ * $3: sub-construct (e.g., Attendance Challenges, blank: all)
+ * $4: school year (cy: current, py: previous, blank: all years)
+ * $5: ignore selections (1: yes, blank: no)
+ * $6: use total (total, blank: no)
+ * $7: use an alternative state (enter state name)
+ */
+let v_min_respondents_agg = If(Wildmatch(Concat(distinct $(=$(v_pset_total($6))) {
+		$(=$(v_pset_1($5)))
+		<[x]={1} $(=$(v_pset_respondent($1))) $(=$(v_pset_construct($2))) $(=$(v_pset_subconstruct($3))) $(v_pset_$4) $(vSetOpts_EPD)>
+	} [Respondent Group], ','), '*Student*', '*Parent*'), $(vMinStudents), $(vMinTeachers));
+
+/**
+ * Creates a nullifying expression if the count of responded is lower than the minimum
+ * parameters:
+ * $1: respondent (Student, Parent, Teacher, Principal, blank: all, not including principal)
+ * $2: construct (e.g., School Climate, etc., blank: all)
+ * $3: sub-construct (e.g., Attendance Challenges, blank: all)
+ * $4: school year (cy: current, py: previous, blank: all years)
+ * $5: ignore selections (1: yes, blank: no)
+ * $6: use suppression (1: yes, 0/blank: no)
+ * TODO
+ * $7: use an alternative state (enter state name)
+ * $8: use total (potentially with <>)
+ */
+let v_suppress_agg = if('$6' = '1', 
+		if($(v_count_responded_agg($1, $2, $3, $4, $5)) < $(v_min_respondents_agg($1, $2, $3, $4, $5)), 
+			Null(), 
+			1
+		) 
+		, 1);
+
+/**
+ * Create a full set expression
+ * $1: respondent (Student, Parent, Teacher, Principal, blank: all, not including principal)
+ * $2: construct (e.g., School Climate, etc., blank: all)
+ * $3: sub-construct (e.g., Attendance Challenges, blank: all)
+ * $4: school year (cy: current, py: previous, blank: all years)
+ * $5: ignore selections (1: yes, blank: no)
+ */
+let v_set_agg = {
+		$(=$(v_pset_1($5)))
+		<[x]={1} $(=$(v_pset_respondent_noprincipal($1))) $(=$(v_pset_construct($2))) $(=$(v_pset_subconstruct($3))) $(v_pset_$4) $(vSetOpts_EPD)>
+	}
+
+/**
+ * This is the average score rollup for a respondent group/topic/survey
+ * used for drilldowns that will go from topic to sub-topic level based on whether a topic has been selected
+ * if this is a subconstruct score: find the average scaled score each respondent group and average
+ * if this is a construct score: average all subconstructs across all respondent groups (if a group has more subconstructs it will weigh in higher than another group)
+ * parameters
+ * $1: respondent (Student, Parent, Teacher, Principal, blank: all, not including principal)
+ * $2: construct (e.g., School Climate, etc., blank: all)
+ * $3: sub-construct (e.g., Attendance Challenges, blank: all, note if only one construct available, drills down to subconstruct)
+ * $4: school year (cy: current, py: previous, blank: all years)
+ * $5: ignore selections (1: yes, blank: no)
+ * $6: use suppression (1: yes, 0/blank: no)
+ * $7: use an alternative state (enter state name)
+ * $8: use total (potentially with <>)
+ */
+let v_avg_score_agg = $(v_avg_score_agg_$(=if(len(trim(purgechar('$3', '$')))>1 and WildMatch(lower('$3'), 'any', 'all', 'overall', 'every') = 0 or GetPossibleCount([Construct]) = 1, 'subconstruct', 'construct'))($1, $2, $3, $4, $5, $6, $7, $8));
+let v_avg_score_agg_all = $(v_avg_score_agg_$(=if(len(trim(purgechar('$3', '$')))>1 and WildMatch(lower('$3'), 'any', 'all', 'overall', 'every') = 0 or GetPossibleCount([Construct]) = 1, 'subconstruct', 'construct'))_all($1, $2, $3, $4, $5, $6, $7, $8));
+
+// if(
+// 		len(trim(purgechar('$3', '$')))>1 and lower('$3') <> 'all' and lower('$3') <> 'overall'
+// 		or
+// 		GetPossibleCount([Construct]) = 1
+// 		or
+// 		Not(IsNull(Only([SubConstruct])))
+// 		,
+// 		$(v_avg_score_agg_subconstruct($1, $2, $3, $4, $5, $6, $7, $8)),
+// 		$(v_avg_score_agg_construct($1, $2, $4, $5, $6, $7, $8))
+// );
+
+// for coloring a score
+let v_color_avg_score_agg = Pick(
+    RangeMax(1, Floor((10*Round($(v_avg_score_agg($1, $2, $3, $4, $5, $6, $7, $8)), 0.1) - 40) / 10) + 2),
+    $(vColor_Construct_Insufficient), 
+  '#ae1c3e', '#ed875e', '#f2d2ae', '#d1ebfb', '#5ea4d9', '#3c52a1', '#3c52a1');
+
+let v_color_avg_score_agg_all = Pick(
+    RangeMax(1, Floor((10*Round($(v_avg_score_agg_all($1, $2, $3, $4, $5, $6, $7, $8)), 0.1) - 40) / 10) + 2),
+    $(vColor_Construct_Insufficient), 
+  '#ae1c3e', '#ed875e', '#f2d2ae', '#d1ebfb', '#5ea4d9', '#3c52a1', '#3c52a1');
+
+
+
+
+/**
+ * This is the average score rollup for a respondent group and topic/survey
+ * where we average all subconstructs across all respondent groups (if a group has more subconstructs it will weigh in higher than another group)
+ * parameters
+ * $1: respondent (Student, Parent, Teacher, Principal, blank: all, not including principal)
+ * $2: construct (e.g., School Climate, etc., blank: all)
+ * $3: subconstruct (THIS IS IGNORED, it is only here to correspond to parameters for subconstruct)
+ * $4: school year (cy: current, py: previous, blank: all years)
+ * $5: ignore selections (1: yes, blank: no)
+ * $6: use suppression (1: yes, 0/blank: no)
+ * $7: use an alternative state (enter state name)
+ * $8: use total (potentially with <>)
+ */
+let v_avg_score_agg_construct = $(v_suppress_agg($1, $2,, $4, $5, $6)) * 
+	RangeAvg(
+		Sum($(=$(v_pset_total($8))) $(v_set_agg($1, $2,, $4, $5)) SumScaledScore_1)/Sum($(=$(v_pset_total($8))) $(v_set_agg($1, $2,, $4, $5)) NCompleted_1),
+		Sum($(=$(v_pset_total($8))) $(v_set_agg($1, $2,, $4, $5)) SumScaledScore_2)/Sum($(=$(v_pset_total($8))) $(v_set_agg($1, $2,, $4, $5)) NCompleted_2),
+		Sum($(=$(v_pset_total($8))) $(v_set_agg($1, $2,, $4, $5)) SumScaledScore_3)/Sum($(=$(v_pset_total($8))) $(v_set_agg($1, $2,, $4, $5)) NCompleted_3),
+		Sum($(=$(v_pset_total($8))) $(v_set_agg($1, $2,, $4, $5)) SumScaledScore_4)/Sum($(=$(v_pset_total($8))) $(v_set_agg($1, $2,, $4, $5)) NCompleted_4),
+		Sum($(=$(v_pset_total($8))) $(v_set_agg($1, $2,, $4, $5)) SumScaledScore_5)/Sum($(=$(v_pset_total($8))) $(v_set_agg($1, $2,, $4, $5)) NCompleted_5),
+		Sum($(=$(v_pset_total($8))) $(v_set_agg($1, $2,, $4, $5)) SumScaledScore_6)/Sum($(=$(v_pset_total($8))) $(v_set_agg($1, $2,, $4, $5)) NCompleted_6),
+		Sum($(=$(v_pset_total($8))) $(v_set_agg($1, $2,, $4, $5)) SumScaledScore_7)/Sum($(=$(v_pset_total($8))) $(v_set_agg($1, $2,, $4, $5)) NCompleted_7)
+	);
+
+/// same as above but force all respondent groups
+let v_avg_score_agg_construct_all = $(v_suppress_agg($1, $2,, $4, $5, $6)) * RangeAvg(
+	Sum($(=$(v_pset_total($8))) $(v_set_agg(Student, $2,, $4, $5)) SumScaledScore_1)/Sum($(=$(v_pset_total($8))) $(v_set_agg(Student, $2,, $4, $5)) NCompleted_1),
+	Sum($(=$(v_pset_total($8))) $(v_set_agg(Student, $2,, $4, $5)) SumScaledScore_2)/Sum($(=$(v_pset_total($8))) $(v_set_agg(Student, $2,, $4, $5)) NCompleted_2),
+	Sum($(=$(v_pset_total($8))) $(v_set_agg(Student, $2,, $4, $5)) SumScaledScore_3)/Sum($(=$(v_pset_total($8))) $(v_set_agg(Student, $2,, $4, $5)) NCompleted_3),
+	Sum($(=$(v_pset_total($8))) $(v_set_agg(Student, $2,, $4, $5)) SumScaledScore_4)/Sum($(=$(v_pset_total($8))) $(v_set_agg(Student, $2,, $4, $5)) NCompleted_4),
+	Sum($(=$(v_pset_total($8))) $(v_set_agg(Student, $2,, $4, $5)) SumScaledScore_5)/Sum($(=$(v_pset_total($8))) $(v_set_agg(Student, $2,, $4, $5)) NCompleted_5),
+	Sum($(=$(v_pset_total($8))) $(v_set_agg(Student, $2,, $4, $5)) SumScaledScore_6)/Sum($(=$(v_pset_total($8))) $(v_set_agg(Student, $2,, $4, $5)) NCompleted_6),
+	Sum($(=$(v_pset_total($8))) $(v_set_agg(Student, $2,, $4, $5)) SumScaledScore_7)/Sum($(=$(v_pset_total($8))) $(v_set_agg(Student, $2,, $4, $5)) NCompleted_7),
+	Sum($(=$(v_pset_total($8))) $(v_set_agg(Parent, $2,, $4, $5)) SumScaledScore_1)/Sum($(=$(v_pset_total($8))) $(v_set_agg(Parent, $2,, $4, $5)) NCompleted_1),
+	Sum($(=$(v_pset_total($8))) $(v_set_agg(Parent, $2,, $4, $5)) SumScaledScore_2)/Sum($(=$(v_pset_total($8))) $(v_set_agg(Parent, $2,, $4, $5)) NCompleted_2),
+	Sum($(=$(v_pset_total($8))) $(v_set_agg(Parent, $2,, $4, $5)) SumScaledScore_3)/Sum($(=$(v_pset_total($8))) $(v_set_agg(Parent, $2,, $4, $5)) NCompleted_3),
+	Sum($(=$(v_pset_total($8))) $(v_set_agg(Parent, $2,, $4, $5)) SumScaledScore_4)/Sum($(=$(v_pset_total($8))) $(v_set_agg(Parent, $2,, $4, $5)) NCompleted_4),
+	Sum($(=$(v_pset_total($8))) $(v_set_agg(Parent, $2,, $4, $5)) SumScaledScore_5)/Sum($(=$(v_pset_total($8))) $(v_set_agg(Parent, $2,, $4, $5)) NCompleted_5),
+	Sum($(=$(v_pset_total($8))) $(v_set_agg(Parent, $2,, $4, $5)) SumScaledScore_6)/Sum($(=$(v_pset_total($8))) $(v_set_agg(Parent, $2,, $4, $5)) NCompleted_6),
+	Sum($(=$(v_pset_total($8))) $(v_set_agg(Parent, $2,, $4, $5)) SumScaledScore_7)/Sum($(=$(v_pset_total($8))) $(v_set_agg(Parent, $2,, $4, $5)) NCompleted_7),
+	Sum($(=$(v_pset_total($8))) $(v_set_agg(Teacher, $2,, $4, $5)) SumScaledScore_1)/Sum($(=$(v_pset_total($8))) $(v_set_agg(Teacher, $2,, $4, $5)) NCompleted_1),
+	Sum($(=$(v_pset_total($8))) $(v_set_agg(Teacher, $2,, $4, $5)) SumScaledScore_2)/Sum($(=$(v_pset_total($8))) $(v_set_agg(Teacher, $2,, $4, $5)) NCompleted_2),
+	Sum($(=$(v_pset_total($8))) $(v_set_agg(Teacher, $2,, $4, $5)) SumScaledScore_3)/Sum($(=$(v_pset_total($8))) $(v_set_agg(Teacher, $2,, $4, $5)) NCompleted_3),
+	Sum($(=$(v_pset_total($8))) $(v_set_agg(Teacher, $2,, $4, $5)) SumScaledScore_4)/Sum($(=$(v_pset_total($8))) $(v_set_agg(Teacher, $2,, $4, $5)) NCompleted_4),
+	Sum($(=$(v_pset_total($8))) $(v_set_agg(Teacher, $2,, $4, $5)) SumScaledScore_5)/Sum($(=$(v_pset_total($8))) $(v_set_agg(Teacher, $2,, $4, $5)) NCompleted_5),
+	Sum($(=$(v_pset_total($8))) $(v_set_agg(Teacher, $2,, $4, $5)) SumScaledScore_6)/Sum($(=$(v_pset_total($8))) $(v_set_agg(Teacher, $2,, $4, $5)) NCompleted_6),
+	Sum($(=$(v_pset_total($8))) $(v_set_agg(Teacher, $2,, $4, $5)) SumScaledScore_7)/Sum($(=$(v_pset_total($8))) $(v_set_agg(Teacher, $2,, $4, $5)) NCompleted_7)
+);
+
+// for coloring a score
+let v_color_avg_score_agg_construct = Pick(
+    RangeMax(1, Floor((10*Round($(v_avg_score_agg_construct($1, $2,, $4, $5, $6, $7, $8))), 0.1) - 40) / 10) + 2),
+    $(vColor_Construct_Insufficient), 
+  '#ae1c3e', '#ed875e', '#f2d2ae', '#d1ebfb', '#5ea4d9', '#3c52a1', '#3c52a1');
+
+let v_color_avg_score_agg_construct_all = Pick(
+    RangeMax(1, Floor((10*Round($(v_avg_score_agg_construct_all($1, $2,, $4, $5, $6, $7, $8))), 0.1) - 40) / 10) + 2),
+    $(vColor_Construct_Insufficient), 
+  '#ae1c3e', '#ed875e', '#f2d2ae', '#d1ebfb', '#5ea4d9', '#3c52a1', '#3c52a1');
+
+
+	/**
+ * This is the average score rollup for a respondent group/topic/survey
+ * where we find the average scaled score each respondent group and average
+ * if this is a construct score: average all subconstructs across all respondent groups (if a group has more subconstructs it will weigh in higher than another group)
+ * parameters
+ * $1: respondent (Student, Parent, Teacher, Principal, blank: all, not including principal)
+ * $2: construct (e.g., School Climate, etc., blank: essential constructs)
+ * $3: sub-construct (e.g., Attendance Challenges, blank: all)
+ * $4: school year (cy: current, py: previous, blank: all years)
+ * $5: ignore selections (1: yes, blank: no)
+ * $6: use suppression (1: yes, 0/blank: no)
+ * $7: use an alternative state (enter state name)
+ * $8: use total (potentially with <>)
+ */
+let v_avg_score_agg_subconstruct = $(v_suppress_agg($1, $2, $3, $4, $5, $6)) * 
+	Sum($(=$(v_pset_total($8))) $(v_set_agg($1, $2, $3, $4, $5)) SubConstruct_SumScaledScore)/Sum($(=$(v_pset_total($8))) $(v_set_agg($1, $2, $3, $4, $5)) SubConstruct_NCompleted);
+
+/// same as above but force all respondent groups
+let v_avg_score_agg_subconstruct_all = $(v_suppress_agg($1, $2, $3, $4, $5, $6)) * 
+	RangeAvg(
+    Sum($(=$(v_pset_total($8))) $(v_set_agg(Student, $2, $3, $4, $5)) SubConstruct_SumScaledScore)/Sum($(=$(v_pset_total($8))) $(v_set_agg(Student, $2, $3, $4, $5)) SubConstruct_NCompleted),
+    Sum($(=$(v_pset_total($8))) $(v_set_agg(Parent, $2, $3, $4, $5)) SubConstruct_SumScaledScore)/Sum($(=$(v_pset_total($8))) $(v_set_agg(Parent, $2, $3, $4, $5)) SubConstruct_NCompleted),
+    Sum($(=$(v_pset_total($8))) $(v_set_agg(Teacher, $2, $3, $4, $5)) SubConstruct_SumScaledScore)/Sum($(=$(v_pset_total($8))) $(v_set_agg(Teacher, $2, $3, $4, $5)) SubConstruct_NCompleted)
+  );
+	
+	
+	// for coloring a score
+let v_color_avg_score_agg_subconstruct = Pick(
+    RangeMax(1, Floor((10*Round($(v_avg_score_agg_subconstruct($1, $2, $3, $4, $5, $6, $7, $8)), 0.1) - 40) / 10) + 2),
+    $(vColor_Construct_Insufficient), 
+  '#ae1c3e', '#ed875e', '#f2d2ae', '#d1ebfb', '#5ea4d9', '#3c52a1', '#3c52a1');
+
+let v_color_avg_score_agg_subconstruct_all = Pick(
+    RangeMax(1, Floor((10*Round($(v_avg_score_agg_subconstruct_all($1, $2, $3, $4, $5, $6, $7, $8)), 0.1) - 40) / 10) + 2),
+    $(vColor_Construct_Insufficient), 
+  '#ae1c3e', '#ed875e', '#f2d2ae', '#d1ebfb', '#5ea4d9', '#3c52a1', '#3c52a1');
+	
