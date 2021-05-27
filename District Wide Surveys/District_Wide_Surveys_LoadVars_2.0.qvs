@@ -115,7 +115,7 @@ let v_count_responses = Sum($(=$(v_pset_total($4)))
 
 let v_min_respondents = If(Wildmatch(Concat(distinct $(=$(v_pset_total($4))) {
 		$(=$(v_pset_1($3)))
-		<[x]={1} $(=$(v_pset_respondent($1))) $(v_pset_$2) $(vSetOpts_EPD)>
+		<[x]={1} $(=$(v_pset_surveyquestioncode($1))) $(v_pset_$2) $(vSetOpts_EPD)>
 		$(=$(v_pset_alt_set($5)))
 	} [Respondent Group], ','), '*Student*', '*Parent*'), $(vMinStudents), $(vMinTeachers));
 
@@ -127,10 +127,11 @@ let v_min_respondents = If(Wildmatch(Concat(distinct $(=$(v_pset_total($4))) {
  * $2: school year (cy: current, py: previous, blank: all years)
  * $3: ignore selections (1: yes, blank/$: no)
  * $4: use suppression (1: yes, 0/blank: no)
- * $5: use an alternative state (enter state name)
+ * $5: use total (total, blank: no)
+ * $6: use an alternative state (enter state name)
  */
 let v_suppress = if($4 = 1, 
-		if($(v_count_responses($1, $2, $3,, $5)) < $(v_min_respondents($1, $2, $3,, $5)), 
+		if($(v_count_responses($1, $2, $3, $5, $6)) < $(v_min_respondents($1, $2, $3, $5, $6)), 
 			Null(), 
 			1
 		) 
@@ -142,12 +143,14 @@ let v_suppress = if($4 = 1,
  * $2: school year (cy: current, py: previous, blank: all years)
  * $3: ignore selections (1: yes, blank/$: no)
  * $4: use suppression (1: yes, 0/blank: no)
- * $5: use an alternative state (enter state name)
+ * $5: use total (total, blank: no)
+ * $6: use an alternative state (enter state name)
  */
-let v_count_mostpositive = $(v_suppress($1, $2, $3, $4, $5)) * Sum({
+let v_count_mostpositive = $(v_suppress($1, $2, $3, $4, $5, $6)) * Sum($(=$(v_pset_total($5)))
+	{
 	$(=$(v_pset_1($3)))
 	<[IsHighest]={1} $(=$(v_pset_surveyquestioncode($1))) $(v_pset_$2) $(vSetOpts_EPD)>
-	$(=$(v_pset_alt_set($5)))
+	$(=$(v_pset_alt_set($6)))
 	} [Responded]);
 
 /**
@@ -157,12 +160,14 @@ let v_count_mostpositive = $(v_suppress($1, $2, $3, $4, $5)) * Sum({
  * $2: school year (cy: current, py: previous, blank: all years)
  * $3: ignore selections (1: yes, blank/$: no)
  * $4: use suppression (1: yes, 0/blank: no)
- * $5: use an alternative state (enter state name)
+ * $5: use total (total, blank: no)
+ * $6: use an alternative state (enter state name)
  */
-let v_count_na = $(v_suppress($1, $2, $3, $4, $5)) * Sum({
+let v_count_na = $(v_suppress($1, $2, $3, $4, $5, $6)) * Sum($(=$(v_pset_total($5)))
+	{
 	$(=$(v_pset_1($3)))
 	<[IsDisplayScore]={0} $(=$(v_pset_surveyquestioncode($1))) $(v_pset_$2) $(vSetOpts_EPD)>
-	$(=$(v_pset_alt_set($5)))
+	$(=$(v_pset_alt_set($6)))
 	} [Responded]);
 
 
@@ -186,7 +191,7 @@ let v_label_question_score = =if('$(v_field_question_score)' = 'ScaledScore', 'A
 	);
 
 let v_description_scaled_score = Avg Scaled Score is the average of scores on a 0 to 10 scale. For each question, each response is worth a percentage of 10 based upon the number of posslbe responses. For example, with 4 possible responses (strongly agree, agree, disagree, strongly disagree) points are worth 10, 6.7, 3.3, and 0 points, respectively.
-let v_description_scaled_score_agg = ='The average of all applicable respondent group'&chr(39)&'s applicable sub-topic avg scaled scores. The $(v_description_scaled_score)';
+let v_description_scaled_score_agg = ='the average of all applicable respondent group`s applicable sub-topic avg scaled scores. The $(v_description_scaled_score)';
 let v_description_question_score = =if('$(v_field_question_score)' = 'ScaledScore', 
 	'the $(v_description_scaled_score)',
 	if('$(v_field_question_score)' = 'IsHighest',
@@ -219,7 +224,16 @@ let v_format_question_score_yoy = =if('$(v_field_question_score)' = 'ScaledScore
  * $5: use an alternative state (enter state name)
  * $6: use alternative measure (default as )
  */
-let v_perc_of_total = $(v_suppress($1, $2, $3, $4, $5)) * $(v_count_responses($1, $2, $3,, $5)) / $(v_count_responses($1, $2, $3, total, $5));
+let v_perc_of_total = $(v_suppress($1, $2, $3, $4, total<[SchoolYear]>, $5)) * 
+	$(v_count_responses($1, $2, $3,, $5)) 
+	/ 
+	$(v_count_responses($1, $2, $3, total<[SchoolYear]>, $5));
+
+let v_color_perc_of_total = Pick(
+    RangeMax(1, Floor((1000*Round($(v_perc_of_total($1, $2, $3, $4, $5, $6)), 0.001) - 40) / 10) + 2),
+    $(vColor_Construct_Insufficient), 
+  '#ae1c3e', '#ed875e', '#f2d2ae', '#d1ebfb', '#5ea4d9', '#3c52a1', '#3c52a1');
+
 
 
 
