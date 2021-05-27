@@ -1,3 +1,31 @@
+/**
+*	Loading Variables: District Wide Surveys
+*	Jonathan Vitale
+*	Changes:
+*
+*	Version 2.x.x:
+*	Reminders:
+*	- All the let statements will be strings, if you want an actual single quote in the string, use '
+*	- Alternatively, you can use double-quotes in set analyses, but these enable search and wildcards, so be careful.
+*   - A $(somevar) tells click to substitute whatever is somevar immediately. If you want to prevent this expansion replace $ with $
+*   - Similarly $(=$(somevar)) tells Qlik to evaluate the somevar expression, if you do not want this done in the load script replace both $ with chr(36)
+**/
+
+
+//////////////////////////////////////////////////////////////////////// 
+/// Utility functions
+////////////////////////////////////////////////////////////////////////
+
+
+/**
+*	This function takes
+*   $1: the list in format A, B, C, D (no quotes)
+*   $2: the new separator, such as '*, *'
+*/
+
+//////////////////////////////////////////////////////////////////////// 
+/// General variables
+////////////////////////////////////////////////////////////////////////
 
 
 set v_cy = =MaxString(SchoolYear);
@@ -14,6 +42,20 @@ set v_survey_selected_question = =Only({<[SurveyQuestionCode]={'$(v_surveyquesti
 set v_min_survey_selected_question = $(v_min_$(=lower('$(v_survey_selected_question)')));
 
 set v_surveys_no_demos = Students, Parents;
+
+// use these in case we ever change the name of the field, thus ensuring that we won't have to hunt
+// for all incidents of the wrong field name
+set v_field_surveyquestioncode = SurveyQuestionCode;
+set v_field_survey = Survey;
+set v_field_construct = Construct;
+set v_field_subconstruct = SubConstruct;
+
+//////////////////////////////////////////////////////////////////////// 
+/// General Expression Building: requires the following elements
+/// 1. aggregation qualifier - such as total or distinct
+/// 2. set identifier - such as 1 or Alt1 or $
+/// 3. set options - such as [X]={1}, [Year]={1}
+////////////////////////////////////////////////////////////////////////
 
 
 /**
@@ -32,8 +74,6 @@ set v_agg_qualifier = $(=
 	);
 		
 
-
-
 /**
  * v_set_identifier is used to populate the space between opening curly bracket and angled bracket
  *  {*here*< ... >}
@@ -47,22 +87,38 @@ set v_set_identifier = $(=
 		'', '$', '1', 'Alt1')
 	);
 
+//////////////////////////////////////////////////////////////////////// 
+/// Lists for building setopts
+////////////////////////////////////////////////////////////////////////
+
 /**
  * The following list of field names are fields that require an _overall_flag to be set to 1
  */
 set v_list_overall_fields = 'CountRespondents', 'CountEnrolled', 'CountRespondents_Household', 'CountEnrolled_Household';
+set v_list_overall_fields_wild = $(=chr(39) & '*' & Concat(ValueList($(v_list_overall_fields)),  '*' & chr(39) & ', ' & chr(39) & '*') & '*' & chr(39));
 
-set v_list_construct_fields = '*SumScaledScore_1*', '*SumScaledScore_2*', '*SumScaledScore_3*', '*SumScaledScore_4*', '*SumScaledScore_5*', '*SumScaledScore_6*', '*SumScaledScore_7*', '*NCompleted_1*', '*NCompleted_2*', '*NCompleted_3*', '*NCompleted_4*', '*NCompleted_5*', '*NCompleted_6*', '*NCompleted_7*';
+set v_list_construct_fields = 'SumScaledScore_1', 'SumScaledScore_2', 'SumScaledScore_3', 'SumScaledScore_4', 'SumScaledScore_5', 'SumScaledScore_6', 'SumScaledScore_7', 'NCompleted_1', 'NCompleted_2', 'NCompleted_3', 'NCompleted_4', 'NCompleted_5', 'NCompleted_6', 'NCompleted_7';
+set v_list_construct_fields_wild = $(=chr(39) & '*' & Concat(ValueList($(v_list_construct_fields)),  '*' & chr(39) & ', ' & chr(39) & '*') & '*' & chr(39));
 
 set v_list_subconstruct_fields = 'SubConstruct_SumScaledScore', 'SubConstruct_NCompleted', 
+set v_list_subconstruct_fields_wild = $(=chr(39) & '*' & Concat(ValueList($(v_list_subconstruct_fields)),  '*' & chr(39) & ', ' & chr(39) & '*') & '*' & chr(39));
 
-set v_list_question_fields = '*SumScaledScore*', '*CountResponses*', '*IsHighest*', '*_Ans_Display_Flag*';
+set v_list_question_fields = 'SumScaledScore', 'CountResponses', 'IsHighest', '_Ans_Display_Flag';
+set v_list_question_fields_wild = $(=chr(39) & '*' & Concat(ValueList($(v_list_question_fields)),  '*' & chr(39) & ', ' & chr(39) & '*') & '*' & chr(39));
 
 /**
  * A list of fields that do not get a set option
  */
-set v_list_invalid_setopts = 'surveyquestioncode:*', 'construct:*', 'subconstruct:*', '$', 'total*', 'distinct*', '1', 'Alt1', $(v_list_overall_fields),$(v_list_construct_fields), $(v_list_subconstruct_fields), $(v_list_question_fields);
-set v_setopt_ = '';
+set v_list_invalid_setopts = '{}', '$', '$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8', '$9', 'total*', 'distinct*', '1', 'Alt1', $(v_list_overall_fields),$(v_list_construct_fields), $(v_list_subconstruct_fields), $(v_list_question_fields);
+
+
+//////////////////////////////////////////////////////////////////////// 
+/// setopts: the text after v_setopt_* can be entered as a parameter
+/// to v_setops and will use the "Set Option" in the set analysis
+////////////////////////////////////////////////////////////////////////
+
+
+set v_setopt_ = x={1}; // this is a dummy in case user enters invalid setopt
 set v_setopt_cy = [_CYTD_Flag] = {1};
 set v_setopt_py = [_PYTD_Flag] = {1};
 set v_setopt_student = [Survey]={'Student'};
@@ -74,28 +130,29 @@ set v_setopt_charter = [Sector]={'Charter'};
 set v_setopt_surveyquestioncode = [SurveyQuestionCode]={'$1'};
 set v_setopt_countresponseshighest = [_Question_Flag]={1},[IsHighest]={1};
 set v_setopt_countresponsesanswered = [_Question_Flag]={1},[_Ans_Display_Flag]={1};
+set v_setopt_overall = [_Overall_Flag]={1},
+set v_setopt_question = [_Question_Flag]={1};
+set v_setopt_construct = [_Construct_Flag]={1};
+set v_setopt_subconstruct = [_SubConstruct_Flag]={1};
+
 /**
- * v_setopts is used to populate the space within <> to detnote set options
- * will begin with a comma so that it can be appended to any other set options
- * unless nocomma is specified as a parameter
- */
-set v_setopts = $(=
-	if(match('$1$2$3$4$5$6$7$8$9', ''),'[x]=1', '') &
-	if(wildmatch(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', ' '), '*|surveyquestioncode:*'),
+ * v_setopts is used to populate the space within <> to denote set options.
+ * The first parameter value $1 will assumed to be a field name and will get special consideration
+ * (e.g. is this field relevant to the response rate, question score, etc)
+ * A parameter such as [field]={value} can be entered to provide a specific set option
+ * (specifically searching for '={', with spaces purged)
+ * All other parameter values should be one of the list above: v_setopt_*these*
+ if(wildmatch(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', ' '), '*|surveyquestioncode:*'),
 		'[SurveyQuestionCode]={' & chr(39) &
 			textbetween(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', ' '), '|surveyquestioncode:', '|') &
 			chr(39) & '},'
 		,
 		''
 	) &
-	if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', $(v_list_overall_fields)), '[_Overall_Flag]={1},', 
-		if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', $(v_list_construct_fields)), '[_Construct_Flag]={1},', 
-			if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', $(v_list_subconstruct_fields)), '[_SubConstruct_Flag]={1},', 
-				if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', $(v_list_question_fields)), '[_Question_Flag]={1},', '')))) &
+
 	chr(36)&'(v_setopt_' & 	
 		concat(distinct 
-		purgechar(
-		lower(valuelist(
+			purgechar(lower(valuelist(
 				if(left('$1',1)='$' or wildmatch('$1',$(v_list_invalid_setopts)),null(),'$1'),
 				if(left('$2',1)='$' or wildmatch('$2',$(v_list_invalid_setopts)),null(),'$2'),
 				if(left('$3',1)='$' or wildmatch('$3',$(v_list_invalid_setopts)),null(),'$3'),
@@ -105,10 +162,36 @@ set v_setopts = $(=
 				if(left('$7',1)='$' or wildmatch('$7',$(v_list_invalid_setopts)),null(),'$7'),
 				if(left('$8',1)='$' or wildmatch('$8',$(v_list_invalid_setopts)),null(),'$8'),
 				if(left('$9',1)='$' or wildmatch('$9',$(v_list_invalid_setopts)),null(),'$9')
-			))
-		,'_ /-')
-		,'),'&chr(36)&'(v_setopt_')
-		& ')'
+			)),'_ /-')
+		,'),'&chr(36)&'(v_setopt_') // concat
+	& ')'
+ */
+
+set v_setopts = $(=
+	// in case no parameters are entered
+	if(match(purgechar('$1$2$3$4$5$6$7$8$9', '$'), '123456789'),'x=1', '') &
+	// the following checks the first parameter only (which is used for fields names) to determine
+	// if the field is relevant at the overall, construct, subconstruct, or question level (in order)
+	// but if user provides a parameter of overall, construct, subconstruct, or question these are overwritten
+	if(Wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|overall|*', '*|construct|*', '*|subconstruct|*', '*|question|*') = 0,
+		if(match('$1', $(v_list_overall_fields)), '$(v_setopt_overall),', 
+			if(match('$1', $(v_list_construct_fields)), '$(v_setopt_construct),', 
+				if(match('$1', $(v_list_subconstruct_fields)), '$(v_setopt_subconstruct),', 
+					if(match('$1', $(v_list_question_fields)), '$(v_setopt_question),', '')))), '') &
+	// substitute any fully specified set options, e.g., [x]={1}
+	concat(distinct
+		valuelist(
+			if(keepchar('$1', '={}')='={}', '$1', if(wildmatch('$1', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$1', '_ /-')) &')')),
+			if(keepchar('$2', '={}')='={}', '$2', if(wildmatch('$2', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$2', '_ /-')) &')')),
+			if(keepchar('$3', '={}')='={}', '$3', if(wildmatch('$3', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$3', '_ /-')) &')')),
+			if(keepchar('$4', '={}')='={}', '$4', if(wildmatch('$4', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$4', '_ /-')) &')')),
+            if(keepchar('$5', '={}')='={}', '$5', if(wildmatch('$5', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$5', '_ /-')) &')')),
+			if(keepchar('$6', '={}')='={}', '$6', if(wildmatch('$6', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$6', '_ /-')) &')')),
+			if(keepchar('$7', '={}')='={}', '$7', if(wildmatch('$7', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$7', '_ /-')) &')')),
+			if(keepchar('$8', '={}')='={}', '$8', if(wildmatch('$8', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$8', '_ /-')) &')')),
+            if(keepchar('$9', '={}')='={}', '$9', if(wildmatch('$9', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$9', '_ /-')) &')'))
+		)
+		, ',')
 	);
 
 
@@ -116,6 +199,14 @@ set v_map_agg_field = $(
 	=pick(match(trim(lower('$1')),'count_responses_highest', 'count_responses_answered') + 1,
 		'$1', 'CountResponses', 'CountResponses')
 );
+
+//////////////////////////////////////////////////////////////////////// 
+/// Calculations
+/// calculations of response rate and question level values can be done
+/// with simple uses of sum (which sum all relevant rows)
+/// construct level calculations require an aggregation of aggregations
+/// such as RangeAvg(sum/avg, sum/avg). Theses calculations will have _agg appended to title
+////////////////////////////////////////////////////////////////////////
 
 /**
  * v_sum will sum a field (must be first parameter)
@@ -133,7 +224,7 @@ let v_min_survey = Pick(
 	Match(Only([Survey]), 'Student', 'Parent', 'Teacher', 'Principal')+1, 
 	$(v_min_students), $(v_min_students), $(v_min_parents),  $(v_min_teacher),  $(v_min_principal))
 
-let v_sum_allsurveys = RangeSum(
+let v_sum_agg = RangeSum(
 	$(v_sum($1, student, $2, $3, $4, $5, $6, $7, $8)),
 	$(v_sum($1, teacher, $2, $3, $4, $5, $6, $7, $8)),
 	$(v_sum($1, parent, $2, $3, $4, $5, $6, $7, $8))
@@ -148,6 +239,17 @@ let v_score_agg = RangeAvg(
 	$(v_sum(SumScaledScore_6, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_6, $1, $2, $3, $4, $5, $6, $7, $8)),
 	$(v_sum(SumScaledScore_7, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_7, $1, $2, $3, $4, $5, $6, $7, $8))
 );
+
+/**
+*	Color based on the avg scaled score.
+*	$1: color offset
+*	$2-$9: parameters passed onto the scoring expression
+*/
+let v_color_score_agg = Pick(
+    RangeMax(1, Floor((10*Round($(v_score_agg($2, $3, $4, $5, $6, $7, $8, $9))), 0.1) - 40) / 10) + 2 + $(=alt($1, 0)),
+    $(vColor_Construct_Insufficient), 
+  '#ae1c3e', '#ed875e', '#f2d2ae', '#d1ebfb', '#5ea4d9', '#3c52a1', '#3c52a1');
+
 
 let v_score_agg_allsurveys = RangeAvg(
 	$(v_sum(SumScaledScore_1, student, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_1, student, $1, $2, $3, $4, $5, $6, $7)),
@@ -166,6 +268,11 @@ let v_score_agg_allsurveys = RangeAvg(
 	$(v_sum(SumScaledScore_6, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_6, teacher, $1, $2, $3, $4, $5, $6, $7)),
 	$(v_sum(SumScaledScore_7, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_7, teacher, $1, $2, $3, $4, $5, $6, $7))
 );
+
+let v_color_score_agg_allsurveys = Pick(
+    RangeMax(1, Floor((10*Round($(v_score_agg_allsurveys($2, $3, $4, $5, $6, $7, $8, $9)), 0.1) - 40) / 10) + 2 + alt($1, 0)),
+    $(vColor_Construct_Insufficient), 
+  '#ae1c3e', '#ed875e', '#f2d2ae', '#d1ebfb', '#5ea4d9', '#3c52a1', '#3c52a1');
 
 RangeAvg(
     Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_1)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_2)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_3)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_4)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_5)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_6)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_7)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_7),
