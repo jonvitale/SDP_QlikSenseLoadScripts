@@ -17,11 +17,6 @@
 ////////////////////////////////////////////////////////////////////////
 
 
-/**
-*	This function takes
-*   $1: the list in format A, B, C, D (no quotes)
-*   $2: the new separator, such as '*, *'
-*/
 
 //////////////////////////////////////////////////////////////////////// 
 /// General variables
@@ -37,6 +32,7 @@ set v_min_student = 25;
 set v_min_parent = 25;
 set v_min_teacher = 5;
 set v_min_principal = 5;
+set v_min_all = 25;
 
 set v_survey_selected_question = =Only({<[SurveyQuestionCode]={'$(v_surveyquestioncode_selected)'}>}Survey)
 set v_min_survey_selected_question = $(v_min_$(=lower('$(v_survey_selected_question)')));
@@ -88,7 +84,7 @@ set v_set_identifier = $(=
 	);
 
 //////////////////////////////////////////////////////////////////////// 
-/// Lists for building setopts
+/// Lists for building setopts - specific to this data model
 ////////////////////////////////////////////////////////////////////////
 
 /**
@@ -106,16 +102,17 @@ set v_list_subconstruct_fields_wild = $(=chr(39) & '*' & Concat(ValueList($(v_li
 set v_list_question_fields = 'SumScaledScore', 'CountResponses', 'IsHighest', '_Ans_Display_Flag';
 set v_list_question_fields_wild = $(=chr(39) & '*' & Concat(ValueList($(v_list_question_fields)),  '*' & chr(39) & ', ' & chr(39) & '*') & '*' & chr(39));
 
-/**
- * A list of fields that do not get a set option
- */
-set v_list_invalid_setopts = '{}', '$', '$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8', '$9', 'total*', 'distinct*', '1', 'Alt1', $(v_list_overall_fields),$(v_list_construct_fields), $(v_list_subconstruct_fields), $(v_list_question_fields);
 
 
 //////////////////////////////////////////////////////////////////////// 
 /// setopts: the text after v_setopt_* can be entered as a parameter
 /// to v_setops and will use the "Set Option" in the set analysis
 ////////////////////////////////////////////////////////////////////////
+
+/**
+ * A list of fields that do not get a set option
+ */
+set v_list_invalid_setopts = '{}', '$', '$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8', '$9', 'total*', 'distinct*', '1', 'Alt1', $(v_list_overall_fields),$(v_list_construct_fields), $(v_list_subconstruct_fields), $(v_list_question_fields);
 
 
 set v_setopt_ = x={1}; // this is a dummy in case user enters invalid setopt
@@ -181,15 +178,15 @@ set v_setopts = $(=
 	// substitute any fully specified set options, e.g., [x]={1}
 	concat(distinct
 		valuelist(
-			if(keepchar('$1', '={}')='={}', '$1', if(wildmatch('$1', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$1', '_ /-')) &')')),
-			if(keepchar('$2', '={}')='={}', '$2', if(wildmatch('$2', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$2', '_ /-')) &')')),
-			if(keepchar('$3', '={}')='={}', '$3', if(wildmatch('$3', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$3', '_ /-')) &')')),
-			if(keepchar('$4', '={}')='={}', '$4', if(wildmatch('$4', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$4', '_ /-')) &')')),
-            if(keepchar('$5', '={}')='={}', '$5', if(wildmatch('$5', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$5', '_ /-')) &')')),
-			if(keepchar('$6', '={}')='={}', '$6', if(wildmatch('$6', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$6', '_ /-')) &')')),
-			if(keepchar('$7', '={}')='={}', '$7', if(wildmatch('$7', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$7', '_ /-')) &')')),
-			if(keepchar('$8', '={}')='={}', '$8', if(wildmatch('$8', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$8', '_ /-')) &')')),
-            if(keepchar('$9', '={}')='={}', '$9', if(wildmatch('$9', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$9', '_ /-')) &')'))
+			if(match(keepchar('$1', '={}()'),'={}','=()'), '$1', if(wildmatch('$1', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$1', '_ /-')) &')')),
+			if(match(keepchar('$2', '={}()'),'={}','=()'), '$2', if(wildmatch('$2', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$2', '_ /-')) &')')),
+			if(match(keepchar('$3', '={}()'),'={}','=()'), '$3', if(wildmatch('$3', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$3', '_ /-')) &')')),
+			if(match(keepchar('$4', '={}()'),'={}','=()'), '$4', if(wildmatch('$4', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$4', '_ /-')) &')')),
+      		if(match(keepchar('$5', '={}()'),'={}','=()'), '$5', if(wildmatch('$5', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$5', '_ /-')) &')')),
+			if(match(keepchar('$6', '={}()'),'={}','=()'), '$6', if(wildmatch('$6', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$6', '_ /-')) &')')),
+			if(match(keepchar('$7', '={}()'),'={}','=()'), '$7', if(wildmatch('$7', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$7', '_ /-')) &')')),
+			if(match(keepchar('$8', '={}()'),'={}','=()'), '$8', if(wildmatch('$8', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$8', '_ /-')) &')')),
+      		if(match(keepchar('$9', '={}()'),'={}','=()'), '$9', if(wildmatch('$9', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$9', '_ /-')) &')'))
 		)
 		, ',')
 	);
@@ -197,7 +194,7 @@ set v_setopts = $(=
 
 set v_map_agg_field = $(
 	=pick(match(trim(lower('$1')),'count_responses_highest', 'count_responses_answered') + 1,
-		'$1', 'CountResponses', 'CountResponses')
+		'$1', 'CountHighest', 'CountResponses')
 );
 
 //////////////////////////////////////////////////////////////////////// 
@@ -219,26 +216,62 @@ set v_sum = sum($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
 
 //////////////////////////////////////// THE FOLLOWING IS SPECIFIC TO AVG SCALED SCORES /////////////////////////////////////////////////////////
 
-let v_min_survey_selected = $(v_min_$(=lower('$(v_survey_selected)')))
-let v_min_survey = Pick(
-	Match(Only([Survey]), 'Student', 'Parent', 'Teacher', 'Principal')+1, 
-	$(v_min_students), $(v_min_students), $(v_min_parents),  $(v_min_teacher),  $(v_min_principal))
+let v_survey_selected = $(=Only($(v_field_survey)));
+let v_construct_selected = $(=if(GetPossibleCount($(v_field_construct))=1,Only($(v_field_construct)), 'School Climate'));
+let v_subconstruct_selected = $(=Only($(v_field_subconstruct)));
+/** outputs a survey, first checking the parameter, then defaulting to selected */
+let v_survey = $(=Coalesce(
+	$(=pick(
+		wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|student|*', '*|parent|*', '*|teacher|*', '*|principal|*') + 1,
+		null(),	'Student', 'Parent', 'Teacher', 'Principal'
+	)),
+	Only($(v_field_survey)), 
+	''
+));
 
-let v_sum_agg = RangeSum(
-	$(v_sum($1, student, $2, $3, $4, $5, $6, $7, $8)),
-	$(v_sum($1, teacher, $2, $3, $4, $5, $6, $7, $8)),
-	$(v_sum($1, parent, $2, $3, $4, $5, $6, $7, $8))
+
+let v_min_survey_selected = $(v_min_$(=lower('$(v_survey_selected)')));
+let v_min_survey = Alt(
+	$(=pick(
+		wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|student|*', '*|parent|*', '*|teacher|*', '*|principal|*') + 1,
+		null(), $(v_min_student), $(v_min_parent),  $(v_min_teacher),  $(v_min_principal)
+	))
+	,
+	pick(
+		match(Only([Survey]), 'Student', 'Parent', 'Teacher', 'Principal')+1, 
+		$(v_min_all), $(v_min_student), $(v_min_parent),  $(v_min_teacher),  $(v_min_principal)
+	)
 );
 
-let v_score_agg = RangeAvg(
-	$(v_sum(SumScaledScore_1, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_1, $1, $2, $3, $4, $5, $6, $7, $8)),
-	$(v_sum(SumScaledScore_2, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_2, $1, $2, $3, $4, $5, $6, $7, $8)),
-	$(v_sum(SumScaledScore_3, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_3, $1, $2, $3, $4, $5, $6, $7, $8)),
-	$(v_sum(SumScaledScore_4, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_4, $1, $2, $3, $4, $5, $6, $7, $8)),
-	$(v_sum(SumScaledScore_5, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_5, $1, $2, $3, $4, $5, $6, $7, $8)),
-	$(v_sum(SumScaledScore_6, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_6, $1, $2, $3, $4, $5, $6, $7, $8)),
-	$(v_sum(SumScaledScore_7, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_7, $1, $2, $3, $4, $5, $6, $7, $8))
+
+let v_score_agg_subconstruct = if(
+		$(v_sum(CountRespondents, subconstruct, $(v_survey($1, $2, $3, $4, $5, $6, $7, $8, $9)), $1, $2, $3, $4, $5, $6))
+		>= 
+		$(v_min_survey($1, $2, $3, $4, $5, $6, $7, $8, $9)),
+	$(v_sum(SubConstruct_SumScaledScore, $1, $2, $3, $4, $5, $6, $7, $8))
+	/
+	$(v_sum(SubConstruct_NCompleted, $1, $2, $3, $4, $5, $6, $7, $8)),
+	if($(v_sum(CountRespondents, subconstruct, [$(v_field_construct)]=P([$(v_field_construct)]), 1, $1, $2, $3, $4, $5)) > 0, 'i.s.')
 );
+
+let v_score_agg_construct =  if( 
+		$(v_sum(CountRespondents, construct, $(v_survey($1, $2, $3, $4, $5, $6, $7, $8, $9)), $1, $2, $3, $4, $5, $6)) 
+		>=
+		$(v_min_survey($1, $2, $3, $4, $5, $6, $7, $8, $9)), 
+	RangeAvg(
+		$(v_sum(SumScaledScore_1, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_1, $1, $2, $3, $4, $5, $6, $7, $8)),
+		$(v_sum(SumScaledScore_2, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_2, $1, $2, $3, $4, $5, $6, $7, $8)),
+		$(v_sum(SumScaledScore_3, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_3, $1, $2, $3, $4, $5, $6, $7, $8)),
+		$(v_sum(SumScaledScore_4, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_4, $1, $2, $3, $4, $5, $6, $7, $8)),
+		$(v_sum(SumScaledScore_5, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_5, $1, $2, $3, $4, $5, $6, $7, $8)),
+		$(v_sum(SumScaledScore_6, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_6, $1, $2, $3, $4, $5, $6, $7, $8)),
+		$(v_sum(SumScaledScore_7, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_7, $1, $2, $3, $4, $5, $6, $7, $8))
+	)
+	,
+   if($(v_sum(CountRespondents, construct, $(v_survey($1, $2, $3, $4, $5, $6, $7, $8, $9)), 1, $1, $2, $3, $3, $4, $5)) > 0, 'i.s.')
+);
+
+let v_score_agg = $(v_score_agg_$(=if(GetPossibleCount($(v_field_construct)) = 1, 'subconstruct', 'construct'))($1, $2, $3, $4, $5, $6, $7, $8));
 
 /**
 *	Color based on the avg scaled score.
@@ -246,33 +279,83 @@ let v_score_agg = RangeAvg(
 *	$2-$9: parameters passed onto the scoring expression
 */
 let v_color_score_agg = Pick(
-    RangeMax(1, Floor((10*Round($(v_score_agg($2, $3, $4, $5, $6, $7, $8, $9))), 0.1) - 40) / 10) + 2 + $(=alt($1, 0)),
+    RangeMax(1, Floor((10*Round($(v_score_agg($2, $3, $4, $5, $6, $7, $8, $9)), 0.1) - 40) / 10) + 2 + alt($1, 0)),
     $(vColor_Construct_Insufficient), 
   '#ae1c3e', '#ed875e', '#f2d2ae', '#d1ebfb', '#5ea4d9', '#3c52a1', '#3c52a1');
 
 
-let v_score_agg_allsurveys = RangeAvg(
-	$(v_sum(SumScaledScore_1, student, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_1, student, $1, $2, $3, $4, $5, $6, $7)),
-	$(v_sum(SumScaledScore_2, student, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_2, student, $1, $2, $3, $4, $5, $6, $7)),
-	$(v_sum(SumScaledScore_3, student, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_3, student, $1, $2, $3, $4, $5, $6, $7)),
-	$(v_sum(SumScaledScore_1, parent, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_1, parent, $1, $2, $3, $4, $5, $6, $7)),
-	$(v_sum(SumScaledScore_2, parent, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_2, parent, $1, $2, $3, $4, $5, $6, $7)),
-	$(v_sum(SumScaledScore_3, parent, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_3, parent, $1, $2, $3, $4, $5, $6, $7)),
-	$(v_sum(SumScaledScore_4, parent, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_4, parent, $1, $2, $3, $4, $5, $6, $7)),
-	$(v_sum(SumScaledScore_5, parent, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_5, parent, $1, $2, $3, $4, $5, $6, $7)),
-	$(v_sum(SumScaledScore_1, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_1, teacher, $1, $2, $3, $4, $5, $6, $7)),
-	$(v_sum(SumScaledScore_2, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_2, teacher, $1, $2, $3, $4, $5, $6, $7)),
-	$(v_sum(SumScaledScore_3, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_3, teacher, $1, $2, $3, $4, $5, $6, $7)),
-	$(v_sum(SumScaledScore_4, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_4, teacher, $1, $2, $3, $4, $5, $6, $7)),
-	$(v_sum(SumScaledScore_5, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_5, teacher, $1, $2, $3, $4, $5, $6, $7)),
-	$(v_sum(SumScaledScore_6, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_6, teacher, $1, $2, $3, $4, $5, $6, $7)),
-	$(v_sum(SumScaledScore_7, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_7, teacher, $1, $2, $3, $4, $5, $6, $7))
+////////////////////////// FOR ALL MEASURES ACROSS ALL SURVEYS /////////////////////////////////////////////////////
+let v_sum_all = RangeSum(
+	$(v_sum($1, student, $2, $3, $4, $5, $6, $7, $8)),
+	$(v_sum($1, teacher, $2, $3, $4, $5, $6, $7, $8)),
+	$(v_sum($1, parent, $2, $3, $4, $5, $6, $7, $8))
 );
 
-let v_color_score_agg_allsurveys = Pick(
-    RangeMax(1, Floor((10*Round($(v_score_agg_allsurveys($2, $3, $4, $5, $6, $7, $8, $9)), 0.1) - 40) / 10) + 2 + alt($1, 0)),
+/**
+ * Determine which group's minimum to use, if student is available use that, then parent, then teacher then principal
+ */
+let v_min_survey_all = Alt(
+	pick(
+		wildmatch(concat(distinct [Survey], '|'), '*Student*', '*Parent*', '*Teacher*', '*Principal*')+1, 
+		$(v_min_all), $(v_min_student), $(v_min_parent),  $(v_min_teacher),  $(v_min_principal)
+	), $(v_min_all)
+);
+
+let v_score_agg_subconstruct_all = if(
+	$(v_sum_all(CountRespondents, subconstruct, $1, $2, $3, $4, $5, $6, $7))
+	>= 
+	$(v_min_survey_all),
+	RangeAvg(
+		$(v_sum(SubConstruct_SumScaledScore, student, $1, $2, $3, $4, $5, $6, $7))
+		/
+		$(v_sum(SubConstruct_NCompleted, student, $1, $2, $3, $4, $5, $6, $7)),
+		$(v_sum(SubConstruct_SumScaledScore, parent, $1, $2, $3, $4, $5, $6, $7))
+		/
+		$(v_sum(SubConstruct_NCompleted, parent,$1,  $2, $3, $4, $5, $6, $7)),
+		$(v_sum(SubConstruct_SumScaledScore, teacher, $1, $2, $3, $4, $5, $6, $7))
+		/
+		$(v_sum(SubConstruct_NCompleted, teacher, $1, $2, $3, $4, $5, $6, $7))	
+	),
+	if($(v_sum_all(CountRespondents, subconstruct, [$(v_field_construct)]=P([$(v_field_construct)]), 1, $1, $2, $3, $4, $5)) > 0, 'i.s.')
+);
+
+let v_score_agg_construct_all = if(
+		$(v_sum_all(CountRespondents, construct, $1, $2, $3, $4, $5, $6, $7))
+		>= 
+		$(v_min_survey_all),
+	RangeAvg(
+		$(v_sum(SumScaledScore_1, student, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_1, student, $1, $2, $3, $4, $5, $6, $7)),
+		$(v_sum(SumScaledScore_2, student, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_2, student, $1, $2, $3, $4, $5, $6, $7)),
+		$(v_sum(SumScaledScore_3, student, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_3, student, $1, $2, $3, $4, $5, $6, $7)),
+		$(v_sum(SumScaledScore_1, parent, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_1, parent, $1, $2, $3, $4, $5, $6, $7)),
+		$(v_sum(SumScaledScore_2, parent, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_2, parent, $1, $2, $3, $4, $5, $6, $7)),
+		$(v_sum(SumScaledScore_3, parent, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_3, parent, $1, $2, $3, $4, $5, $6, $7)),
+		$(v_sum(SumScaledScore_4, parent, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_4, parent, $1, $2, $3, $4, $5, $6, $7)),
+		$(v_sum(SumScaledScore_5, parent, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_5, parent, $1, $2, $3, $4, $5, $6, $7)),
+		$(v_sum(SumScaledScore_1, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_1, teacher, $1, $2, $3, $4, $5, $6, $7)),
+		$(v_sum(SumScaledScore_2, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_2, teacher, $1, $2, $3, $4, $5, $6, $7)),
+		$(v_sum(SumScaledScore_3, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_3, teacher, $1, $2, $3, $4, $5, $6, $7)),
+		$(v_sum(SumScaledScore_4, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_4, teacher, $1, $2, $3, $4, $5, $6, $7)),
+		$(v_sum(SumScaledScore_5, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_5, teacher, $1, $2, $3, $4, $5, $6, $7)),
+		$(v_sum(SumScaledScore_6, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_6, teacher, $1, $2, $3, $4, $5, $6, $7)),
+		$(v_sum(SumScaledScore_7, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_7, teacher, $1, $2, $3, $4, $5, $6, $7))
+	),
+	if($(v_sum_all(CountRespondents, construct, 1, $1, $2, $3, $4, $5, $6)) > 0, 'i.s.')
+)
+;
+
+let v_score_agg_all = $(v_score_agg_$(=if(GetPossibleCount($(v_field_construct)) = 1, 'subconstruct', 'construct'))_all(($1, $2, $3, $4, $5, $6, $7)));
+
+
+
+let v_color_score_agg_all = Pick(
+    RangeMax(1, Floor((10*Round($(v_score_agg_all($2, $3, $4, $5, $6, $7, $8, $9)), 0.1) - 40) / 10) + 2 + alt($1, 0)),
     $(vColor_Construct_Insufficient), 
   '#ae1c3e', '#ed875e', '#f2d2ae', '#d1ebfb', '#5ea4d9', '#3c52a1', '#3c52a1');
+
+
+
+
 
 RangeAvg(
     Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_1)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_2)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_3)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_4)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_5)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_6)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_7)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_7),

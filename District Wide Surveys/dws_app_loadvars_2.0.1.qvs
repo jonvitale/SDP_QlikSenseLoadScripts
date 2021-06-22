@@ -1,0 +1,535 @@
+/**
+*	Loading Variables: District Wide Surveys
+*	Jonathan Vitale
+*	Changes:
+*
+*	Version 2.0.1:
+*		- The counts for the focus questions include non score responses (but not skips)
+*
+*	Reminders:
+*	- All the let statements will be strings, if you want an actual single quote in the string, use '
+*	- Alternatively, you can use double-quotes in set analyses, but these enable search and wildcards, so be careful.
+*   - A $(somevar) tells click to substitute whatever is somevar immediately. If you want to prevent this expansion replace $ with $
+*   - Similarly $(=$(somevar)) tells Qlik to evaluate the somevar expression, if you do not want this done in the load script replace both $ with chr(36)
+**/
+
+let vPartnerDataLimiter = ='"'&Maxstring(PROGRAM_NAME)&'"';
+
+let v_setopt_epd = =IF(Len('$(vPartnerNameForApp)') > 0, 
+  ', PROGRAM_NAME={$(vPartnerDataLimiter)}',
+  '');
+
+ 
+//////////////////////////////////////////////////////////////////////// 
+/// General variables
+////////////////////////////////////////////////////////////////////////
+
+
+set v_cy = =MaxString([SchoolYear]);
+set v_cy_end = =Max([YearEnd]);
+set v_cy_short = =left('$(v_cy)', 4) & '-' & right('$(v_cy)', 2);
+set v_py = =MaxString({<[YearEnd]-={'$(v_cy_end)'}>}[SchoolYear]);
+set v_py_short = =left('$(v_py)', 4) & '-' & right('$(v_py)', 2);
+set v_py_end = =Max({<[YearEnd]-={$(v_cy_end)}>}[YearEnd]);
+
+set v_min_student = 25;
+set v_min_parent = 25;
+set v_min_teacher = 5;
+set v_min_principal = 5;
+set v_min_all = 25;
+
+set v_surveys_no_demos = STUDENT, PARENT;
+
+let v_field_survey = Survey;
+let v_field_construct = Construct;
+let v_field_subconstruct = SubConstruct;
+let v_field_surveyquestioncode = SurveyQuestionCode;
+
+let v_construct_to_alias = $(=pick(wildmatch('$1',
+    'School Climate', 'Instruction', 'Parent/Guardian Community Ties', 'Professional Capacity', 'School Leadership', 'Other') + 1, '', 
+    'climate', 'instruction', 'community', 'professional', 'leadership', 'other'
+    )
+);
+
+//////////////////////////////////////////////////////////////////////// 
+/// General Expression Building: requires the following elements
+/// 1. aggregation qualifier - such as total or distinct
+/// 2. set identifier - such as 1 or Alt1 or $
+/// 3. set options - such as [X]={1}, [Year]={1}
+////////////////////////////////////////////////////////////////////////
+
+
+/**
+ * v_agg_qualifier is used to populate the space after the aggregation function name
+ * first five letters should be total or distinct, but beyond that, anything goes,
+ * e.g., total<[School Year]>
+ * @type {[type]}
+ */
+let v_agg_qualifier = $(=
+    pick(
+        wildmatch('total', '$1*', '$2*', '$3*', '$4*','$5*', '$6*', '$7*', '$8*', '$9*') + 1,
+        '', '$1', '$2', '$3', '$4','$5', '$6', '$7', '$8', '$9') & ' ' &
+    pick(
+        wildmatch('distinct', '$1*', '$2*', '$3*', '$4*','$5*', '$6*', '$7*', '$8*', '$9*') + 1,
+        '', '$1', '$2', '$3', '$4','$5', '$6', '$7', '$8', '$9')
+    );
+        
+
+/**
+ * v_set_identifier is used to populate the space between opening curly bracket and angled bracket
+ *  {*here*< ... >}
+ *  can be a 1 (for ignore selections) or an alternative set, e.g., Alt, also can multiply by set
+ * @type {[type]}
+ */
+let v_set_identifier = $(=
+    pick(
+        wildmatch(replace(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', ' '), '*', 'x'), 
+            '*|$|*', '*|1|*', '*|Alt|*', '*|Altx|*') + 1,
+        '', '$', '1', 'Alt', 'Alt *')
+    );
+
+
+//////////////////////////////////////////////////////////////////////// 
+/// setopts: the text after v_setopt_* can be entered as a parameter
+/// to v_setops and will use the "Set Option" in the set analysis
+////////////////////////////////////////////////////////////////////////
+
+/**
+ * A list of fields that do not get a set option
+ * some notes:
+ * topic_respondents - use this to count # of respondents to a particular topic or subtopic (i.e., do not ignore selected questions, topics, subtopics)
+ */ 
+set v_list_invalid_setopts = '{}', '$', '$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8', '$9', 'total*', 'distinct*', '1', 'Alt', 'suppress*', 'ncompleted*', 'sumscaledscore*', 'question_score', 'topic_respondents', 'color_offset*', 'STUDENT-Q*', 'PARENT-Q*', 'TEACHER-Q*', 'PRINCIPAL-Q*';
+
+let v_setopt_ignore_construct_question = [Construct]=, [SubConstruct]=, [Essential Construct]=, [Essential SubConstruct]=, 
+    [QuestionText]=, [SurveyQuestionCode]=, [Survey|SchoolYear|QuestionCode]=, [Survey|SchoolYear|QuestionCode|Score]=; 
+set v_setopt_ = [x]={1}; // this is a dummy in case user enters invalid setopt
+set v_setopt_cy = [YearEnd] = {$(v_cy_end)};
+set v_setopt_py = [YearEnd] = {$(v_py_end)};
+set v_setopt_climate = [Construct]={'School Climate'};
+set v_setopt_instruction = [Construct]={'Instruction'};
+set v_setopt_community = [Construct]={'Parent/Guardian-Community Ties'};
+set v_setopt_professional = [Construct]={'Professional Capacity'};
+set v_setopt_leadership = [Construct]={'School Leadership'};
+
+set v_setopt_student = [Survey]={'STUDENT'}, [Grade]-={"00", "01", "02"};
+set v_setopt_parent = [Survey]={'PARENT'};
+set v_setopt_teacher = [Survey]={'TEACHER'};
+set v_setopt_principal = [Survey]={'PRINCIPAL'};
+set v_setopt_noprincipal = [Survey]-={'PRINCIPAL'};
+set v_setopt_essential = [Survey]-={'PRINCIPAL'}, [Construct]-={'none','Other'};
+set v_setopt_district = [Sector]={'District'};
+set v_setopt_charter = [Sector]={'Charter'};
+// let v_setopt_topicrespondents = ''; //[Survey]-={'PRINCIPAL'}, [Construct]-={'none','Other'};
+
+// the following are specific to first parameter field references
+set v_setopt_respondentshousehold = $(v_setopt_ignore_construct_question);
+set v_setopt_respondents = $(v_setopt_ignore_construct_question);
+set v_setopt_enrolledhousehold = $(v_setopt_ignore_construct_question);
+set v_setopt_enrolled = $(v_setopt_ignore_construct_question);
+set v_setopt_questionresponded = [Responded] = {1};
+set v_setopt_questionmostpositive = [Responded] = {1};
+set v_setopt_questionna = [Responded] = {1};
+
+// since we can't pass a subconstruct in directly for setopts we need a wrapper function that turns it into a potential argument
+let v_list_subconstructs = $(=chr(39) & concat(distinct [$(v_field_subconstruct)], chr(39) & ',' & chr(39)) & chr(39));
+let v_subconstruct_to_setopt = $(=if(match('$1', $(v_list_subconstructs)), '[$(v_field_subconstruct)]={"$1"}'))
+
+let v_setopts = $(=
+    // in case no parameters are entered
+    if(match(purgechar('$1$2$3$4$5$6$7$8$9', '$'), '123456789'),'[x]=1', '') &    
+    // substitute any fully specified set options, e.g., [x]={1}
+    concat(distinct
+        valuelist(
+            if(wildmatch('$1','STUDENT-Q*', 'PARENT-Q*', 'TEACHER-Q*', 'PRINCIPAL-Q*'), '[$(v_field_surveyquestioncode)]={'&chr(39)&'$1'&chr(39)&'}', if(match(keepchar('$1', '={}()'),'={}','=()'), '$1', if(wildmatch('$1', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$1', '_ /-')) &')'))),
+            if(wildmatch('$2','STUDENT-Q*', 'PARENT-Q*', 'TEACHER-Q*', 'PRINCIPAL-Q*'), '[$(v_field_surveyquestioncode)]={'&chr(39)&'$2'&chr(39)&'}', if(match(keepchar('$2', '={}()'),'={}','=()'), '$2', if(wildmatch('$2', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$2', '_ /-')) &')'))),
+            if(wildmatch('$3','STUDENT-Q*', 'PARENT-Q*', 'TEACHER-Q*', 'PRINCIPAL-Q*'), '[$(v_field_surveyquestioncode)]={'&chr(39)&'$3'&chr(39)&'}', if(match(keepchar('$3', '={}()'),'={}','=()'), '$3', if(wildmatch('$3', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$3', '_ /-')) &')'))),
+            if(wildmatch('$4','STUDENT-Q*', 'PARENT-Q*', 'TEACHER-Q*', 'PRINCIPAL-Q*'), '[$(v_field_surveyquestioncode)]={'&chr(39)&'$4'&chr(39)&'}', if(match(keepchar('$4', '={}()'),'={}','=()'), '$4', if(wildmatch('$4', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$4', '_ /-')) &')'))),
+            if(wildmatch('$5','STUDENT-Q*', 'PARENT-Q*', 'TEACHER-Q*', 'PRINCIPAL-Q*'), '[$(v_field_surveyquestioncode)]={'&chr(39)&'$5'&chr(39)&'}', if(match(keepchar('$5', '={}()'),'={}','=()'), '$5', if(wildmatch('$5', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$5', '_ /-')) &')'))),
+            if(wildmatch('$6','STUDENT-Q*', 'PARENT-Q*', 'TEACHER-Q*', 'PRINCIPAL-Q*'), '[$(v_field_surveyquestioncode)]={'&chr(39)&'$6'&chr(39)&'}', if(match(keepchar('$6', '={}()'),'={}','=()'), '$6', if(wildmatch('$6', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$6', '_ /-')) &')'))),
+            if(wildmatch('$7','STUDENT-Q*', 'PARENT-Q*', 'TEACHER-Q*', 'PRINCIPAL-Q*'), '[$(v_field_surveyquestioncode)]={'&chr(39)&'$7'&chr(39)&'}', if(match(keepchar('$7', '={}()'),'={}','=()'), '$7', if(wildmatch('$7', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$7', '_ /-')) &')'))),
+            if(wildmatch('$8','STUDENT-Q*', 'PARENT-Q*', 'TEACHER-Q*', 'PRINCIPAL-Q*'), '[$(v_field_surveyquestioncode)]={'&chr(39)&'$8'&chr(39)&'}', if(match(keepchar('$8', '={}()'),'={}','=()'), '$8', if(wildmatch('$8', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$8', '_ /-')) &')'))),
+            if(wildmatch('$9','STUDENT-Q*', 'PARENT-Q*', 'TEACHER-Q*', 'PRINCIPAL-Q*'), '[$(v_field_surveyquestioncode)]={'&chr(39)&'$9'&chr(39)&'}', if(match(keepchar('$9', '={}()'),'={}','=()'), '$9', if(wildmatch('$9', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$9', '_ /-')) &')')))
+        )
+        , ',') &
+        $(v_setopt_epd)
+    );
+
+/** For mapping between field aliases and field names (useful if we want to change the name of a field in the future) */
+let v_map_agg_field = $(
+    =pick(match(trim(lower('$1')),
+        'respondents', 'respondents_household', 'topic_respondents', 'enrolled', 'enrolled_household', 'responded', 'question_responded', 'question_mostpositive', 'question_na', 'question_score') + 1,
+        '$1', 'Responded', 'Responded_Household', 'Responded', 'InEnrollmentCounter', 'InEnrollmentCounter_Household', 'responded', 'IsDisplayScore', 'IsHighest', 'IsNA', '$(v_field_question_score)')
+);
+
+//////////////////////////////////////////////////////////////////////// 
+/// Universal Set modifiers and variables
+////////////////////////////////////////////////////////////////////////
+
+// let v_pset_respondent = if(len(trim(purgechar('$1', '$')))>1 and WildMatch(lower('$1'), 'any', 'all', 'overall', 'every') = 0, 
+// 	', [Respondent Group]={' & chr(39) & '$(=Replace(Capitalize('$1'),'_household', ''))' & chr(39) & '}', ''
+// 	);
+// let v_pset_respondent_noprincipal = if(len(trim(purgechar('$1', '$')))>1 and WildMatch(lower('$1'), 'any', 'all', 'overall', 'every') = 0, 
+// 	', [Respondent Group]={' & chr(39) & '$(=Replace(Capitalize('$1'),'_household', ''))' & chr(39) & '}', 
+// 	if(lower('$1')<>'every', ', [Respondent Group]=P({<[Respondent Group]-={'&chr(39)&'Principal'&chr(39)&'}>}[Respondent Group])', '')
+// );
+
+let v_flag_respondent_na_demo = if('$(v_respondent_selected)' <> 'Teacher' or GetSelectedCount([Race/Ethnicity]) = 0 and GetSelectedCount([Grade Level]) = 0 or GetSelectedCount(Gender) = 0, 1, 0);
+let v_label_respondent_na_demo = Teacher responses cannot be displayed by specific Grade Level, Ethnicity, or Gender. Remove any of these selections to view the data.;
+
+//////////////////////////////////////////////////////////////////////// 
+/// General Calculations - for individual question or subtopic
+////////////////////////////////////////////////////////////////////////
+
+let v_use_qlik_suppression = 1;
+
+let v_min_respondents = Max(
+    $(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+    {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
+        [RespondentMinCount$(=if(v_use_qlik_suppression=1, 'Qlik', ''))]);
+
+let v_min_respondents_pct = Max(
+    $(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+    {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
+        [RespondentMinPct$(=if(v_use_qlik_suppression=1, 'Qlik', ''))]);
+
+/** 
+ * suppress works by determining if the count to the expression is greater than available min, use suppress_total to suppress on the total,
+ * ignoring dimensions (except SchoolYear).
+ * if suppress_none is provided as a parameter, then any other suppression terms will be ignored
+ * 
+ */
+let v_suppress = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_none|*'),
+    1,
+    if(
+        $(v_sum($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        >= $(v_min_respondents($1, $2, $3, $4, $5, $6, $7, $8, $9))        
+        , 
+        1,
+        Null()
+    ) 
+);
+
+let v_suppress_pct = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_none|*'),
+    1,
+    if(
+       $(v_sum($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        /
+        $(v_count_enrolled($2, $3, $4, $5, $6, $7, $8, $9))
+        >= $(v_min_respondents_pct($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        , 
+        1,
+        Null()
+    ) 
+);
+
+let v_sum = Sum($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
+        $(v_map_agg_field($1)));
+let v_avg = Avg($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
+        $(v_map_agg_field($1)));
+
+//////////////////////////////////////////////////////////////////////// 
+/// Response rate
+////////////////////////////////////////////////////////////////////////
+let v_count_responded = $(v_sum(respondents, $1, $2, $3, $4, $5, $6, $7, $8));
+let v_count_responded_household = $(v_sum(respondents_household, $1, $2, $3, $4, $5, $6, $7, $8));
+let v_count_enrolled = $(v_sum(enrolled, $1, $2, $3, $4, $5, $6, $7, $8));
+let v_count_enrolled_household =$(v_sum(enrolled_household, $1, $2, $3, $4, $5, $6, $7, $8));
+let v_avg_responded = $(v_count_responded($1, $2, $3, $4, $5, $6, $7, $8)) / $(v_count_enrolled($1, $2, $3, $4, $5, $6, $7, $8));
+let v_avg_responded_household = $(v_count_responded_household($1, $2, $3, $4, $5, $6, $7, $8)) / $(v_count_enrolled_household($1, $2, $3, $4, $5, $6, $7, $8));
+
+//////////////////////////////////////////////////////////////////////// 
+/// Individual Questions
+////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////// 
+/// Helpful variables
+////////////////////////////////////////////////////////////////////////
+
+// This is the default score to average, can also be IsHighest (todo: IsPositive)
+set v_field_question_score = ScaledScore;
+let v_label_question_score = =if('$(v_field_question_score)' = 'ScaledScore', 'Avg Scaled Score',
+    if('$(v_field_question_score)' = 'IsHighest', '% Most Positive',
+        'Please set v_field_question_score'
+        )
+    );
+
+set v_description_scaled_score = Avg Scaled Score is the average of scores on a 0 to 10 scale. For each question, each response is worth a percentage of 10 based upon the number of posslbe responses. For example, with 4 possible responses (strongly agree, agree, disagree, strongly disagree) points are worth 10, 6.7, 3.3, and 0 points, respectively.;
+let v_description_scaled_score_agg = ='the average of all applicable respondent group`s applicable sub-topic avg scaled scores. The $(v_description_scaled_score)';
+let v_description_question_score = =if('$(v_field_question_score)' = 'ScaledScore', 
+    'the $(v_description_scaled_score)',
+    if('$(v_field_question_score)' = 'IsHighest',
+        'what percent of respondents chose the most positive (best) response to the selected survey question? For example: "I enjoy being in school" - most positive answer - "Most or all of the time". "I am bullied in school" - most positive answer - "Never"',
+        'Please set v_field_question_score'
+        )
+    );
+let v_max_question_score = =if('$(v_field_question_score)' = 'ScaledScore', 10,
+    if('$(v_field_question_score)' = 'IsHighest', 1,
+        1
+        )
+    );
+let v_format_question_score = =if('$(v_field_question_score)' = 'ScaledScore', '#0.#',
+    if('$(v_field_question_score)' = 'IsHighest', '##0.#%',
+        '##0.#%'
+        )
+    );
+// manually add these two
+// let v_format_yoy_score = +#0.#;-#0.#;0;
+// let v_format_yoy_pct = +##0.#%;-##0.#%;0%;
+
+let v_format_question_score_yoy = =if('$(v_field_question_score)' = 'ScaledScore', 
+    '$(v_format_yoy_score)',
+    if('$(v_field_question_score)' = 'IsHighest', 
+        '$(v_format_yoy_pct)',
+        '$(v_format_yoy_pct)'
+        )
+    );
+
+
+/**
+ * Given a specific SurveyQuestionCode, are relevant for the given construct and respondent
+ */
+let v_flag_question_aligned = If(IsNull(
+  Only(
+      {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+      <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>
+      }[$(v_field_surveyquestioncode)])
+    ), 0, 1);
+let v_label_question_aligned = if($(v_flag_question_aligned($1, $2, $3, $4, $5, $6, $7, $8, $9)) = 0, 'Please select a question', '');
+
+
+//////////////////////////////////////////////////////////////////////// 
+/// Individual Question - Count, % Most Positive, Scaled Score
+////////////////////////////////////////////////////////////////////////
+
+
+let v_count_responses = $(v_sum(question_responded, $1, $2, $3, $4, $5, $6, $7, $8));
+let v_count_mostpositive = $(v_sum(question_mostpositive, $1, $2, $3, $4, $5, $6, $7, $8));
+let v_count_na = $(v_sum(question_na, $1, $2, $3, $4, $5, $6, $7, $8));
+
+/**
+ * For any given response, what percent of the total responses was it. Do not allow suppression on numerator.
+ */
+let v_perc_of_total = if($(v_suppress(question_responded, total, $1, $2, $3, $4, $4, $5, $6)),
+    $(v_sum(question_responded, $1, $2, $3, $4, $5, $6, $7, $8))
+    / 
+    $(v_sum(question_responded, total, $1, $2, $3, $4, $5, $6, $7))
+);
+
+let v_color_perc_of_total = Pick(
+    RangeMax(1, Floor((1000*Round($(v_perc_of_total($1, $2, $3, $4, $5, $6, $7)), 0.001) - 40) / 10) + 2),
+    $(vColor_Construct_Insufficient), 
+  '#ae1c3e', '#ed875e', '#f2d2ae', '#d1ebfb', '#5ea4d9', '#3c52a1', '#3c52a1');
+
+let v_avg_score = if($(v_suppress(question_responded, $1, $2, $3, $4, $4, $5, $6, $7)),
+    $(v_avg(question_score, $1, $2, $3, $4, $5, $6, $7, $8)));
+
+// for coloring a score
+let v_color_avg_score = Pick(
+    RangeMax(1, Floor((10*Round($(v_avg_score($1, $2, $3, $4, $5, $6, $7, $8)), 0.1) - 40) / 10) + 2),
+    $(vColor_Construct_Insufficient), 
+  '#ae1c3e', '#ed875e', '#f2d2ae', '#d1ebfb', '#5ea4d9', '#3c52a1', '#3c52a1');
+
+// 'any', 'all', 'overall', 'every'
+
+// do something with this $(=Replace('$1', '&amp;', '&'))
+
+//////////////////////////////////////////////////////////////////////// 
+/// Construct Calculations
+////////////////////////////////////////////////////////////////////////
+
+// on of these terms means all
+set v_list_all = 'any', 'all', 'overall', 'every';
+
+let v_sum_all = RangeSum(
+    $(v_sum($1, student, $2, $3, $4, $5, $6, $7, $8)),
+    $(v_sum($1, teacher, $2, $3, $4, $5, $6, $7, $8)),
+    $(v_sum($1, parent, $2, $3, $4, $5, $6, $7, $8))
+);
+
+/** 
+ * suppress_all does the same thing as suppress but it check to make sure that if there are at least two respondent groups
+ * that are applicable it only checks
+ */
+let v_suppress_all = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_none|*'),
+    1,    
+    // count the number of sufficient groups and compare that to number of possible groups
+    Pick(
+        RangeSum(
+            if($(v_sum($1, student, $2, $3, $4, $5, $6, $7, $8, $9))
+                >= $(v_min_respondents(student, $1, $2, $3, $4, $5, $6, $7, $8)), 1, 0),
+            if($(v_sum($1, parent, $2, $3, $4, $5, $6, $7, $8, $9))
+                >= $(v_min_respondents(parent, $1, $2, $3, $4, $5, $6, $7, $8)), 1, 0),
+            if($(v_sum($1, teacher, $2, $3, $4, $5, $6, $7, $8, $9))
+                >= $(v_min_respondents(teacher, $1, $2, $3, $4, $5, $6, $7, $8)), 1, 0)
+        ),
+        Null(), // 0 matches: always a no
+        // 1 match, only a match if there is only one respondent groups,
+        if (Count(distinct {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+            <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>} [$(v_field_survey)]) = 1,
+            1, 
+            Null()
+        ),
+        1, // 2 matches, always a yes
+        1 // 3 matches, always a yes
+    )
+);
+
+let v_suppress_all_pct = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_none|*'),
+    1,    
+    Pick(
+        RangeSum(
+             if($(v_sum($1, student, $2, $3, $4, $5, $6, $7, $8, $9)) 
+                /
+                $(v_count_enrolled(student, $2, $3, $4, $5, $6, $7, $8, $9))
+                >= $(v_min_respondents_pct(student, $1, $2, $3, $4, $5, $6, $7, $8)), 1, 0),
+            if($(v_sum($1, parent, $2, $3, $4, $5, $6, $7, $8, $9))
+                /
+                $(v_count_enrolled(parent, $2, $3, $4, $5, $6, $7, $8, $9))
+                >= $(v_min_respondents_pct(parent, $1, $2, $3, $4, $5, $6, $7, $8)), 1, 0),
+            if($(v_sum($1, teacher, $2, $3, $4, $5, $6, $7, $8, $9))
+                /
+                $(v_count_enrolled(teacher, $2, $3, $4, $5, $6, $7, $8, $9))
+                >= $(v_min_respondents_pct(teacher, $1, $2, $3, $4, $5, $6, $7, $8)), 1, 0)
+        ),
+        Null(), // 0 matches: always a no
+        // 1 match, only a match if there is only one respondent groups,
+        if (Count(distinct {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+            <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>} [$(v_field_survey)]) = 1,
+            1, 
+            Null()
+        ),
+        1, // 2 matches, always a yes
+        1 // 3 matches, always a yes
+    )
+);
+
+
+/**
+ * This is the average score rollup for a respondent group and topic/survey
+ * where we average all subconstructs across all respondent groups (if a group has more subconstructs it will weigh in higher than another group)
+ */
+let v_avg_score_agg_construct = if($(v_suppress(topic_respondents, $1, $2, $3, $4, $4, $5, $6, $7, $8)),
+    RangeAvg(
+        $(v_sum(SumScaledScore_1, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_1, $1, $2, $3, $4, $5, $6, $7, $8)),
+        $(v_sum(SumScaledScore_2, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_2, $1, $2, $3, $4, $5, $6, $7, $8)),
+        $(v_sum(SumScaledScore_3, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_3, $1, $2, $3, $4, $5, $6, $7, $8)),
+        $(v_sum(SumScaledScore_4, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_4, $1, $2, $3, $4, $5, $6, $7, $8)),
+        $(v_sum(SumScaledScore_5, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_5, $1, $2, $3, $4, $5, $6, $7, $8)),
+        $(v_sum(SumScaledScore_6, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_6, $1, $2, $3, $4, $5, $6, $7, $8)),
+        $(v_sum(SumScaledScore_7, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_7, $1, $2, $3, $4, $5, $6, $7, $8))
+    ),
+    if($(v_sum_all(topic_respondents, 1, $1, $2, $3, $4, $5, $6, $7)) > 0, 'i.s.')
+);
+
+/// same as above but force all respondent groups
+let v_avg_score_agg_construct_all = if($(v_suppress_all(topic_respondents, $1, $2, $3, $4, $5, $6, $7, $8)),
+    RangeAvg(
+        $(v_sum(SumScaledScore_1, student, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_1, student, $1, $2, $3, $4, $5, $6, $7)),
+        $(v_sum(SumScaledScore_2, student, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_2, student, $1, $2, $3, $4, $5, $6, $7)),
+        $(v_sum(SumScaledScore_3, student, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_3, student, $1, $2, $3, $4, $5, $6, $7)),
+        $(v_sum(SumScaledScore_1, parent, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_1, parent, $1, $2, $3, $4, $5, $6, $7)),
+        $(v_sum(SumScaledScore_2, parent, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_2, parent, $1, $2, $3, $4, $5, $6, $7)),
+        $(v_sum(SumScaledScore_3, parent, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_3, parent, $1, $2, $3, $4, $5, $6, $7)),
+        $(v_sum(SumScaledScore_4, parent, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_4, parent, $1, $2, $3, $4, $5, $6, $7)),
+        $(v_sum(SumScaledScore_5, parent, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_5, parent, $1, $2, $3, $4, $5, $6, $7)),
+        $(v_sum(SumScaledScore_1, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_1, teacher, $1, $2, $3, $4, $5, $6, $7)),
+        $(v_sum(SumScaledScore_2, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_2, teacher, $1, $2, $3, $4, $5, $6, $7)),
+        $(v_sum(SumScaledScore_3, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_3, teacher, $1, $2, $3, $4, $5, $6, $7)),
+        $(v_sum(SumScaledScore_4, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_4, teacher, $1, $2, $3, $4, $5, $6, $7)),
+        $(v_sum(SumScaledScore_5, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_5, teacher, $1, $2, $3, $4, $5, $6, $7)),
+        $(v_sum(SumScaledScore_6, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_6, teacher, $1, $2, $3, $4, $5, $6, $7)),
+        $(v_sum(SumScaledScore_7, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_7, teacher, $1, $2, $3, $4, $5, $6, $7))
+    ),
+    if($(v_sum_all(topic_respondents, 1, $1, $2, $3, $4, $5, $6, $7)) > 0, 'i.s.')
+);
+
+let v_color_offset = $(=pick(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|color_offset_1*') + 1, 0, -1));
+
+// for coloring a score
+let v_color_avg_score_agg_construct = Pick(
+    RangeMax(1, Floor((10*Round($(v_avg_score_agg_construct($1, $2, $3, $4, $5, $6, $7)), 0.1) - 40) / 10) + 2 + $(v_color_offset($1, $2, $3, $4, $5, $6, $7))),
+    $(vColor_Construct_Insufficient), 
+  '#ae1c3e', '#ed875e', '#f2d2ae', '#d1ebfb', '#5ea4d9', '#3c52a1', '#3c52a1');
+
+let v_color_avg_score_agg_construct_all = Pick(
+    RangeMax(1, Floor((10*Round($(v_avg_score_agg_construct_all($1, $2, $3, $4, $5, $6, $7)), 0.1) - 40) / 10) + 2),
+    $(vColor_Construct_Insufficient), 
+  '#ae1c3e', '#ed875e', '#f2d2ae', '#d1ebfb', '#5ea4d9', '#3c52a1', '#3c52a1');
+
+
+    /**
+ * This is the average score rollup for a respondent group/topic/survey
+ * where we find the average scaled score each respondent group and average
+ * if this is a construct score: average all subconstructs across all respondent groups (if a group has more subconstructs it will weigh in higher than another group)
+ */
+let v_avg_score_agg_subconstruct = if($(v_suppress(topic_respondents, suppress, $1, $2, $3, $4, $5, $6)),
+    $(v_sum(SumScaledScore, $1, $2, $3, $4, $5, $6, $7, $8))
+    /
+    $(v_sum(NCompleted, $1, $2, $3, $4, $5, $6, $7, $8)),
+    if($(v_sum(topic_respondents, [$(v_field_construct)]=P([$(v_field_construct)]), 1, $1, $2, $3, $4, $5, $6)) > 0, 'i.s.')
+    );
+
+/// same as above but force all respondent groups
+let v_avg_score_agg_subconstruct_all = if($(v_suppress_all(topic_respondents, suppress, $1, $2, $3, $4, $5, $6)),
+    RangeAvg(
+        $(v_sum(SumScaledScore, student, $1, $2, $3, $4, $5, $6, $7))
+        /
+        $(v_sum(NCompleted, student, $1, $2, $3, $4, $5, $6, $7)),
+        $(v_sum(SumScaledScore, parent, $1, $2, $3, $4, $5, $6, $7))
+        /
+        $(v_sum(NCompleted, parent,$1,  $2, $3, $4, $5, $6, $7)),
+        $(v_sum(SumScaledScore, teacher, $1, $2, $3, $4, $5, $6, $7))
+        /
+        $(v_sum(NCompleted, teacher, $1, $2, $3, $4, $5, $6, $7))  
+    ),
+    if($(v_sum_all(topic_respondents, [$(v_field_construct)]=P([$(v_field_construct)]), 1, $1, $2, $3, $4, $5, $6)) > 0, 'i.s.')
+  );
+    
+    
+    // for coloring a score
+let v_color_avg_score_agg_subconstruct = Pick(
+    RangeMax(1, Floor((10*Round($(v_avg_score_agg_subconstruct($1, $2, $3, $4, $5, $6, $7, $8)), 0.1) - 40) / 10) + 2),
+    $(vColor_Construct_Insufficient), 
+  '#ae1c3e', '#ed875e', '#f2d2ae', '#d1ebfb', '#5ea4d9', '#3c52a1', '#3c52a1');
+
+let v_color_avg_score_agg_subconstruct_all = Pick(
+    RangeMax(1, Floor((10*Round($(v_avg_score_agg_subconstruct_all($1, $2, $3, $4, $5, $6, $7, $8)), 0.1) - 40) / 10) + 2),
+    $(vColor_Construct_Insufficient), 
+  '#ae1c3e', '#ed875e', '#f2d2ae', '#d1ebfb', '#5ea4d9', '#3c52a1', '#3c52a1');
+    
+
+
+
+
+/**
+ * This is the average score rollup for a respondent group/topic/survey
+ * used for drilldowns that will go from topic to sub-topic level based on whether a topic has been selected (not as a variable, but as a field)
+ * if this is a subconstruct score: find the average scaled score each respondent group and average
+ * if this is a construct score: average all subconstructs across all respondent groups (if a group has more subconstructs it will weigh in higher than another group)
+ */
+let v_construct_alias_to_num = wildmatch('$1|$2|$3|$4|$5|$6|$7|$8|$9', '*|climate|*', '*|instruction|*', '*|community|*', '*|professional|*', '*|leadership|*');
+let v_construct_or_subconstruct = $(=if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|subconstruct|*', '*|[$(v_field_subconstruct)]={*', '*|$(v_field_subconstruct)={*') 
+    or 
+    GetPossibleCount([$(v_construct_field)]) = 1, 'subconstruct', 'construct'));
+let v_avg_score_agg = $(v_avg_score_agg_$(v_construct_or_subconstruct($1, $2, $3, $4, $5, $6, $7, $8))($1, $2, $3, $4, $5, $6, $7, $8));
+let v_avg_score_agg_all = $(v_avg_score_agg_$(v_construct_or_subconstruct($1, $2, $3, $4, $5, $6, $7, $8))_all($1, $2, $3, $4, $5, $6, $7, $8));
+
+
+// for coloring a score
+let v_color_avg_score_agg = Pick(
+    RangeMax(1, Floor((10*Round($(v_avg_score_agg($1, $2, $3, $4, $5, $6, $7, $8)), 0.1) - 40) / 10) + 2),
+    $(vColor_Construct_Insufficient), 
+  '#ae1c3e', '#ed875e', '#f2d2ae', '#d1ebfb', '#5ea4d9', '#3c52a1', '#3c52a1');
+
+let v_color_avg_score_agg_all = Pick(
+    RangeMax(1, Floor((10*Round($(v_avg_score_agg_all($1, $2, $3, $4, $5, $6, $7, $8)), 0.1) - 40) / 10) + 2),
+    $(vColor_Construct_Insufficient), 
+  '#ae1c3e', '#ed875e', '#f2d2ae', '#d1ebfb', '#5ea4d9', '#3c52a1', '#3c52a1');
+
