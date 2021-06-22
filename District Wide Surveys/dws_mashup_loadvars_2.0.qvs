@@ -46,6 +46,8 @@ set v_field_survey = Survey;
 set v_field_construct = Construct;
 set v_field_subconstruct = SubConstruct;
 
+set v_label_parentrelationship = Parent-School Relationship;
+
 //////////////////////////////////////////////////////////////////////// 
 /// General Expression Building: requires the following elements
 /// 1. aggregation qualifier - such as total or distinct
@@ -118,10 +120,10 @@ set v_list_invalid_setopts = '{}', '$', '$1', '$2', '$3', '$4', '$5', '$6', '$7'
 set v_setopt_ = x={1}; // this is a dummy in case user enters invalid setopt
 set v_setopt_cy = [_CYTD_Flag] = {1};
 set v_setopt_py = [_PYTD_Flag] = {1};
-set v_setopt_student = [Survey]={'Student'};
-set v_setopt_parent = [Survey]={'Parent'};
-set v_setopt_teacher = [Survey]={'Teacher'};
-set v_setopt_principal = [Survey]={'Principal'};
+set v_setopt_student = [$(v_field_survey)]={'Student'};
+set v_setopt_parent = [$(v_field_survey)]={'Parent'};
+set v_setopt_teacher = [$(v_field_survey)]={'Teacher'};
+set v_setopt_principal = [$(v_field_survey)]={'Principal'};
 set v_setopt_district = [Sector]={'District'};
 set v_setopt_charter = [Sector]={'Charter'};
 set v_setopt_surveyquestioncode = [SurveyQuestionCode]={'$1'};
@@ -131,7 +133,10 @@ set v_setopt_overall = [_Overall_Flag]={1},
 set v_setopt_question = [_Question_Flag]={1};
 set v_setopt_construct = [_Construct_Flag]={1};
 set v_setopt_subconstruct = [_SubConstruct_Flag]={1};
-
+set v_setopt_climate = [$(v_field_construct)]={'School Climate'};
+set v_setopt_instruction = [$(v_field_construct)]={'Instruction'};
+set v_setopt_parentrelationship = [$(v_field_survey)]={'Parent'}, [$(v_field_construct)]={'Parent/Guardian-Community Ties'}, [$(v_field_subconstruct)]={'School Relationship'};
+set v_setopt_essential = [_Essential_Flag]={1};
 /**
  * v_setopts is used to populate the space within <> to denote set options.
  * The first parameter value $1 will assumed to be a field name and will get special consideration
@@ -220,32 +225,32 @@ let v_survey_selected = $(=Only($(v_field_survey)));
 let v_construct_selected = $(=if(GetPossibleCount($(v_field_construct))=1,Only($(v_field_construct)), 'School Climate'));
 let v_subconstruct_selected = $(=Only($(v_field_subconstruct)));
 /** outputs a survey, first checking the parameter, then defaulting to selected */
-let v_survey = $(=Coalesce(
+let v_survey = Coalesce(
 	$(=pick(
 		wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|student|*', '*|parent|*', '*|teacher|*', '*|principal|*') + 1,
-		null(),	'Student', 'Parent', 'Teacher', 'Principal'
+		'null()',	'Student', 'Parent', 'Teacher', 'Principal'
 	)),
-	Only($(v_field_survey)), 
-	''
-));
+	Only($(v_field_survey)),
+    ''
+);
 
 
 let v_min_survey_selected = $(v_min_$(=lower('$(v_survey_selected)')));
 let v_min_survey = Alt(
 	$(=pick(
-		wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|student|*', '*|parent|*', '*|teacher|*', '*|principal|*') + 1,
-		null(), $(v_min_student), $(v_min_parent),  $(v_min_teacher),  $(v_min_principal)
+		wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|student|*', '*|parent*', '*|teacher|*', '*|principal|*') + 1,
+		'null()', $(v_min_student), $(v_min_parent),  $(v_min_teacher),  $(v_min_principal)
 	))
 	,
 	pick(
-		match(Only([Survey]), 'Student', 'Parent', 'Teacher', 'Principal')+1, 
+		match(Only([$(v_field_survey)]), 'Student', 'Parent', 'Teacher', 'Principal')+1, 
 		$(v_min_all), $(v_min_student), $(v_min_parent),  $(v_min_teacher),  $(v_min_principal)
 	)
 );
 
 
 let v_score_agg_subconstruct = if(
-		$(v_sum(CountRespondents, subconstruct, $(v_survey($1, $2, $3, $4, $5, $6, $7, $8, $9)), $1, $2, $3, $4, $5, $6))
+		$(v_sum(CountRespondents, subconstruct, $1, $2, $3, $4, $5, $6, $7))
 		>= 
 		$(v_min_survey($1, $2, $3, $4, $5, $6, $7, $8, $9)),
 	$(v_sum(SubConstruct_SumScaledScore, $1, $2, $3, $4, $5, $6, $7, $8))
@@ -255,7 +260,7 @@ let v_score_agg_subconstruct = if(
 );
 
 let v_score_agg_construct =  if( 
-		$(v_sum(CountRespondents, construct, $(v_survey($1, $2, $3, $4, $5, $6, $7, $8, $9)), $1, $2, $3, $4, $5, $6)) 
+		$(v_sum(CountRespondents, construct, $1, $2, $3, $4, $5, $6, $7)) 
 		>=
 		$(v_min_survey($1, $2, $3, $4, $5, $6, $7, $8, $9)), 
 	RangeAvg(
@@ -268,7 +273,7 @@ let v_score_agg_construct =  if(
 		$(v_sum(SumScaledScore_7, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_7, $1, $2, $3, $4, $5, $6, $7, $8))
 	)
 	,
-   if($(v_sum(CountRespondents, construct, $(v_survey($1, $2, $3, $4, $5, $6, $7, $8, $9)), 1, $1, $2, $3, $3, $4, $5)) > 0, 'i.s.')
+   if($(v_sum(CountRespondents, construct, 1, $1, $2, $3, $3, $4, $5, $6)) > 0, 'i.s.')
 );
 
 let v_score_agg = $(v_score_agg_$(=if(GetPossibleCount($(v_field_construct)) = 1, 'subconstruct', 'construct'))($1, $2, $3, $4, $5, $6, $7, $8));
@@ -296,7 +301,7 @@ let v_sum_all = RangeSum(
  */
 let v_min_survey_all = Alt(
 	pick(
-		wildmatch(concat(distinct [Survey], '|'), '*Student*', '*Parent*', '*Teacher*', '*Principal*')+1, 
+		wildmatch(concat(distinct [$(v_field_survey)], '|'), '*Student*', '*Parent*', '*Teacher*', '*Principal*')+1, 
 		$(v_min_all), $(v_min_student), $(v_min_parent),  $(v_min_teacher),  $(v_min_principal)
 	), $(v_min_all)
 );
@@ -358,9 +363,9 @@ let v_color_score_agg_all = Pick(
 
 
 RangeAvg(
-    Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_1)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_2)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_3)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_4)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_5)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_6)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_7)/Sum({<[Survey] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_7),
-    Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_1)/Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_2)/Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_3)/Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_4)/Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_5)/Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_6)/Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_7)/Sum({<[Survey] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_7),
-    Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_1)/Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_2)/Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_3)/Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_4)/Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_5)/Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_6)/Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_7)/Sum({<[Survey] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_7)
+    Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_1)/Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_2)/Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_3)/Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_4)/Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_5)/Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_6)/Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_7)/Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_7),
+    Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_1)/Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_2)/Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_3)/Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_4)/Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_5)/Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_6)/Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_7)/Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_7),
+    Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_1)/Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_2)/Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_3)/Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_4)/Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_5)/Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_6)/Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_7)/Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_7)
     )
 
 
@@ -370,7 +375,7 @@ if('$1' = 'All Topics',
 	  )
     ,
      IF($(vCount_Sub_Respondents_AcrossSurveys_Construct_YTD($1, $2)) >= $(vMinStudents) or 
-    (('$(vTopic_Selected)' = 'Professional Capacity' or Only([Topic]) = 'Professional Capacity' or Only([Survey]) = 'Teacher') and $(vCount_Sub_Respondents_AcrossSurveys_Construct_YTD($1, $2)) >= $(vMinTeachers)),
+    (('$(vTopic_Selected)' = 'Professional Capacity' or Only([Topic]) = 'Professional Capacity' or Only([$(v_field_survey)]) = 'Teacher') and $(vCount_Sub_Respondents_AcrossSurveys_Construct_YTD($1, $2)) >= $(vMinTeachers)),
     $(vAvg_Sub_ScaledScore_AcrossSurveys_Construct_YTD($1, $2))
   )
   )
