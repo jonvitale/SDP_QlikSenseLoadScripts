@@ -102,7 +102,8 @@ let v_set_identifier = $(=
 set v_list_invalid_setopts = '{}', '$', '$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8', '$9', 'total*', 'distinct*', '1', 'Alt', 'suppress*', 'ncompleted*', 'sumscaledscore*', 'question_score', 'topic_respondents', 'color_offset*', 'STUDENT-Q*', 'PARENT-Q*', 'TEACHER-Q*', 'PRINCIPAL-Q*';
 
 let v_setopt_ignore_construct_question = [Construct]=, [SubConstruct]=, [Essential Construct]=, [Essential SubConstruct]=, 
-    [QuestionText]=, [SurveyQuestionCode]=, [Survey|SchoolYear|QuestionCode]=, [Survey|SchoolYear|QuestionCode|Score]=; 
+    [QuestionText]=, [SurveyQuestionCode]=, [Survey|SchoolYear|QuestionCode]=, [Survey|SchoolYear|QuestionCode|Score]=;
+
 set v_setopt_ = [x]={1}; // this is a dummy in case user enters invalid setopt
 set v_setopt_cy = [YearEnd] = {$(v_cy_end)};
 set v_setopt_py = [YearEnd] = {$(v_py_end)};
@@ -156,8 +157,7 @@ let v_setopts = $(=
     );
 
 /** For mapping between field aliases and field names (useful if we want to change the name of a field in the future) */
-let v_map_agg_field = $(
-    =pick(match(trim(lower('$1')),
+let v_map_agg_field = $(=pick(match(trim(lower('$1')),
         'respondents', 'respondents_household', 'topic_respondents', 'enrolled', 'enrolled_household', 'responded', 'question_responded', 'question_mostpositive', 'question_na', 'question_score') + 1,
         '$1', 'Responded', 'Responded_Household', 'Responded', 'InEnrollmentCounter', 'InEnrollmentCounter_Household', 'responded', 'IsDisplayScore', 'IsHighest', 'IsNA', '$(v_field_question_score)')
 );

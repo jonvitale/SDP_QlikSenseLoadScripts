@@ -28,11 +28,12 @@ set v_cy_short = =left('$(v_cy)', 4) & '-' & right('$(v_cy)', 2);
 set v_py = =MaxString({<[SchoolYear]-={'$(v_cy)'}>}SchoolYear);
 set v_py_short = =left('$(v_py)', 4) & '-' & right('$(v_py)', 2);
 
-set v_min_student = 25;
-set v_min_parent = 25;
-set v_min_teacher = 5;
-set v_min_principal = 5;
-set v_min_all = 25;
+// these are set in backend
+// set v_min_student = 25;
+// set v_min_parent = 25;
+// set v_min_teacher = 5;
+// set v_min_principal = 5;
+// set v_min_all = 25;
 
 set v_survey_selected_question = =Only({<[SurveyQuestionCode]={'$(v_surveyquestioncode_selected)'}>}Survey)
 set v_min_survey_selected_question = $(v_min_$(=lower('$(v_survey_selected_question)')));
@@ -92,7 +93,7 @@ set v_set_identifier = $(=
 /**
  * The following list of field names are fields that require an _overall_flag to be set to 1
  */
-set v_list_overall_fields = 'CountRespondents', 'CountEnrolled', 'CountRespondents_Household', 'CountEnrolled_Household';
+set v_list_overall_fields = 'CountRespondents', 'CountEnrolled', 'CountRespondents_Household', 'CountEnrolled_Household', 'respondents', 'respondents_household', 'enrolled', 'enrolled_household';
 set v_list_overall_fields_wild = $(=chr(39) & '*' & Concat(ValueList($(v_list_overall_fields)),  '*' & chr(39) & ', ' & chr(39) & '*') & '*' & chr(39));
 
 set v_list_construct_fields = 'SumScaledScore_1', 'SumScaledScore_2', 'SumScaledScore_3', 'SumScaledScore_4', 'SumScaledScore_5', 'SumScaledScore_6', 'SumScaledScore_7', 'NCompleted_1', 'NCompleted_2', 'NCompleted_3', 'NCompleted_4', 'NCompleted_5', 'NCompleted_6', 'NCompleted_7';
@@ -116,6 +117,11 @@ set v_list_question_fields_wild = $(=chr(39) & '*' & Concat(ValueList($(v_list_q
  */
 set v_list_invalid_setopts = '{}', '$', '$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8', '$9', 'total*', 'distinct*', '1', 'Alt1', $(v_list_overall_fields),$(v_list_construct_fields), $(v_list_subconstruct_fields), $(v_list_question_fields);
 
+set v_setopt_ignoreconstructquestion = [Construct]=, [SubConstruct]=, [Topic]=, [Sub-Topic]=, 
+    [QuestionText]=, [SurveyQuestionCode]=, [QuestionCode]=, [QuestionStem]=, [AnswerText]=, [AnswerTextScore]=; 
+let v_list_ignoreconstructquestions_wild = =chr(39) & '*' & 
+        Replace(Replace(Replace(Replace('$(v_setopt_ignoreconstructquestion)','[',''), ']', ''), '=', '*'), ', ', chr(39) & ',' & chr(39) & '*')
+        & chr(39) & ',' & chr(39) & '*climate*' & chr(39) & ',' & chr(39) & '*instruction*' & chr(39) & ',' & chr(39) & '*parentrelationship*' & chr(39);
 
 set v_setopt_ = x={1}; // this is a dummy in case user enters invalid setopt
 set v_setopt_cy = [_CYTD_Flag] = {1};
@@ -169,13 +175,12 @@ set v_setopt_essential = [_Essential_Flag]={1};
 	& ')'
  */
 
-set v_setopts = $(=
-	// in case no parameters are entered
+set v_setopts = $(=	// in case no parameters are entered
 	if(match(purgechar('$1$2$3$4$5$6$7$8$9', '$'), '123456789'),'x=1', '') &
 	// the following checks the first parameter only (which is used for fields names) to determine
 	// if the field is relevant at the overall, construct, subconstruct, or question level (in order)
 	// but if user provides a parameter of overall, construct, subconstruct, or question these are overwritten
-	if(Wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|overall|*', '*|construct|*', '*|subconstruct|*', '*|question|*') = 0,
+	if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|overall|*', '*|construct|*', '*|subconstruct|*', '*|question|*') = 0,
 		if(match('$1', $(v_list_overall_fields)), '$(v_setopt_overall),', 
 			if(match('$1', $(v_list_construct_fields)), '$(v_setopt_construct),', 
 				if(match('$1', $(v_list_subconstruct_fields)), '$(v_setopt_subconstruct),', 
@@ -183,23 +188,67 @@ set v_setopts = $(=
 	// substitute any fully specified set options, e.g., [x]={1}
 	concat(distinct
 		valuelist(
-			if(match(keepchar('$1', '={}()'),'={}','=()'), '$1', if(wildmatch('$1', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$1', '_ /-')) &')')),
-			if(match(keepchar('$2', '={}()'),'={}','=()'), '$2', if(wildmatch('$2', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$2', '_ /-')) &')')),
-			if(match(keepchar('$3', '={}()'),'={}','=()'), '$3', if(wildmatch('$3', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$3', '_ /-')) &')')),
-			if(match(keepchar('$4', '={}()'),'={}','=()'), '$4', if(wildmatch('$4', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$4', '_ /-')) &')')),
-      		if(match(keepchar('$5', '={}()'),'={}','=()'), '$5', if(wildmatch('$5', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$5', '_ /-')) &')')),
-			if(match(keepchar('$6', '={}()'),'={}','=()'), '$6', if(wildmatch('$6', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$6', '_ /-')) &')')),
-			if(match(keepchar('$7', '={}()'),'={}','=()'), '$7', if(wildmatch('$7', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$7', '_ /-')) &')')),
-			if(match(keepchar('$8', '={}()'),'={}','=()'), '$8', if(wildmatch('$8', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$8', '_ /-')) &')')),
-      		if(match(keepchar('$9', '={}()'),'={}','=()'), '$9', if(wildmatch('$9', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$9', '_ /-')) &')'))
+			if(0 = wildmatch(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '_'), '*ignoreconstructquestion*') or
+               0 = wildmatch(
+               		if(match(keepchar('$1', '={}()'),'={}','=()'), '$1', if(wildmatch('$1', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$1', '_ /-')) &')')), 
+                 	$(v_list_ignoreconstructquestions_wild)),
+               if(match(keepchar('$1', '={}()'),'={}','=()'), '$1', if(wildmatch('$1', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$1', '_ /-')) &')'))             
+            , null()),
+            if(0 = wildmatch(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '_'), '*ignoreconstructquestion*') or
+               0 = wildmatch(
+               		if(match(keepchar('$2', '={}()'),'={}','=()'), '$2', if(wildmatch('$2', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$2', '_ /-')) &')')), 
+                 	$(v_list_ignoreconstructquestions_wild)),
+               if(match(keepchar('$2', '={}()'),'={}','=()'), '$2', if(wildmatch('$2', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$2', '_ /-')) &')'))             
+            , null()),
+            if(0 = wildmatch(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '_'), '*ignoreconstructquestion*') or
+               0 = wildmatch(
+               		if(match(keepchar('$3', '={}()'),'={}','=()'), '$3', if(wildmatch('$3', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$3', '_ /-')) &')')), 
+                 	$(v_list_ignoreconstructquestions_wild)),
+               if(match(keepchar('$3', '={}()'),'={}','=()'), '$3', if(wildmatch('$3', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$3', '_ /-')) &')'))             
+            , null()),
+			if(0 = wildmatch(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '_'), '*ignoreconstructquestion*') or
+               0 = wildmatch(
+               		if(match(keepchar('$4', '={}()'),'={}','=()'), '$4', if(wildmatch('$4', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$4', '_ /-')) &')')), 
+                 	$(v_list_ignoreconstructquestions_wild)),
+               if(match(keepchar('$4', '={}()'),'={}','=()'), '$4', if(wildmatch('$4', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$4', '_ /-')) &')'))             
+            , null()),
+      		if(0 = wildmatch(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '_'), '*ignoreconstructquestion*') or
+               0 = wildmatch(
+               		if(match(keepchar('$5', '={}()'),'={}','=()'), '$5', if(wildmatch('$5', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$5', '_ /-')) &')')), 
+                 	$(v_list_ignoreconstructquestions_wild)),
+               if(match(keepchar('$5', '={}()'),'={}','=()'), '$5', if(wildmatch('$5', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$5', '_ /-')) &')'))             
+            , null()),
+            if(0 = wildmatch(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '_'), '*ignoreconstructquestion*') or
+               0 = wildmatch(
+               		if(match(keepchar('$6', '={}()'),'={}','=()'), '$6', if(wildmatch('$6', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$6', '_ /-')) &')')), 
+                 	$(v_list_ignoreconstructquestions_wild)),
+               if(match(keepchar('$6', '={}()'),'={}','=()'), '$6', if(wildmatch('$6', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$6', '_ /-')) &')'))             
+            , null()),
+            if(0 = wildmatch(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '_'), '*ignoreconstructquestion*') or
+               0 = wildmatch(
+               		if(match(keepchar('$7', '={}()'),'={}','=()'), '$7', if(wildmatch('$7', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$7', '_ /-')) &')')), 
+                 	$(v_list_ignoreconstructquestions_wild)),
+               if(match(keepchar('$7', '={}()'),'={}','=()'), '$7', if(wildmatch('$7', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$7', '_ /-')) &')'))             
+            , null()),
+            if(0 = wildmatch(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '_'), '*ignoreconstructquestion*') or
+               0 = wildmatch(
+               		if(match(keepchar('$8', '={}()'),'={}','=()'), '$8', if(wildmatch('$8', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$8', '_ /-')) &')')), 
+                 	$(v_list_ignoreconstructquestions_wild)),
+               if(match(keepchar('$8', '={}()'),'={}','=()'), '$8', if(wildmatch('$8', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$8', '_ /-')) &')'))             
+            , null()),
+            if(0 = wildmatch(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '_'), '*ignoreconstructquestion*') or
+               0 = wildmatch(
+               		if(match(keepchar('$9', '={}()'),'={}','=()'), '$9', if(wildmatch('$9', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$9', '_ /-')) &')')), 
+                 	$(v_list_ignoreconstructquestions_wild)),
+               if(match(keepchar('$9', '={}()'),'={}','=()'), '$9', if(wildmatch('$9', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$9', '_ /-')) &')'))             
+            , null()),
 		)
 		, ',')
 	);
 
 
-set v_map_agg_field = $(
-	=pick(match(trim(lower('$1')),'count_responses_highest', 'count_responses_answered') + 1,
-		'$1', 'CountHighest', 'CountResponses')
+set v_map_agg_field = $(=pick(match(trim(lower('$1')),'count_responses_highest', 'count_responses_answered', 'respondents', 'respondents_household', 'enrolled', 'enrolled_household') + 1,
+		'$1', 'CountHighest', 'CountResponses', 'CountRespondents', 'CountRespondents_Household', 'CountEnrolled', 'CountEnrolled_Household')
 );
 
 //////////////////////////////////////////////////////////////////////// 
@@ -218,6 +267,73 @@ set v_map_agg_field = $(
 set v_sum = sum($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
 	{$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
 		<$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>} $(v_map_agg_field($1)));
+
+let v_use_qlik_suppression = 0;
+
+let v_min_respondents = Max(
+    $(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+    {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
+        [RespondentMinCount$(=if(v_use_qlik_suppression=1, 'Qlik', ''))]);
+
+let v_min_respondents_pct = Max(
+    $(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+    {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
+        [RespondentMinPct$(=if(v_use_qlik_suppression=1, 'Qlik', ''))]);
+ 
+let v_suppress = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_none|*'),
+    1,
+    if(
+        $(v_sum($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        >= $(v_min_respondents(ignore_construct_question, $1, $2, $3, $4, $5, $6, $7, $8, $9))        
+        , 
+        1,
+        Null()
+    ) 
+);
+
+let v_suppress_pct = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_none|*'),
+    1,
+    if(
+       $(v_sum($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        /
+        $(v_count_enrolled(ignore_construct_question, overall, $2, $3, $4, $5, $6, $7, $8))
+        >= $(v_min_respondents_pct($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        , 
+        1,
+        Null()
+    ) 
+);
+//////////////////////////////////////// THE FOLLOWING IS SPECIFIC TO INDIVIDUAL QUESTIONS /////////////////////////////////////////////////////////
+let v_count_responded = $(v_sum(respondents, $1, $2, $3, $4, $5, $6, $7, $8));
+let v_count_responded_household = $(v_sum(respondents_household, $1, $2, $3, $4, $5, $6, $7, $8));
+let v_count_enrolled = $(v_sum(enrolled, $1, $2, $3, $4, $5, $6, $7, $8));
+let v_count_enrolled_household = $(v_sum(enrolled_household, $1, $2, $3, $4, $5, $6, $7, $8));
+let v_avg_responded = $(v_count_responded($1, $2, $3, $4, $5, $6, $7, $8)) / $(v_count_enrolled($1, $2, $3, $4, $5, $6, $7, $8));
+let v_avg_responded_household = $(v_count_responded_household($1, $2, $3, $4, $5, $6, $7, $8)) / $(v_count_enrolled_household($1, $2, $3, $4, $5, $6, $7, $8));
+
+
+//////////////////////////////////////// THE FOLLOWING IS SPECIFIC TO INDIVIDUAL QUESTIONS /////////////////////////////////////////////////////////
+
+/**
+ * For any given response, what percent of the total responses was it. Do not allow suppression on numerator.
+ */
+let v_perc_of_total = if($(v_suppress_pct(count_responses_answered, total, $1, $2, $3, $4, $4, $5, $6, $7)),
+    $(v_sum(count_responses_answered, $1, $2, $3, $4, $5, $6, $7, $8))
+    / 
+    $(v_sum(count_responses_answered, total, $1, $2, $3, $4, $5, $6, $7))
+);
+
+let v_count_mostpositive = $(v_sum(count_responses_highest, $1, $2, $3, $4, $5, $6, $7, $8));
+let v_count_responses = $(v_sum(count_responses_answered, $1, $2, $3, $4, $5, $6, $7, $8));
+
+let v_perc_mostpositive = if($(v_suppress_pct(count_responses_answered, $1, $2, $3, $4, $4, $5, $6, $7)),
+    $(v_sum(count_responses_highest, $1, $2, $3, $4, $5, $6, $7, $8))
+    /
+    $(v_sum(count_responses_answered, $1, $2, $3, $4, $5, $6, $7, $8))
+ );
+
 
 //////////////////////////////////////// THE FOLLOWING IS SPECIFIC TO AVG SCALED SCORES /////////////////////////////////////////////////////////
 
@@ -296,6 +412,36 @@ let v_sum_all = RangeSum(
 	$(v_sum($1, parent, $2, $3, $4, $5, $6, $7, $8))
 );
 
+let v_suppress_all_pct = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_none|*'),
+    1,    
+    Pick(
+        RangeSum(
+             if($(v_sum($1, student, $2, $3, $4, $5, $6, $7, $8, $9)) 
+                /
+                $(v_count_enrolled(ignore_construct_question, overall, student, $2, $3, $4, $5, $6, $7))
+                >= $(v_min_respondents_pct(student, $1, $2, $3, $4, $5, $6, $7, $8)), 1, 0),
+            if($(v_sum($1, parent, $2, $3, $4, $5, $6, $7, $8, $9))
+                /
+                $(v_count_enrolled(ignore_construct_question, overall, parent, $2, $3, $4, $5, $6, $7))
+                >= $(v_min_respondents_pct(parent, $1, $2, $3, $4, $5, $6, $7, $8)), 1, 0),
+            if($(v_sum($1, teacher, $2, $3, $4, $5, $6, $7, $8, $9))
+                /
+                $(v_count_enrolled(ignore_construct_question, overall, teacher, $2, $3, $4, $5, $6, $7))
+                >= $(v_min_respondents_pct(teacher, $1, $2, $3, $4, $5, $6, $7, $8)), 1, 0)
+        ),
+        Null(), // 0 matches: always a no
+        // 1 match, only a match if there is only one respondent groups,
+        if (Count(distinct {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+            <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>} [$(v_field_survey)]) = 1,
+            1, 
+            Null()
+        ),
+        1, // 2 matches, always a yes
+        1 // 3 matches, always a yes
+    )
+);
+
+
 /**
  * Determine which group's minimum to use, if student is available use that, then parent, then teacher then principal
  */
@@ -346,8 +492,7 @@ let v_score_agg_construct_all = if(
 		$(v_sum(SumScaledScore_7, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_7, teacher, $1, $2, $3, $4, $5, $6, $7))
 	),
 	if($(v_sum_all(CountRespondents, construct, 1, $1, $2, $3, $4, $5, $6)) > 0, 'i.s.')
-)
-;
+);
 
 let v_score_agg_all = $(v_score_agg_$(=if(GetPossibleCount($(v_field_construct)) = 1, 'subconstruct', 'construct'))_all(($1, $2, $3, $4, $5, $6, $7)));
 
@@ -360,22 +505,3 @@ let v_color_score_agg_all = Pick(
 
 
 
-
-
-RangeAvg(
-    Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_1)/Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_2)/Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_3)/Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_4)/Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_5)/Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_6)/Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_7)/Sum({<[$(v_field_survey)] = {"Student"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_7),
-    Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_1)/Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_2)/Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_3)/Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_4)/Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_5)/Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_6)/Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_7)/Sum({<[$(v_field_survey)] = {"Parent"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_7),
-    Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_1)/Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_1), Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_2)/Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_2), Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_3)/Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_3), Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_4)/Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_4), Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_5)/Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_5), Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_6)/Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_6), Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} SumScaledScore_7)/Sum({<[$(v_field_survey)] = {"Teacher"}, [_$1YTD_Flag]={1}, [_Construct_Flag]={1}>} NCompleted_7)
-    )
-
-
-if('$1' = 'All Topics',
-    IF($(v_sum_allsurveys(CountRespondents, cy) >= $(v_min_survey),
-	   $(vAvg_ScaledScore_AcrossSurveys_YTD($1))
-	  )
-    ,
-     IF($(vCount_Sub_Respondents_AcrossSurveys_Construct_YTD($1, $2)) >= $(vMinStudents) or 
-    (('$(vTopic_Selected)' = 'Professional Capacity' or Only([Topic]) = 'Professional Capacity' or Only([$(v_field_survey)]) = 'Teacher') and $(vCount_Sub_Respondents_AcrossSurveys_Construct_YTD($1, $2)) >= $(vMinTeachers)),
-    $(vAvg_Sub_ScaledScore_AcrossSurveys_Construct_YTD($1, $2))
-  )
-  )
