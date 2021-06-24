@@ -141,7 +141,7 @@ set v_setopt_construct = [_Construct_Flag]={1};
 set v_setopt_subconstruct = [_SubConstruct_Flag]={1};
 set v_setopt_climate = [$(v_field_construct)]={'School Climate'};
 set v_setopt_instruction = [$(v_field_construct)]={'Instruction'};
-set v_setopt_parentrelationship = [$(v_field_survey)]={'Parent'}, [$(v_field_construct)]={'Parent/Guardian-Community Ties'}, [$(v_field_subconstruct)]={'School Relationship'};
+set v_setopt_parentrelationship = [$(v_field_construct)]={'Parent/Guardian-Community Ties'}, [$(v_field_subconstruct)]={'School Relationship'};
 set v_setopt_essential = [_Essential_Flag]={1};
 /**
  * v_setopts is used to populate the space within <> to denote set options.
@@ -366,19 +366,15 @@ let v_min_survey = Alt(
 
 
 let v_score_agg_subconstruct = if(
-		$(v_sum(CountRespondents, subconstruct, $1, $2, $3, $4, $5, $6, $7))
-		>= 
-		$(v_min_survey($1, $2, $3, $4, $5, $6, $7, $8, $9)),
+		$(v_suppress_pct(respondents, subconstruct, $1, $2, $3, $4, $5, $6, $7)),
 	$(v_sum(SubConstruct_SumScaledScore, $1, $2, $3, $4, $5, $6, $7, $8))
 	/
 	$(v_sum(SubConstruct_NCompleted, $1, $2, $3, $4, $5, $6, $7, $8)),
-	if($(v_sum(CountRespondents, subconstruct, [$(v_field_construct)]=P([$(v_field_construct)]), 1, $1, $2, $3, $4, $5)) > 0, 'i.s.')
+	if($(v_sum(respondents, subconstruct, [$(v_field_construct)]=P([$(v_field_construct)]), 1, $1, $2, $3, $4, $5)) > 0, 'i.s.')
 );
 
-let v_score_agg_construct =  if( 
-		$(v_sum(CountRespondents, construct, $1, $2, $3, $4, $5, $6, $7)) 
-		>=
-		$(v_min_survey($1, $2, $3, $4, $5, $6, $7, $8, $9)), 
+let v_score_agg_construct =  if(
+		$(v_suppress_pct(respondents, construct, $1, $2, $3, $4, $5, $6, $7)),
 	RangeAvg(
 		$(v_sum(SumScaledScore_1, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_1, $1, $2, $3, $4, $5, $6, $7, $8)),
 		$(v_sum(SumScaledScore_2, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_2, $1, $2, $3, $4, $5, $6, $7, $8)),
@@ -389,7 +385,7 @@ let v_score_agg_construct =  if(
 		$(v_sum(SumScaledScore_7, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_7, $1, $2, $3, $4, $5, $6, $7, $8))
 	)
 	,
-   if($(v_sum(CountRespondents, construct, 1, $1, $2, $3, $3, $4, $5, $6)) > 0, 'i.s.')
+   if($(v_sum(respondents, construct, 1, $1, $2, $3, $3, $4, $5, $6)) > 0, 'i.s.')
 );
 
 let v_score_agg = $(v_score_agg_$(=if(GetPossibleCount($(v_field_construct)) = 1, 'subconstruct', 'construct'))($1, $2, $3, $4, $5, $6, $7, $8));
@@ -445,17 +441,15 @@ let v_suppress_all_pct = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppres
 /**
  * Determine which group's minimum to use, if student is available use that, then parent, then teacher then principal
  */
-let v_min_survey_all = Alt(
-	pick(
-		wildmatch(concat(distinct [$(v_field_survey)], '|'), '*Student*', '*Parent*', '*Teacher*', '*Principal*')+1, 
-		$(v_min_all), $(v_min_student), $(v_min_parent),  $(v_min_teacher),  $(v_min_principal)
-	), $(v_min_all)
-);
+// let v_min_survey_all = Alt(
+// 	pick(
+// 		wildmatch(concat(distinct [$(v_field_survey)], '|'), '*Student*', '*Parent*', '*Teacher*', '*Principal*')+1, 
+// 		$(v_min_all), $(v_min_student), $(v_min_parent),  $(v_min_teacher),  $(v_min_principal)
+// 	), $(v_min_all)
+// );
 
 let v_score_agg_subconstruct_all = if(
-	$(v_sum_all(CountRespondents, subconstruct, $1, $2, $3, $4, $5, $6, $7))
-	>= 
-	$(v_min_survey_all),
+	$(v_suppress_all_pct(respondents, subconstruct, $1, $2, $3, $4, $5, $6, $7)),
 	RangeAvg(
 		$(v_sum(SubConstruct_SumScaledScore, student, $1, $2, $3, $4, $5, $6, $7))
 		/
@@ -467,13 +461,11 @@ let v_score_agg_subconstruct_all = if(
 		/
 		$(v_sum(SubConstruct_NCompleted, teacher, $1, $2, $3, $4, $5, $6, $7))	
 	),
-	if($(v_sum_all(CountRespondents, subconstruct, [$(v_field_construct)]=P([$(v_field_construct)]), 1, $1, $2, $3, $4, $5)) > 0, 'i.s.')
+	if($(v_sum_all(respondents, subconstruct, [$(v_field_construct)]=P([$(v_field_construct)]), 1, $1, $2, $3, $4, $5)) > 0, 'i.s.')
 );
 
 let v_score_agg_construct_all = if(
-		$(v_sum_all(CountRespondents, construct, $1, $2, $3, $4, $5, $6, $7))
-		>= 
-		$(v_min_survey_all),
+		$(v_suppress_all_pct(respondents, construct, $1, $2, $3, $4, $5, $6, $7)),
 	RangeAvg(
 		$(v_sum(SumScaledScore_1, student, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_1, student, $1, $2, $3, $4, $5, $6, $7)),
 		$(v_sum(SumScaledScore_2, student, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_2, student, $1, $2, $3, $4, $5, $6, $7)),
@@ -491,7 +483,7 @@ let v_score_agg_construct_all = if(
 		$(v_sum(SumScaledScore_6, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_6, teacher, $1, $2, $3, $4, $5, $6, $7)),
 		$(v_sum(SumScaledScore_7, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_7, teacher, $1, $2, $3, $4, $5, $6, $7))
 	),
-	if($(v_sum_all(CountRespondents, construct, 1, $1, $2, $3, $4, $5, $6)) > 0, 'i.s.')
+	if($(v_sum_all(respondents, construct, 1, $1, $2, $3, $4, $5, $6)) > 0, 'i.s.')
 );
 
 let v_score_agg_all = $(v_score_agg_$(=if(GetPossibleCount($(v_field_construct)) = 1, 'subconstruct', 'construct'))_all(($1, $2, $3, $4, $5, $6, $7)));
