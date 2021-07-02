@@ -117,11 +117,11 @@ set v_list_question_fields_wild = $(=chr(39) & '*' & Concat(ValueList($(v_list_q
  */
 set v_list_invalid_setopts = '{}', '$', '$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8', '$9', 'total*', 'distinct*', '1', 'Alt1', $(v_list_overall_fields),$(v_list_construct_fields), $(v_list_subconstruct_fields), $(v_list_question_fields);
 
-set v_setopt_ignoreconstructquestion = [Construct]=, [SubConstruct]=, [Topic]=, [Sub-Topic]=, 
-    [QuestionText]=, [SurveyQuestionCode]=, [QuestionCode]=, [QuestionStem]=, [AnswerText]=, [AnswerTextScore]=; 
-let v_list_ignoreconstructquestions_wild = =chr(39) & '*' & 
-        Replace(Replace(Replace(Replace('$(v_setopt_ignoreconstructquestion)','[',''), ']', ''), '=', '*'), ', ', chr(39) & ',' & chr(39) & '*')
-        & chr(39) & ',' & chr(39) & '*climate*' & chr(39) & ',' & chr(39) & '*instruction*' & chr(39) & ',' & chr(39) & '*parentrelationship*' & chr(39);
+// set v_setopt_ignoreconstructquestion = [Construct]=, [SubConstruct]=, [Topic]=, [Sub-Topic]=, 
+//     [QuestionText]=, [SurveyQuestionCode]=, [QuestionCode]=, [QuestionStem]=, [AnswerText]=, [AnswerTextScore]=; 
+// let v_list_ignoreconstructquestions_wild = =chr(39) & '*' & 
+//         Replace(Replace(Replace(Replace('$(v_setopt_ignoreconstructquestion)','[',''), ']', ''), '=', '*'), ', ', chr(39) & ',' & chr(39) & '*')
+//         & chr(39) & ',' & chr(39) & '*climate*' & chr(39) & ',' & chr(39) & '*instruction*' & chr(39) & ',' & chr(39) & '*parentrelationship*' & chr(39);
 
 set v_setopt_ = x={1}; // this is a dummy in case user enters invalid setopt
 set v_setopt_cy = [_CYTD_Flag] = {1};
@@ -143,6 +143,7 @@ set v_setopt_climate = [$(v_field_construct)]={'School Climate'};
 set v_setopt_instruction = [$(v_field_construct)]={'Instruction'};
 set v_setopt_parentrelationship = [$(v_field_construct)]={'Parent/Guardian-Community Ties'}, [$(v_field_subconstruct)]={'School Relationship'};
 set v_setopt_essential = [_Essential_Flag]={1};
+
 /**
  * v_setopts is used to populate the space within <> to denote set options.
  * The first parameter value $1 will assumed to be a field name and will get special consideration
@@ -150,93 +151,24 @@ set v_setopt_essential = [_Essential_Flag]={1};
  * A parameter such as [field]={value} can be entered to provide a specific set option
  * (specifically searching for '={', with spaces purged)
  * All other parameter values should be one of the list above: v_setopt_*these*
- if(wildmatch(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', ' '), '*|surveyquestioncode:*'),
-		'[SurveyQuestionCode]={' & chr(39) &
-			textbetween(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', ' '), '|surveyquestioncode:', '|') &
-			chr(39) & '},'
-		,
-		''
-	) &
-
-	chr(36)&'(v_setopt_' & 	
-		concat(distinct 
-			purgechar(lower(valuelist(
-				if(left('$1',1)='$' or wildmatch('$1',$(v_list_invalid_setopts)),null(),'$1'),
-				if(left('$2',1)='$' or wildmatch('$2',$(v_list_invalid_setopts)),null(),'$2'),
-				if(left('$3',1)='$' or wildmatch('$3',$(v_list_invalid_setopts)),null(),'$3'),
-				if(left('$4',1)='$' or wildmatch('$4',$(v_list_invalid_setopts)),null(),'$4'),
-				if(left('$5',1)='$' or wildmatch('$5',$(v_list_invalid_setopts)),null(),'$5'),
-				if(left('$6',1)='$' or wildmatch('$6',$(v_list_invalid_setopts)),null(),'$6'),
-				if(left('$7',1)='$' or wildmatch('$7',$(v_list_invalid_setopts)),null(),'$7'),
-				if(left('$8',1)='$' or wildmatch('$8',$(v_list_invalid_setopts)),null(),'$8'),
-				if(left('$9',1)='$' or wildmatch('$9',$(v_list_invalid_setopts)),null(),'$9')
-			)),'_ /-')
-		,'),'&chr(36)&'(v_setopt_') // concat
-	& ')'
- */
-
-set v_setopts = $(=	
-	// in case no parameters are entered
-	if(match(purgechar('$1$2$3$4$5$6$7$8$9', '$'), '123456789'),'x=1', '') &
-	concat(distinct
-		valuelist(
-			if(0 = wildmatch(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '_'), '*ignoreconstructquestion*') or
-               0 = wildmatch(
-               		if(match(keepchar('$1', '={}()'),'={}','=()'), '$1', if(wildmatch('$1', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$1', '_ /-')) &')')), 
-                 	$(v_list_ignoreconstructquestions_wild)),
-               if(match(keepchar('$1', '={}()'),'={}','=()'), '$1', if(wildmatch('$1', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$1', '_ /-')) &')'))             
-            , null()),
-            if(0 = wildmatch(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '_'), '*ignoreconstructquestion*') or
-               0 = wildmatch(
-               		if(match(keepchar('$2', '={}()'),'={}','=()'), '$2', if(wildmatch('$2', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$2', '_ /-')) &')')), 
-                 	$(v_list_ignoreconstructquestions_wild)),
-               if(match(keepchar('$2', '={}()'),'={}','=()'), '$2', if(wildmatch('$2', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$2', '_ /-')) &')'))             
-            , null()),
-            if(0 = wildmatch(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '_'), '*ignoreconstructquestion*') or
-               0 = wildmatch(
-               		if(match(keepchar('$3', '={}()'),'={}','=()'), '$3', if(wildmatch('$3', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$3', '_ /-')) &')')), 
-                 	$(v_list_ignoreconstructquestions_wild)),
-               if(match(keepchar('$3', '={}()'),'={}','=()'), '$3', if(wildmatch('$3', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$3', '_ /-')) &')'))             
-            , null()),
-			if(0 = wildmatch(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '_'), '*ignoreconstructquestion*') or
-               0 = wildmatch(
-               		if(match(keepchar('$4', '={}()'),'={}','=()'), '$4', if(wildmatch('$4', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$4', '_ /-')) &')')), 
-                 	$(v_list_ignoreconstructquestions_wild)),
-               if(match(keepchar('$4', '={}()'),'={}','=()'), '$4', if(wildmatch('$4', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$4', '_ /-')) &')'))             
-            , null()),
-      		if(0 = wildmatch(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '_'), '*ignoreconstructquestion*') or
-               0 = wildmatch(
-               		if(match(keepchar('$5', '={}()'),'={}','=()'), '$5', if(wildmatch('$5', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$5', '_ /-')) &')')), 
-                 	$(v_list_ignoreconstructquestions_wild)),
-               if(match(keepchar('$5', '={}()'),'={}','=()'), '$5', if(wildmatch('$5', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$5', '_ /-')) &')'))             
-            , null()),
-            if(0 = wildmatch(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '_'), '*ignoreconstructquestion*') or
-               0 = wildmatch(
-               		if(match(keepchar('$6', '={}()'),'={}','=()'), '$6', if(wildmatch('$6', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$6', '_ /-')) &')')), 
-                 	$(v_list_ignoreconstructquestions_wild)),
-               if(match(keepchar('$6', '={}()'),'={}','=()'), '$6', if(wildmatch('$6', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$6', '_ /-')) &')'))             
-            , null()),
-            if(0 = wildmatch(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '_'), '*ignoreconstructquestion*') or
-               0 = wildmatch(
-               		if(match(keepchar('$7', '={}()'),'={}','=()'), '$7', if(wildmatch('$7', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$7', '_ /-')) &')')), 
-                 	$(v_list_ignoreconstructquestions_wild)),
-               if(match(keepchar('$7', '={}()'),'={}','=()'), '$7', if(wildmatch('$7', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$7', '_ /-')) &')'))             
-            , null()),
-            if(0 = wildmatch(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '_'), '*ignoreconstructquestion*') or
-               0 = wildmatch(
-               		if(match(keepchar('$8', '={}()'),'={}','=()'), '$8', if(wildmatch('$8', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$8', '_ /-')) &')')), 
-                 	$(v_list_ignoreconstructquestions_wild)),
-               if(match(keepchar('$8', '={}()'),'={}','=()'), '$8', if(wildmatch('$8', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$8', '_ /-')) &')'))             
-            , null()),
-            if(0 = wildmatch(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '_'), '*ignoreconstructquestion*') or
-               0 = wildmatch(
-               		if(match(keepchar('$9', '={}()'),'={}','=()'), '$9', if(wildmatch('$9', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$9', '_ /-')) &')')), 
-                 	$(v_list_ignoreconstructquestions_wild)),
-               if(match(keepchar('$9', '={}()'),'={}','=()'), '$9', if(wildmatch('$9', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$9', '_ /-')) &')'))             
-            , null()),
-		)
-		, ',')
-	);
+ **/
+set v_setopts = $(=  // in case no parameters are entered
+   if(match(purgechar('$1$2$3$4$5$6$7$8$9', '$'), '123456789'),'x=1', '') &   
+   concat(distinct
+      valuelist(
+         if(match(keepchar('$1', '={}()'),'={}','=()'), '$1', if(wildmatch('$1', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$1', '_ /-')) &')')), 
+            if(match(keepchar('$2', '={}()'),'={}','=()'), '$2', if(wildmatch('$2', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$2', '_ /-')) &')')), 
+            if(match(keepchar('$3', '={}()'),'={}','=()'), '$3', if(wildmatch('$3', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$3', '_ /-')) &')')), 
+            if(match(keepchar('$4', '={}()'),'={}','=()'), '$4', if(wildmatch('$4', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$4', '_ /-')) &')')), 
+            if(match(keepchar('$5', '={}()'),'={}','=()'), '$5', if(wildmatch('$5', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$5', '_ /-')) &')')), 
+            if(match(keepchar('$6', '={}()'),'={}','=()'), '$6', if(wildmatch('$6', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$6', '_ /-')) &')')), 
+            if(match(keepchar('$7', '={}()'),'={}','=()'), '$7', if(wildmatch('$7', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$7', '_ /-')) &')')), 
+            if(match(keepchar('$8', '={}()'),'={}','=()'), '$8', if(wildmatch('$8', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$8', '_ /-')) &')')), 
+            if(match(keepchar('$9', '={}()'),'={}','=()'), '$9', if(wildmatch('$9', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$9', '_ /-')) &')')),
+            
+      )
+      , ',')
+   );
 
 
 set v_map_agg_field = $(=pick(match(trim(lower('$1')),'count_responses_highest', 'count_responses_answered', 'respondents', 'respondents_household', 'enrolled', 'enrolled_household') + 1,
@@ -251,10 +183,19 @@ set v_map_agg_field = $(=pick(match(trim(lower('$1')),'count_responses_highest',
 /// such as RangeAvg(sum/avg, sum/avg). Theses calculations will have _agg appended to title
 ////////////////////////////////////////////////////////////////////////
 // note if using these for response rate, make sure to include overall as a parameter
-let v_count_responded = $(v_sum(respondents, $1, $2, $3, $4, $5, $6, $7, $8));
-let v_count_responded_household = $(v_sum(respondents_household, $1, $2, $3, $4, $5, $6, $7, $8));
 let v_count_enrolled = $(v_sum(enrolled, $1, $2, $3, $4, $5, $6, $7, $8));
 let v_count_enrolled_household = $(v_sum(enrolled_household, $1, $2, $3, $4, $5, $6, $7, $8));
+let v_suppress_enrolled = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_none|*'),
+    1,
+    if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*household*'),
+      if($(v_count_enrolled_household($2, $3, $4, $5, $6, $7, $8)) >= 5, 1, Null()),
+      if($(v_count_enrolled($2, $3, $4, $5, $6, $7, $8)) >= 5, 1, Null())      
+    )
+);
+
+// we suppress response count based on enrollment (at least 5)
+let v_count_responded = if($(v_suppress_enrolled(enrolled, $1, $2, $3, $4, $5, $6, $7, $8)), $(v_sum(respondents, $1, $2, $3, $4, $5, $6, $7, $8)));
+let v_count_responded_household = if($(v_suppress_enrolled(enrolled_household, $1, $2, $3, $4, $5, $6, $7, $8)), $(v_sum(respondents_household, $1, $2, $3, $4, $5, $6, $7, $8)));
 let v_avg_responded = $(v_count_responded($1, $2, $3, $4, $5, $6, $7, $8)) / $(v_count_enrolled($1, $2, $3, $4, $5, $6, $7, $8));
 let v_avg_responded_household = $(v_count_responded_household($1, $2, $3, $4, $5, $6, $7, $8)) / $(v_count_enrolled_household($1, $2, $3, $4, $5, $6, $7, $8));
 
@@ -281,6 +222,8 @@ let v_min_respondents_pct = Max(
     {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
         <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
         [RespondentMinPct$(=if(v_use_qlik_suppression=1, 'Qlik', ''))]);
+
+
  
 let v_suppress = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_none|*'),
     1,
@@ -296,10 +239,11 @@ let v_suppress = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_none|*
 let v_suppress_pct = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_none|*'),
     1,
     if(
-       $(v_count_responded($2, $3, $4, $5, $6, $7, $8, $9))
+        $(v_count_responded($2, $3, $4, $5, $6, $7, $8, $9)) >= 5 and
+        ($(v_count_responded($2, $3, $4, $5, $6, $7, $8, $9))
         /
         $(v_count_enrolled($2, $3, $4, $5, $6, $7, $8))
-        >= $(v_min_respondents_pct($2, $3, $4, $5, $6, $7, $8, $9))
+        >= $(v_min_respondents_pct($2, $3, $4, $5, $6, $7, $8, $9)))
         , 
         1,
         Null()
@@ -403,18 +347,24 @@ let v_suppress_all_pct = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppres
     1,    
     Pick(
         RangeSum(
-             if($(v_count_responded(student, $2, $3, $4, $5, $6, $7, $8, $9)) 
+            if(
+               $(v_count_responded(student, $2, $3, $4, $5, $6, $7, $8, $9)) >= 5 and
+               ($(v_count_responded(student, $2, $3, $4, $5, $6, $7, $8, $9)) 
                 /
-                $(v_count_enrolled(student, $2, $3, $4, $5, $6, $7, $8))
-                >= $(v_min_respondents_pct(student, $2, $3, $4, $5, $6, $7, $8)), 1, 0),
-            if($(v_count_responded(parent, $2, $3, $4, $5, $6, $7, $8, $9))
+                $(v_count_enrolled(student, $2, $3, $4, $5, $6, $7, $8, $9))
+                >= $(v_min_respondents_pct(student, $2, $3, $4, $5, $6, $7, $8, $9))), 1, 0),
+            if(
+               $(v_count_responded(parent, $2, $3, $4, $5, $6, $7, $8, $9)) >= 5 and
+               ($(v_count_responded(parent, $2, $3, $4, $5, $6, $7, $8, $9))
                 /
-                $(v_count_enrolled(parent, $2, $3, $4, $5, $6, $7, $8))
-                >= $(v_min_respondents_pct(parent, $2, $3, $4, $5, $6, $7, $8)), 1, 0),
-            if($(v_count_responded(teacher, $2, $3, $4, $5, $6, $7, $8, $9))
+                $(v_count_enrolled(parent, $2, $3, $4, $5, $6, $7, $8, $9))
+                >= $(v_min_respondents_pct(parent, $2, $3, $4, $5, $6, $7, $8, $9))), 1, 0),
+            if(
+               $(v_count_responded(teacher, $2, $3, $4, $5, $6, $7, $8, $9)) >= 5 and
+               ($(v_count_responded(teacher, $2, $3, $4, $5, $6, $7, $8, $9))
                 /
-                $(v_count_enrolled(teacher, $2, $3, $4, $5, $6, $7, $8))
-                >= $(v_min_respondents_pct(teacher, $2, $3, $4, $5, $6, $7, $8)), 1, 0)
+                $(v_count_enrolled(teacher, $2, $3, $4, $5, $6, $7, $8, $9))
+                >= $(v_min_respondents_pct(teacher, $2, $3, $4, $5, $6, $7, $8, $9))), 1, 0)
         ) + 1,
         Null(), // 0 matches: always a no
         // 1 match, only a match if there is only one respondent groups,
