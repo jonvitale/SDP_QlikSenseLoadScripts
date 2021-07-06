@@ -137,12 +137,11 @@ let v_list_invalid_setopts_overall = $(v_list_invalid_setopts) & '*construct*' &
 
 
 // since we can't pass a subconstruct in directly for setopts we need a wrapper function that turns it into a potential argument
+// additionally, if a specific sub-construct is out of a alignment with the survey or construct, use '*'
 let v_list_subconstructs = $(=chr(39) & concat(distinct [$(v_field_subconstruct)], chr(39) & ',' & chr(39)) & chr(39));
-let v_subconstruct_to_setopt = $(=if(match('$1', $(v_list_subconstructs)), '[$(v_field_subconstruct)]={"$1"}'))
+let v_subconstruct_to_setopt = $(=if(match('$1', $(v_list_subconstructs)), '[$(v_field_subconstruct)]={"$1"}'));
 
 let v_setopts = $(=
-    // in case no parameters are entered
-    if(match(purgechar('$1$2$3$4$5$6$7$8$9', '$'), '123456789'),'[x]=1', '') &    
     // substitute any fully specified set options, e.g., [x]={1}
     concat(distinct
         valuelist(
@@ -202,6 +201,40 @@ let v_min_respondents_pct = Max(
         <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
         [RespondentMinPct]);
 
+
+let v_sum = Sum($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
+        $(v_map_agg_field($1)));
+let v_avg = Avg($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
+        $(v_map_agg_field($1)));
+
+//////////////////////////////////////////////////////////////////////// 
+/// Response rate
+////////////////////////////////////////////////////////////////////////
+let v_count_enrolled = $(v_sum(enrolled, overall, $1, $2, $3, $4, $5, $6, $7));
+let v_count_enrolled_household = $(v_sum(enrolled_household, overall, $1, $2, $3, $4, $5, $6, $7));
+
+
+let v_suppress_enrolled = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_none|*'),
+    1,
+    if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*household*', '*|parent|*') or WildMatch(Only([$(v_field_survey)]), 'parent'),
+        if($(v_count_enrolled_household($2, $3, $4, $5, $6, $7, $8)) >= 5, 1, Null()),        
+        if($(v_count_enrolled($2, $3, $4, $5, $6, $7, $8, $9)) >= 5, 1, Null())
+    )
+);
+
+let v_count_responded = if($(v_suppress_enrolled(enrolled, $1, $2, $3, $4, $5, $6, $7, $8)), $(v_sum(respondents, overall, $1, $2, $3, $4, $5, $6, $7, $8)));
+let v_count_responded_household = if($(v_suppress_enrolled(enrolled, $1, $2, $3, $4, $5, $6, $7, $8)), $(v_sum(respondents_household, overall, $1, $2, $3, $4, $5, $6, $7, $8)));
+let v_avg_responded = $(v_count_responded($1, $2, $3, $4, $5, $6, $7, $8)) / $(v_count_enrolled($1, $2, $3, $4, $5, $6, $7, $8));
+let v_avg_responded_household = $(v_count_responded_household($1, $2, $3, $4, $5, $6, $7, $8)) / $(v_count_enrolled_household($1, $2, $3, $4, $5, $6, $7, $8));
+
+//////////////////////////////////////////////////////////////////////// 
+/// Individual Questions
+////////////////////////////////////////////////////////////////////////
+
 /** 
  * suppress works by determining if the count to the expression is greater than available min, use suppress_total to suppress on the total,
  * ignoring dimensions (except SchoolYear).
@@ -209,15 +242,7 @@ let v_min_respondents_pct = Max(
  * 
  */
 let v_suppress = $($(='v_suppress_' & if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_pct|*'), 'pct', 'count'))($1, $2, $3, $4, $5, $6, $7, $8, $9));
-let v_suppress_enrolled = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_none|*'),
-    1,
-    if(
-        $(v_count_enrolled(overall, $2, $3, $4, $5, $6, $7, $8, $9)) >= 5    
-        , 
-        1,
-        Null()
-    )
-);
+
 
 let v_suppress_count = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_none|*'),
     1,
@@ -233,42 +258,20 @@ let v_suppress_count = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_
 let v_suppress_pct = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_none|*'),
     1,
     if(
-        $(v_count_enrolled(overall, $2, $3, $4, $5, $6, $7, $8, $9)) >= 5 and
         $(v_sum($1, $2, $3, $4, $5, $6, $7, $8, $9)) >= 5 and
-        (
-            $(v_sum($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*household*', '*|parent|*') or WildMatch(Only([$(v_field_survey)]), 'parent'),
+            $(v_count_responded_household($2, $3, $4, $5, $6, $7, $8, $9))
             /
-            $(v_count_enrolled(overall, $2, $3, $4, $5, $6, $7, $8, $9))
-            >= $(v_min_respondents_pct($1, $2, $3, $4, $5, $6, $7, $8, $9))
-        )
-        , 
-        1,
-        Null()
+            $(v_count_enrolled_household($2, $3, $4, $5, $6, $7, $8, $9))            
+            ,
+            $(v_count_responded($2, $3, $4, $5, $6, $7, $8, $9))
+            /
+            $(v_count_enrolled($2, $3, $4, $5, $6, $7, $8, $9))
+        ) >= $(v_min_respondents_pct($2, $3, $4, $5, $6, $7, $8, $9))
+        , 1, Null()
     ) 
 );
 
-let v_sum = Sum($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
-        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
-        <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
-        $(v_map_agg_field($1)));
-let v_avg = Avg($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
-        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
-        <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
-        $(v_map_agg_field($1)));
-
-//////////////////////////////////////////////////////////////////////// 
-/// Response rate
-////////////////////////////////////////////////////////////////////////
-let v_count_responded = $(v_sum(respondents, $1, $2, $3, $4, $5, $6, $7, $8));
-let v_count_responded_household = $(v_sum(respondents_household, $1, $2, $3, $4, $5, $6, $7, $8));
-let v_count_enrolled = $(v_sum(enrolled, $1, $2, $3, $4, $5, $6, $7, $8));
-let v_count_enrolled_household =$(v_sum(enrolled_household, $1, $2, $3, $4, $5, $6, $7, $8));
-let v_avg_responded = $(v_count_responded($1, $2, $3, $4, $5, $6, $7, $8)) / $(v_count_enrolled($1, $2, $3, $4, $5, $6, $7, $8));
-let v_avg_responded_household = $(v_count_responded_household($1, $2, $3, $4, $5, $6, $7, $8)) / $(v_count_enrolled_household($1, $2, $3, $4, $5, $6, $7, $8));
-
-//////////////////////////////////////////////////////////////////////// 
-/// Individual Questions
-////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////// 
 /// Helpful variables
@@ -323,6 +326,7 @@ let v_flag_question_aligned = If(IsNull(
       <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>
       }[$(v_field_surveyquestioncode)])
     ), 0, 1);
+
 let v_label_question_aligned = if($(v_flag_question_aligned($1, $2, $3, $4, $5, $6, $7, $8, $9)) = 0, 'Please select a question', '');
 
 
@@ -358,9 +362,35 @@ let v_color_avg_score = Pick(
     $(vColor_Construct_Insufficient), 
   '#ae1c3e', '#ed875e', '#f2d2ae', '#d1ebfb', '#5ea4d9', '#3c52a1', '#3c52a1');
 
-// 'any', 'all', 'overall', 'every'
+//////////////////////////////////////////////////////////////////////// 
+/// Selected Question
+////////////////////////////////////////////////////////////////////////
 
-// do something with this $(=Replace('$1', '&amp;', '&'))
+// specifically for the selected question we replace non-aligned subconstructs with a * subconstruct
+let v_subconstruct_to_setopt_selected = $(=if(
+    Not(IsNull(Only(
+      {$(v_set_identifier($(v_respondent_selected), $(v_construct_to_alias($(v_construct_selected))), $(v_subconstruct_to_setopt($(v_subconstruct_selected))), $2, $3, $4, $5, $6))
+      <$(v_setopts($(v_respondent_selected), $(v_construct_to_alias($(v_construct_selected))), $(v_subconstruct_to_setopt($(v_subconstruct_selected))), $2, $3, $4, $5, $6))>
+      }[$(v_field_subconstruct)]
+    ))), '$(v_subconstruct_to_setopt($(v_subconstruct_selected)))', ''));
+
+let v_flag_question_aligned_selected = $(v_flag_question_aligned(
+    $(v_surveyquestioncode_selected), $(v_respondent_selected), 
+    $(v_construct_to_alias($(v_construct_selected))),
+    $(v_subconstruct_to_setopt_selected)));
+
+let v_subconstruct_to_setopt_selected2 = $(=if(
+    Not(IsNull(Only(
+      {$(v_set_identifier($(v_respondent_selected2), $(v_construct_to_alias($(v_construct_selected2))), $(v_subconstruct_to_setopt($(v_subconstruct_selected2))), $2, $3, $4, $5, $6))
+      <$(v_setopts($(v_respondent_selected2), $(v_construct_to_alias($(v_construct_selected2))), $(v_subconstruct_to_setopt($(v_subconstruct_selected2))), $2, $3, $4, $5, $6))>
+      }[$(v_field_subconstruct)]
+    ))), '$(v_subconstruct_to_setopt($(v_subconstruct_selected2)))', ''));
+
+let v_flag_question_aligned_selected2 = $(v_flag_question_aligned(
+    $(v_surveyquestioncode_selected2), $(v_respondent_selected2), 
+    $(v_construct_to_alias($(v_construct_selected2))),
+    $(v_subconstruct_to_setopt_selected2)));
+
 
 //////////////////////////////////////////////////////////////////////// 
 /// Construct Calculations
@@ -384,21 +414,12 @@ let v_suppress_all_count = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppr
     1,    
     Pick(
         RangeSum(
-             if ($(v_count_enrolled(overall, student, $2, $3, $4, $5, $6, $7, $8, $9)) > 0 and
-                ($(v_sum($1, student, $2, $3, $4, $5, $6, $7, $8, $9)) 
-                /
-                $(v_count_enrolled(overall, student, $2, $3, $4, $5, $6, $7, $8, $9))
-                >= $(v_min_respondents_pct(student, $1, $2, $3, $4, $5, $6, $7, $8))), 1, 0),
-            if($(v_count_enrolled(overall, parent, $2, $3, $4, $5, $6, $7, $8, $9)) > 0 and
-                ($(v_sum($1, parent, $2, $3, $4, $5, $6, $7, $8, $9))
-                /
-                $(v_count_enrolled(overall, parent, $2, $3, $4, $5, $6, $7, $8, $9))
-                >= $(v_min_respondents_pct(parent, $1, $2, $3, $4, $5, $6, $7, $8))), 1, 0),
-            if($(v_count_enrolled(overall, teacher, $2, $3, $4, $5, $6, $7, $8, $9)) > 0 and
-                ($(v_sum($1, teacher, $2, $3, $4, $5, $6, $7, $8, $9))
-                /
-                $(v_count_enrolled(overall, teacher, $2, $3, $4, $5, $6, $7, $8, $9))
-                >= $(v_min_respondents_pct(teacher, $1, $2, $3, $4, $5, $6, $7, $8))), 1, 0)
+            if ($(v_sum($1, student, $2, $3, $4, $5, $6, $7, $8, $9))
+                >= $(v_min_respondents(student, $1, $2, $3, $4, $5, $6, $7, $8)), 1, 0),
+            if($(v_sum($1, parent, $2, $3, $4, $5, $6, $7, $8, $9))
+                >= $(v_min_respondents(parent, $1, $2, $3, $4, $5, $6, $7, $8)), 1, 0),
+            if($(v_sum($1, teacher, $2, $3, $4, $5, $6, $7, $8, $9))
+                >= $(v_min_respondents(teacher, $1, $2, $3, $4, $5, $6, $7, $8)), 1, 0)
         ) + 1,
         Null(), // 0 matches: always a no
         // 1 match, only a match if there is only one respondent groups,
@@ -416,23 +437,20 @@ let v_suppress_all_pct = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppres
     1,    
     Pick(
         RangeSum(
-            if ($(v_count_enrolled(overall, student, $2, $3, $4, $5, $6, $7, $8, $9)) >= 5 and
-                $(v_sum($1, student, $2, $3, $4, $5, $6, $7, $8, $9)) >= 5  and
-                ($(v_sum($1, student, $2, $3, $4, $5, $6, $7, $8, $9)) 
+            if ($(v_sum($1, student, $2, $3, $4, $5, $6, $7, $8, $9)) >= 5 and
+                ($(v_count_responded(student, $2, $3, $4, $5, $6, $7, $8, $9)) 
                 /
-                $(v_count_enrolled(overall, student, $2, $3, $4, $5, $6, $7, $8, $9)))
+                $(v_count_enrolled(student, $2, $3, $4, $5, $6, $7, $8, $9)))
                 >= $(v_min_respondents_pct(student, $1, $2, $3, $4, $5, $6, $7, $8)), 1, 0),
-            if($(v_count_enrolled(overall, parent, $2, $3, $4, $5, $6, $7, $8, $9)) >= 5 and
-                $(v_sum($1, parent, $2, $3, $4, $5, $6, $7, $8, $9)) >= 5  and
-                ($(v_sum($1, parent, $2, $3, $4, $5, $6, $7, $8, $9))
+            if($(v_sum($1, parent, $2, $3, $4, $5, $6, $7, $8, $9)) >= 5 and
+                ($(v_count_responded_household(parent, $2, $3, $4, $5, $6, $7, $8, $9))
                 /
-                $(v_count_enrolled(overall, parent, $2, $3, $4, $5, $6, $7, $8, $9)))
+                $(v_count_enrolled_household(parent, $2, $3, $4, $5, $6, $7, $8, $9)))
                 >= $(v_min_respondents_pct(parent, $1, $2, $3, $4, $5, $6, $7, $8)), 1, 0),
-            if($(v_count_enrolled(overall, teacher, $2, $3, $4, $5, $6, $7, $8, $9)) >= 5 and
-                $(v_sum($1, teacher, $2, $3, $4, $5, $6, $7, $8, $9)) >= 5  and
-                ($(v_sum($1, teacher, $2, $3, $4, $5, $6, $7, $8, $9))
+            if($(v_sum($1, teacher, $2, $3, $4, $5, $6, $7, $8, $9)) >= 5 and
+                ($(v_count_responded(teacher, $2, $3, $4, $5, $6, $7, $8, $9))
                 /
-                $(v_count_enrolled(overall, teacher, $2, $3, $4, $5, $6, $7, $8, $9)))
+                $(v_count_enrolled(teacher, $2, $3, $4, $5, $6, $7, $8, $9)))
                 >= $(v_min_respondents_pct(teacher, $1, $2, $3, $4, $5, $6, $7, $8)), 1, 0)
         ) + 1,
         Null(), // 0 matches: always a no
