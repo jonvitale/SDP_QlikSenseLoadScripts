@@ -68,14 +68,14 @@ let v_construct_to_alias = $(=pick(wildmatch('$1',
  * @type {[type]}
  */
 let v_agg_qualifier = $(=
+    if(not(index('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '|nototal')) and index('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '|total'), 
+         replace(textbetween(mid('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', index('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '|total')), '|', '|'), ':', ',')
+        ,'')
+    & ' ' &
     pick(
-        wildmatch('total', '$1*', '$2*', '$3*', '$4*','$5*', '$6*', '$7*', '$8*', '$9*') + 1,
-        '', '$1', '$2', '$3', '$4','$5', '$6', '$7', '$8', '$9') & ' ' &
-    pick(
-        wildmatch('distinct', '$1*', '$2*', '$3*', '$4*','$5*', '$6*', '$7*', '$8*', '$9*') + 1,
+        wildmatch('distinct', '$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8', '$9') + 1,
         '', '$1', '$2', '$3', '$4','$5', '$6', '$7', '$8', '$9')
     );
-        
 
 /**
  * v_set_identifier is used to populate the space between opening curly bracket and angled bracket
@@ -121,6 +121,7 @@ set v_setopt_teacher = [Survey]={'TEACHER'};
 set v_setopt_principal = [Survey]={'PRINCIPAL'};
 set v_setopt_all = [Survey]-={'PRINCIPAL'};
 set v_setopt_noprincipal = [Survey]-={'PRINCIPAL'};
+set v_setopt_noteacherprincipal = [Survey]-={'TEACHER', 'PRINCIPAL'};
 set v_setopt_essential = [Survey]-={'PRINCIPAL'}, [Construct]-={'none','Other'};
 set v_setopt_district = [Sector]={'District'};
 set v_setopt_charter = [Sector]={'Charter'};
@@ -133,7 +134,7 @@ set v_setopt_questionmostpositive = [Responded] = {1};
 set v_setopt_questionna = [Responded] = {1};
 
 ////// Invalid setopts are those which, if entered as a parameter to v_setopts will not produce a setopt - they usually are used for a different part of the colculation (e.g. the agg field, or total)
-set v_list_invalid_setopts = '{}', '$', '$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8', '$9', 'overall', 'total*', 'distinct*', '1', 'Alt', 'suppress*', 'ncompleted*', 'respondents_household', 'respondents', 'enrolled_household', 'enrolled', 'sumscaledscore*', 'question_score', 'topic_respondents', 'subtopic_respondents', 'color_offset*', 'STUDENT-Q*', 'PARENT-Q*', 'TEACHER-Q*', 'PRINCIPAL-Q*';
+set v_list_invalid_setopts = '{}', '$', '$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8', '$9', 'overall', 'nosupress', 'nototal', 'total*', 'distinct*', '1', 'Alt', 'suppress*', 'ncompleted*', 'respondents_household', 'respondents', 'enrolled_household', 'enrolled', 'sumscaledscore*', 'question_score', 'topic_respondents', 'subtopic_respondents', 'color_offset*', 'STUDENT-Q*', 'PARENT-Q*', 'TEACHER-Q*', 'PRINCIPAL-Q*';
 
 ///// the overall invalid lists is a special case where we need to get the overall enrollment even if the specific question, construct, subconstruct is specified
 let v_list_invalid_setopts_overall = $(v_list_invalid_setopts) & '*construct*' & '*subconstruct*', '*surveyquestioncode*', 'climate', 'instruction', 'community', 'professional', 'leadership', 'parent_relationship', 'parentrelationship';
@@ -176,14 +177,6 @@ let v_map_agg_field = $(=pick(match(trim(lower('$1')),
 /// Universal Set modifiers and variables
 ////////////////////////////////////////////////////////////////////////
 
-// let v_pset_respondent = if(len(trim(purgechar('$1', '$')))>1 and WildMatch(lower('$1'), 'any', 'all', 'overall', 'every') = 0, 
-// 	', [Respondent Group]={' & chr(39) & '$(=Replace(Capitalize('$1'),'_household', ''))' & chr(39) & '}', ''
-// 	);
-// let v_pset_respondent_noprincipal = if(len(trim(purgechar('$1', '$')))>1 and WildMatch(lower('$1'), 'any', 'all', 'overall', 'every') = 0, 
-// 	', [Respondent Group]={' & chr(39) & '$(=Replace(Capitalize('$1'),'_household', ''))' & chr(39) & '}', 
-// 	if(lower('$1')<>'every', ', [Respondent Group]=P({<[Respondent Group]-={'&chr(39)&'Principal'&chr(39)&'}>}[Respondent Group])', '')
-// );
-
 let v_flag_respondent_na_demo = if('$(v_respondent_selected)' <> 'Teacher' or GetSelectedCount([Race/Ethnicity]) = 0 and GetSelectedCount([Grade Level]) = 0 or GetSelectedCount(Gender) = 0, 1, 0);
 let v_label_respondent_na_demo = Teacher responses cannot be displayed by specific Grade Level, Ethnicity, or Gender. Remove any of these selections to view the data.;
 
@@ -194,13 +187,11 @@ let v_label_respondent_na_demo = Teacher responses cannot be displayed by specif
 let v_use_qlik_suppression = 1;
 
 let v_min_respondents = Max(
-    $(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
     {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
         <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
         [RespondentMinCountQlik]);
 
 let v_min_respondents_pct = Max(
-    $(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
     {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
         <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
         [RespondentMinPct]);
@@ -222,7 +213,7 @@ let v_count_enrolled = $(v_sum(enrolled, overall, $1, $2, $3, $4, $5, $6, $7));
 let v_count_enrolled_household = $(v_sum(enrolled_household, overall, $1, $2, $3, $4, $5, $6, $7));
 
 
-let v_suppress_enrolled = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_none|*'),
+let v_suppress_enrolled = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|nosupress|*'),
     1,
     if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*household*', '*|parent|*') or WildMatch(Only([$(v_field_survey)]), 'parent'),
         if($(v_count_enrolled_household($2, $3, $4, $5, $6, $7, $8)) >= 5, 1, Null()),        
@@ -242,13 +233,13 @@ let v_avg_responded_household = $(v_count_responded_household($1, $2, $3, $4, $5
 /** 
  * suppress works by determining if the count to the expression is greater than available min, use suppress_total to suppress on the total,
  * ignoring dimensions (except SchoolYear).
- * if suppress_none is provided as a parameter, then any other suppression terms will be ignored
+ * if nosupress is provided as a parameter, then any other suppression terms will be ignored
  * 
  */
 let v_suppress = $($(='v_suppress_' & if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_pct|*'), 'pct', 'count'))($1, $2, $3, $4, $5, $6, $7, $8, $9));
 
 
-let v_suppress_count = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_none|*'),
+let v_suppress_count = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|nosupress|*'),
     1,
     if(
         $(v_sum($1, $2, $3, $4, $5, $6, $7, $8, $9))
@@ -259,7 +250,7 @@ let v_suppress_count = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_
     ) 
 );
 
-let v_suppress_pct = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_none|*'),
+let v_suppress_pct = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|nosupress|*'),
     1,
     if(
         $(v_sum($1, $2, $3, $4, $5, $6, $7, $8, $9)) >= 5 and
@@ -338,24 +329,35 @@ let v_label_question_aligned = if($(v_flag_question_aligned($1, $2, $3, $4, $5, 
 /// Individual Question - Count, % Most Positive, Scaled Score
 ////////////////////////////////////////////////////////////////////////
 
+// note in v_agg_qualifier we replace ':'' with ',', but we can't use commas here because it will be interpreted as separate params
+set v_list_total_ignore_fields = [SchoolYear]:[Race/Ethnicity]:[Grade]:[EL Status]:[Special Education]:[Economic Disadvantage];
 
-let v_count_responses = $(v_sum(question_responded, $1, $2, $3, $4, $5, $6, $7, $8));
-let v_count_mostpositive = $(v_sum(question_mostpositive, $1, $2, $3, $4, $5, $6, $7, $8));
-let v_count_na = $(v_sum(question_na, $1, $2, $3, $4, $5, $6, $7, $8));
 
+let v_count_responses = if($(v_suppress(question_responded, total<$(v_list_total_ignore_fields)>, $1, $2, $3, $4, $5, $6, $7)),
+        $(v_sum(question_responded, $1, $2, $3, $4, $5, $6, $7, $8))
+    );
+let v_count_mostpositive = if($(v_suppress(question_responded, total<$(v_list_total_ignore_fields)>, $1, $2, $3, $4, $5, $6, $7)),
+        $(v_sum(question_mostpositive, $1, $2, $3, $4, $5, $6, $7, $8))
+    );
+let v_count_na = if($(v_suppress(question_responded, total<$(v_list_total_ignore_fields)>, $1, $2, $3, $4, $5, $6, $7)),
+        $(v_sum(question_na, $1, $2, $3, $4, $5, $6, $7, $8))
+    );
 /**
  * For any given response, what percent of the total responses was it. Do not allow suppression on numerator.
  */
-let v_perc_of_total = if($(v_suppress(question_responded, total<[School Year]>, $1, $2, $3, $4, $4, $5, $6)),
+let v_perc_of_total = if($(v_suppress(question_responded, total<$(v_list_total_ignore_fields)>, $1, $2, $3, $4, $4, $5, $6)),
     $(v_sum(question_responded, $1, $2, $3, $4, $5, $6, $7, $8))
     / 
-    $(v_sum(question_responded, total<[School Year]>, $1, $2, $3, $4, $5, $6, $7))
+    $(v_sum(question_responded, total<$(v_list_total_ignore_fields)>, $1, $2, $3, $4, $5, $6, $7))
 );
 
 let v_color_perc_of_total = Pick(
     RangeMax(1, Floor((1000*Round($(v_perc_of_total($1, $2, $3, $4, $5, $6, $7)), 0.001) - 40) / 10) + 2),
     $(vColor_Construct_Insufficient), 
   '#ae1c3e', '#ed875e', '#f2d2ae', '#d1ebfb', '#5ea4d9', '#3c52a1', '#3c52a1');
+
+let v_sum_score = if($(v_suppress(question_responded, $1, $2, $3, $4, $4, $5, $6, $7)),
+    $(v_sum(question_score, $1, $2, $3, $4, $5, $6, $7, $8)));
 
 let v_avg_score = if($(v_suppress(question_responded, $1, $2, $3, $4, $4, $5, $6, $7)),
     $(v_avg(question_score, $1, $2, $3, $4, $5, $6, $7, $8)));
@@ -417,7 +419,7 @@ let v_flag_construct_essential_selected2 = =if(Match('$(v_construct_selected2)',
  * that are applicable it only checks
  */
 let v_suppress_all = $($(='v_suppress_all_' & if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_pct|*'), 'pct', 'count'))($1, $2, $3, $4, $5, $6, $7, $8, $9));
-let v_suppress_all_count = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_none|*'),
+let v_suppress_all_count = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|nosupress|*'),
     1,    
     Pick(
         RangeSum(
@@ -440,7 +442,7 @@ let v_suppress_all_count = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppr
     )
 );
 
-let v_suppress_all_pct = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_none|*'),
+let v_suppress_all_pct = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|nosupress|*'),
     1,    
     Pick(
         RangeSum(
