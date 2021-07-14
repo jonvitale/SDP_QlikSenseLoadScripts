@@ -155,7 +155,6 @@ let v_list_invalid_setopts_overall = $(v_list_invalid_setopts) & '*construct*' &
  * All other parameter values should be one of the list above: v_setopt_*these*
  **/
 set v_setopts = $(=  // in case no parameters are entered
-   if(match(purgechar('$1$2$3$4$5$6$7$8$9', '$'), '123456789'),'x=1', '') &   
    concat(distinct
       valuelist(
         if(wildmatch('$1', $(=chr(36) & '(v_list_invalid_setopts' & if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|overall|*'),'_overall', '') & ')')), null(), if(match(keepchar('$1', '={}()'),'={}','=()'), '$1', chr(36) & '(v_setopt_' & lower(purgechar('$1', '_ /-')) &')')), 

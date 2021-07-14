@@ -45,8 +45,10 @@ let v_field_construct = Construct;
 let v_field_subconstruct = SubConstruct;
 let v_field_surveyquestioncode = SurveyQuestionCode;
 
+set v_list_construct_essential = 'School Climate', 'Instruction', 'Parent/Guardian Community Ties', 'Professional Capacity', 'School Leadership';
+
 let v_construct_to_alias = $(=pick(wildmatch('$1',
-    'School Climate', 'Instruction', 'Parent/Guardian Community Ties', 'Professional Capacity', 'School Leadership', 'Other') + 1, '', 
+    $(v_list_construct_essential), 'Other') + 1, '', 
     'climate', 'instruction', 'community', 'professional', 'leadership', 'other'
     )
 );
@@ -111,11 +113,13 @@ set v_setopt_community = [Construct]={'Parent/Guardian-Community Ties'};
 set v_setopt_professional = [Construct]={'Professional Capacity'};
 set v_setopt_leadership = [Construct]={'School Leadership'};
 set v_setopt_parentrelationship = [$(v_field_construct)]={'Parent/Guardian-Community Ties'}, [$(v_field_subconstruct)]={'School Relationship'};
+set v_setopt_other = [Construct]={'Other'};
 
 set v_setopt_student = [Survey]={'STUDENT'}, [Grade]-={"00", "01", "02"};
 set v_setopt_parent = [Survey]={'PARENT'};
 set v_setopt_teacher = [Survey]={'TEACHER'};
 set v_setopt_principal = [Survey]={'PRINCIPAL'};
+set v_setopt_all = [Survey]-={'PRINCIPAL'};
 set v_setopt_noprincipal = [Survey]-={'PRINCIPAL'};
 set v_setopt_essential = [Survey]-={'PRINCIPAL'}, [Construct]-={'none','Other'};
 set v_setopt_district = [Sector]={'District'};
@@ -145,7 +149,7 @@ let v_setopts = $(=
     // substitute any fully specified set options, e.g., [x]={1}
     concat(distinct
         valuelist(
-            if(wildmatch('$1','STUDENT-Q*', 'PARENT-Q*', 'TEACHER-Q*', 'PRINCIPAL-Q*'), '[$(v_field_surveyquestioncode)]={'&chr(39)&'$1'&chr(39)&'}', if(match(keepchar('$1', '={}()'),'={}','=()'), '$1', if(wildmatch('$1', $(=chr(36) & '(v_list_invalid_setopts' & if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|overall|*'),'_overall', '') & ')')), null(), chr(36) & '(v_setopt_' & lower(purgechar('$1', '_ /-')) &')'))),
+            if(wildmatch('$1','STUDENT-Q*', 'PARENT-Q*', 'TEACHER-Q*', 'PRINCIPAL-Q*'), '[$(v_field_surveyquestioncode)]={'&chr(39)&'$1'&chr(39)&'}', if(match(keepchar('$1', '={}()'),'={}','=()'), '$1', if(wildmatch('$1', $(=chr(36) & '(v_list_invalid_setopts' & if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|overall|*'),'_overall', '') & ')')), 'x={1}', chr(36) & '(v_setopt_' & lower(purgechar('$1', '_ /-')) &')'))),
             if(wildmatch('$2','STUDENT-Q*', 'PARENT-Q*', 'TEACHER-Q*', 'PRINCIPAL-Q*'), '[$(v_field_surveyquestioncode)]={'&chr(39)&'$2'&chr(39)&'}', if(match(keepchar('$2', '={}()'),'={}','=()'), '$2', if(wildmatch('$2', $(=chr(36) & '(v_list_invalid_setopts' & if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|overall|*'),'_overall', '') & ')')), null(), chr(36) & '(v_setopt_' & lower(purgechar('$2', '_ /-')) &')'))),
             if(wildmatch('$3','STUDENT-Q*', 'PARENT-Q*', 'TEACHER-Q*', 'PRINCIPAL-Q*'), '[$(v_field_surveyquestioncode)]={'&chr(39)&'$3'&chr(39)&'}', if(match(keepchar('$3', '={}()'),'={}','=()'), '$3', if(wildmatch('$3', $(=chr(36) & '(v_list_invalid_setopts' & if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|overall|*'),'_overall', '') & ')')), null(), chr(36) & '(v_setopt_' & lower(purgechar('$3', '_ /-')) &')'))),
             if(wildmatch('$4','STUDENT-Q*', 'PARENT-Q*', 'TEACHER-Q*', 'PRINCIPAL-Q*'), '[$(v_field_surveyquestioncode)]={'&chr(39)&'$4'&chr(39)&'}', if(match(keepchar('$4', '={}()'),'={}','=()'), '$4', if(wildmatch('$4', $(=chr(36) & '(v_list_invalid_setopts' & if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|overall|*'),'_overall', '') & ')')), null(), chr(36) & '(v_setopt_' & lower(purgechar('$4', '_ /-')) &')'))),
@@ -342,10 +346,10 @@ let v_count_na = $(v_sum(question_na, $1, $2, $3, $4, $5, $6, $7, $8));
 /**
  * For any given response, what percent of the total responses was it. Do not allow suppression on numerator.
  */
-let v_perc_of_total = if($(v_suppress(question_responded, total, $1, $2, $3, $4, $4, $5, $6)),
+let v_perc_of_total = if($(v_suppress(question_responded, total<[School Year]>, $1, $2, $3, $4, $4, $5, $6)),
     $(v_sum(question_responded, $1, $2, $3, $4, $5, $6, $7, $8))
     / 
-    $(v_sum(question_responded, total, $1, $2, $3, $4, $5, $6, $7))
+    $(v_sum(question_responded, total<[School Year]>, $1, $2, $3, $4, $5, $6, $7))
 );
 
 let v_color_perc_of_total = Pick(
@@ -404,6 +408,9 @@ let v_sum_all = RangeSum(
     $(v_sum($1, teacher, $2, $3, $4, $5, $6, $7, $8)),
     $(v_sum($1, parent, $2, $3, $4, $5, $6, $7, $8))
 );
+
+let v_flag_construct_essential_selected = =if(Match('$(v_construct_selected)', $(v_list_construct_essential)), 1, 0);
+let v_flag_construct_essential_selected2 = =if(Match('$(v_construct_selected2)', $(v_list_construct_essential)), 1, 0);
 
 /** 
  * suppress_all does the same thing as suppress but it check to make sure that if there are at least two respondent groups
