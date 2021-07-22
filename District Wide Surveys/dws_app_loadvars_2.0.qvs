@@ -165,6 +165,24 @@ let v_setopts = $(=
         $(v_setopt_epd)
     );
 
+let v_setopts_overall = $(=
+    // substitute any fully specified set options, e.g., [x]={1}
+    concat(distinct
+        valuelist(
+            if(wildmatch('$1', $(v_list_invalid_setopts_overall)), 'x={1}', chr(36) & '(v_setopt_' & lower(purgechar('$1', '_ /-')) & ')'),
+            if(wildmatch('$2', $(v_list_invalid_setopts_overall)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$2', '_ /-')) & ')'),
+            if(wildmatch('$3', $(v_list_invalid_setopts_overall)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$3', '_ /-')) & ')'),
+            if(wildmatch('$4', $(v_list_invalid_setopts_overall)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$4', '_ /-')) & ')'),
+            if(wildmatch('$5', $(v_list_invalid_setopts_overall)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$5', '_ /-')) & ')'),
+            if(wildmatch('$6', $(v_list_invalid_setopts_overall)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$6', '_ /-')) & ')'),
+            if(wildmatch('$7', $(v_list_invalid_setopts_overall)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$7', '_ /-')) & ')'),
+            if(wildmatch('$8', $(v_list_invalid_setopts_overall)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$8', '_ /-')) & ')'),
+            if(wildmatch('$9', $(v_list_invalid_setopts_overall)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$9', '_ /-')) & ')')
+        )
+        , ',') &
+        $(v_setopt_epd)
+    );
+
 
 
 /** For mapping between field aliases and field names (useful if we want to change the name of a field in the future) */
