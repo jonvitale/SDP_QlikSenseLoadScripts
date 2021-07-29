@@ -433,6 +433,9 @@ let v_sum_all = RangeSum(
 let v_flag_construct_essential_selected = =if(Match('$(v_construct_selected)', $(v_list_construct_essential)), 1, 0);
 let v_flag_construct_essential_selected2 = =if(Match('$(v_construct_selected2)', $(v_list_construct_essential)), 1, 0);
 
+let v_count_responses_agg = $(v_sum($(=if('$(v_construct_or_subconstruct)'='subconstruct', 'sub', ''))topic_respondents, $1, $2, $3, $4, $5, $6, $7, $8));
+let v_count_responses_agg_all = $(v_sum_all($(=if('$(v_construct_or_subconstruct)'='subconstruct', 'sub', ''))topic_respondents, $1, $2, $3, $4, $5, $6, $7, $8));
+
 /** 
  * suppress_all does the same thing as suppress but it check to make sure that if there are at least two respondent groups
  * that are applicable it only checks

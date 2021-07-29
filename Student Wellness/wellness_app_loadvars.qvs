@@ -1,0 +1,123 @@
+/**
+*	Loading Variables: Student Wellness Survey
+*	Jonathan Vitale
+*	Changes:
+*
+*	Version 0.0.1:
+*		- The counts for the focus questions include non score responses (but not skips)
+*
+*	Reminders:
+*	- All the let statements will be strings, if you want an actual single quote in the string, use '
+*	- Alternatively, you can use double-quotes in set analyses, but these enable search and wildcards, so be careful.
+*   - A $(somevar) tells click to substitute whatever is somevar immediately. If you want to prevent this expansion replace $ with $
+*   - Similarly $(=$(somevar)) tells Qlik to evaluate the somevar expression, if you do not want this done in the load script replace both $ with chr(36)
+**/
+
+//////////////////////////////////////////////////////////////////////// 
+/// General variables
+////////////////////////////////////////////////////////////////////////
+let cy = =MaxString([SchoolYear])
+
+
+//////////////////////////////////////////////////////////////////////// 
+/// General Expression Building: requires the following elements
+/// 1. aggregation qualifier - such as total or distinct
+/// 2. set identifier - such as 1 or Alt1 or $
+/// 3. set options - such as [X]={1}, [Year]={1}
+////////////////////////////////////////////////////////////////////////
+
+/**
+ * v_agg_qualifier is used to populate the space after the aggregation function name
+ * first five letters should be total or distinct, but beyond that, anything goes,
+ * e.g., total<[School Year]>
+ * @type {[type]}
+ */
+let v_agg_qualifier = $(=
+    if(not(index('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '|nototal')) and index('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '|total'), 
+         replace(textbetween(mid('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', index('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '|total')), '|', '|'), ':', ',')
+        ,'')
+    & ' ' &
+    pick(
+        wildmatch('distinct', '$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8', '$9') + 1,
+        '', '$1', '$2', '$3', '$4','$5', '$6', '$7', '$8', '$9')
+    );
+
+/**
+ * v_set_identifier is used to populate the space between opening curly bracket and angled bracket
+ *  {*here*< ... >}
+ *  can be a 1 (for ignore selections) or an alternative set, e.g., Alt, also can multiply by set
+ * @type {[type]}
+ */
+let v_set_identifier = $(=
+    pick(
+        wildmatch(replace(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', ' '), '*', 'x'), 
+            '*|$|*', '*|1|*', '*|Alt|*', '*|Altx|*') + 1,
+        '', '$', '1', 'Alt', 'Alt *')
+    );
+
+set v_list_fields_nosetopt = 'flag_responded', 'flag_student';
+set v_list_fields_alias_nosetopt = 'respondents', 'enrolled';
+
+let v_map_agg_field = $(=pick(match(trim(lower('$1')), $(v_list_fields_alias_nosetopt)) + 1,
+        '$1', $(v_list_fields_nosetopt))
+	);
+set v_list_invalid_setopts = '{}', '$', '$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8', '$9', 'total*', 'distinct*', '1', $(v_list_fields_alias_nosetopt);
+
+//////////////////////////////////////////////////////////////////////// 
+/// setopts: the text after v_setopt_* can be entered as a parameter
+/// to v_setops and will use the "Set Option" in the set analysis
+////////////////////////////////////////////////////////////////////////
+
+
+set v_setopt_ = x={1}; // this is a dummy in case user enters invalid setopt
+set v_setopt_crp = [flag_crp]={1};
+set v_setopt_cytd = [School Year]={'$(v_cy)'};
+set v_setopt_blackhispanic = [Race/Ethnicity]={'Black/African American','Hispanic/Latino'};
+set v_setopt_econ = [Economic Disadvantage]={'Economically Disadvantaged'};
+/**
+ * v_setopts is used to populate the space within <> to denote set options.
+ * The first parameter value $1 will assumed to be a field name and will get special consideration
+ * (e.g. is this field relevant to the response rate, question score, etc)
+ * A parameter such as [field]={value} can be entered to provide a specific set option
+ * (specifically searching for '={', with spaces purged)
+ * All other parameter values should be one of the list above: v_setopt_*these*
+ **/
+set v_setopts = $(=
+    // substitute any fully specified set options, e.g., [x]={1}
+    concat(distinct
+        valuelist(
+            if(wildmatch('$1', $(v_list_invalid_setopts)), 'x={1}', chr(36) & '(v_setopt_' & lower(purgechar('$1', '_ /-')) & ')'),
+            if(wildmatch('$2', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$2', '_ /-')) & ')'),
+            if(wildmatch('$3', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$3', '_ /-')) & ')'),
+            if(wildmatch('$4', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$4', '_ /-')) & ')'),
+            if(wildmatch('$5', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$5', '_ /-')) & ')'),
+            if(wildmatch('$6', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$6', '_ /-')) & ')'),
+            if(wildmatch('$7', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$7', '_ /-')) & ')'),
+            if(wildmatch('$8', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$8', '_ /-')) & ')'),
+            if(wildmatch('$9', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$9', '_ /-')) & ')')
+        )
+        , ',')
+    );
+
+
+
+//////////////////////////////////////////////////////////////////////// 
+/// General Calculations - for individual question or subtopic
+////////////////////////////////////////////////////////////////////////
+
+let v_sum = Sum($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
+        $(v_map_agg_field($1)));
+let v_avg = Avg($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
+        $(v_map_agg_field($1)));
+
+
+//////////////////////////////////////////////////////////////////////// 
+/// Response Rate
+////////////////////////////////////////////////////////////////////////
+
+let v_count_responded = $(v_sum(respondents, $1, $2, $3, $4, $5, $6, $7, $8));
+let v_count_enrolled = $(v_sum(enrolled, $1, $2, $3, $4, $5, $6, $7, $8));
