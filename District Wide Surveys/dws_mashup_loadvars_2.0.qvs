@@ -138,6 +138,7 @@ set v_setopt_subconstruct = [_SubConstruct_Flag]={1};
 set v_setopt_climate = [$(v_field_construct)]={'School Climate'};
 set v_setopt_instruction = [$(v_field_construct)]={'Instruction'};
 set v_setopt_parentrelationship = [$(v_field_construct)]={'Parent/Guardian-Community Ties'}, [$(v_field_subconstruct)]={'School Relationship'};
+set v_setopt_community = [$(v_field_construct)]={'Parent/Guardian-Community Ties'};
 set v_setopt_essential = [_Essential_Flag]={1};
 
 ////// Invalid setopts are those which, if entered as a parameter to v_setopts will not produce a setopt - they usually are used for a different part of the colculation (e.g. the agg field, or total)
