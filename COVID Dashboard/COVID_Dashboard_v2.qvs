@@ -1,0 +1,184 @@
+/**
+*	Loading Variables: COVID Dashbaord
+*	Jonathan Vitale
+*	Changes:
+*
+*	Version 0.0:
+
+*	Reminder:
+*	THIS FILE IS THE RAW QLIK CODE. IT **MUST** BE COMPILED INTO STRINGS TO BE LOADED INTO A SCRIPT.
+*   Make sure to save the formatted code in a separate file and keep this file raw. 
+*	For SUBLIME TEXT use the RegReplace package with custom rules and commands
+*   Note: I am using the RegEx instead of the default py regualar expression engine (v.1). Set this in package settings.
+*	Also, instead of using single quotes for final strings, use ` to avoid unnecessary replacements
+**/
+
+///// Universal Variables
+	// Note Years, the following have been established elsewhere in the code and can be used instead of heard-coding
+	
+//////////////////////////////////////////////////////////////////////// 
+/// Universal values: evaluate immediately
+////////////////////////////////////////////////////////////////////////
+
+
+let v_cy = =MaxString([School Year]);
+let v_py = =MaxString({<[School Year]-={'$(v_cy)'}>}[School Year]);
+let v_total = $(=if(lower('$1')='total', 'total ', ''));
+let v_state = $(=if(len(trim(purgechar('$1', '$')))>1, '$1', ''));
+let v_state_full = $(=if(len(trim(purgechar('$1', '$')))>1, '{$1}', ''));
+
+//////////////////////////////////////////////////////////////////////// 
+/// Testing
+////////////////////////////////////////////////////////////////////////
+
+/**
+ * This creates partial sets for time dimensions. Make sure to use the correct format
+ * if date, week, or school_year are provided (as-is, not a specific date), will just use the flags to get the right rows of data
+ * $1: time: (category or specific) school year (YYYY-YYYY or cy/py), month (SEP, OCT, NOV, etc.) week (number), or date (M/D/YYYY)
+ * $2: time category (not a specific time): date, week, school_year
+ */
+let v_pset_time = $(=if(len(PurgeChar('$1','1 _$'))>1,
+	// school year
+	if(Wildmatch('$1', 'cy', 'py*'),
+		',[School Year]={"$(v_$1)"}',
+		if(WildMatch('$1', '*-*'), 
+			',[School Year]={"$1"}',
+			// date
+			if(SubstringCount('$1','/') = 2,
+				'[Date] = {"$1"}',
+				// week
+				if(IsNum($1),
+					'[Week] = {$1}',
+					''					
+				)
+			)
+		)
+	)
+	,
+
+	''));
+
+/**
+ * This creates partial sets for which time frame to use:
+ * date, week, or school_year
+ * $1: time category (not a specific time): date, week, school_year
+ */
+let v_pset_time_frame = $(=pick(WildMatch(PurgeChar('$1$2','12 _$'), 'date', 'week', 'schoolyear') + 1,
+		',[flag_school_year]={1}', //default
+		',[flag_date]={1}',
+		',[flag_week]={1}',
+		',[flag_school_year]={1}'
+	));
+
+let v_pset_test_location = $(=if(Match('$1', 'IS', 'OS', 'SS'), ',[Test Location Code]={"$1"}', ''));
+
+set v_pset_is_student = $(=pick(wildmatch('$1','student', 'staff', 'staff_multi') + 1, 
+	',[flag_student]={1}', ',[flag_student]={1}', ',[flag_student]={0}',',[flag_student]={0}'));
+
+let v_student_or_staff = if (lower('$1') = 'staff', 'Staff', 
+		if (lower('$1') = 'staff_multi', 'Staff (Multi)',
+			if (lower('$1') = 'student_hybrid', 'Hybrid Student',
+				if (lower('$1') = 'student_hybrid_eligible', 'Hybrid Eligible Student',
+					if (lower('$1') = 'student_potential_hybrid', 'Potential Hybrid Student',
+			'Student')))));
+
+
+let v_pset_gradecode = $(=if(len(trim(purgechar('$1', '$')))>1, ',[Grade Code]={"$1"}', ''));
+
+/**
+ * The number of individuals tested
+ * parameters
+ * $1: who (student [default], staff)
+ * $2: when (all years[blank], year [cy, py], a week [todo])
+ * $3: where (anywhere[blank], IS/OS/SS)
+ * $4: hybrid students only (all students[blank], hybrid, or group)
+ */
+let v_count_tested_todate = if(len(Only([Date])),
+	Sum({<x=1 $(v_pset_is_student($1)) $(v_pset_time($2)) $(v_pset_test_location($3)) >}[sum_tested_by_date]),
+	if(len(Only([Week])),
+		// are we at a specified week?
+		Sum({<x=1 $(v_pset_is_student($1)) $(v_pset_time($2)) $(v_pset_test_location($3))>}[sum_tested_by_week]),
+			// are we at a specific year? use the last day (current) of the year
+			if(len(Only([School Year])),
+				Sum({<x=1 $(v_pset_is_student($1)) $(v_pset_time($2)) $(v_pset_test_location($3)) >}[sum_tested_by_school_year]), 
+				Sum({<x=1 $(v_pset_is_student($1)) $(v_pset_time($2)) $(v_pset_test_location($3)) >}[sum_tested_by_school_year])
+			)
+		)	
+	);
+
+let v_count_tested_positive_todate = if(len(Only([Date])),
+	Sum({<x=1 $(v_pset_is_student($1)) $(v_pset_time($2)) $(v_pset_test_location($3)) >}[sum_positive$(=if('$1'='staff_multi', '_multi', ''))_by_date]),
+	if(len(Only([Week])),
+		// are we at a specified week?
+		Sum({<x=1 $(v_pset_is_student($1)) $(v_pset_time($2)) $(v_pset_test_location($3))>}[sum_positive$(=if('$1'='staff_multi', '_multi', ''))_by_week]),
+			// are we at a specific year? use the last day (current) of the year
+			if(len(Only([School Year])),
+				Sum({<x=1 $(v_pset_is_student($1)) $(v_pset_time($2)) $(v_pset_test_location($3)) >}[sum_positive$(=if('$1'='staff_multi', '_multi', ''))_by_school_year]), 
+				Sum({<x=1 $(v_pset_is_student($1)) $(v_pset_time($2)) $(v_pset_test_location($3)) >}[sum_positive$(=if('$1'='staff_multi', '_multi', ''))_by_school_year])
+			)
+		)	
+	);
+
+//////////////////////////////////////////////////////////////////////// 
+/// Enrollment
+////////////////////////////////////////////////////////////////////////
+
+
+/**
+ * For enrolled we must ensure that a single date is selected, we never want to sum across multiple days.
+ * Therefore, we may include two set options. The first for a flag specifying whether to use the last day of the week/month/year
+ * The other specifies a particular date, week, month, year according to the parameter
+ parameters
+ * $1: who (student [default], staff)
+ * $2: when (all years[blank], year [cy, py], a week [todo])
+ * $4: total
+ * $5: alt set (e.g., allschools)
+ */
+let v_count_enrolled = if(len(Only($(v_state_full($5))[Date])),
+	Sum($(v_total($4)){$(v_state($5))<x=1 $(v_pset_is_student($1)) $(v_pset_time($2))>}[sum_enrolled_by_date]),
+	if(len(Only($(v_state_full($5))[Week])),
+		// are we at a specified week?
+		Sum($(v_total($4)){$(v_state($5))<x=1 $(v_pset_is_student($1)) $(v_pset_time($2))>}[sum_enrolled_by_week]),
+			// are we at a specific year? use the last day (current) of the year
+			if(len(Only($(v_state_full($5))[School Year])),
+				Sum($(v_total($4)){$(v_state($5))<x=1 $(v_pset_is_student($1)) $(v_pset_time($2))>}[sum_enrolled_by_school_year]), 
+				Sum($(v_total($4)){$(v_state($5))<x=1 $(v_pset_is_student($1)) $(v_pset_time($2))>}[sum_enrolled_by_school_year])
+			)
+		)	
+	);
+
+
+
+
+//////////////////////////////////////////////////////////////////////// 
+/// Quarantine
+////////////////////////////////////////////////////////////////////////
+
+/**
+ * # quarantined 
+ * parameters
+ * $1: who (student [default], staff)
+ * $2: when (all years[blank], year [cy, py], a week [todo])
+ */
+let v_count_quarantined = Sum({<x=1 $(v_pset_is_student($1)) $(v_pset_time($2))>}[$(=$(v_student_or_staff($1))) Quarantined Count]);
+
+
+
+//////////////////////////////////////////////////////////////////////// 
+/// School Closure
+////////////////////////////////////////////////////////////////////////
+let v_school_or_cohort = if(lower('$1') = 'cohort', 'Cohort', 'School');
+/**
+ * # quarantined 
+ * parameters
+ * $1: cohort or whole school count (whole school [blank], cohort])
+ * $2: when (all years[blank], year [cy, py], a week [todo])
+ */
+let v_count_schools_closed = Sum({<x=1 $(=$(v_pset_time($1)))>}[flag_school_closed]);
+
+let v_count_schools_closed_days = Sum({<x=1 $(=$(v_pset_time($1)))>}[School Closure - # Days]);
+
+let v_avg_schools_closed_days = Avg(
+	Aggr(
+		Sum({<flag_school_closed_day={1} $(=$(v_pset_time($1)))>} [flag_school_closed_day])
+    	, [Location ID]));

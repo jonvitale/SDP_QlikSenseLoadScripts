@@ -45,13 +45,16 @@ let v_field_construct = Construct;
 let v_field_subconstruct = SubConstruct;
 let v_field_surveyquestioncode = SurveyQuestionCode;
 
-set v_list_construct_essential = 'School Climate', 'Instruction', 'Parent/Guardian Community Ties', 'Professional Capacity', 'School Leadership';
+set v_list_construct_essential = 'School Climate', 'Instruction', 'Parent/Guardian-Community Ties', 'Professional Capacity', 'School Leadership';
 
 let v_construct_to_alias = $(=pick(wildmatch('$1',
     $(v_list_construct_essential), 'Other') + 1, '', 
     'climate', 'instruction', 'community', 'professional', 'leadership', 'other'
     )
 );
+
+let v_no_amp = $(=replace('$1', '&amp;', '&'));
+
 
 //////////////////////////////////////////////////////////////////////// 
 /// General Expression Building: requires the following elements
@@ -86,8 +89,8 @@ let v_agg_qualifier = $(=
 let v_set_identifier = $(=
     pick(
         wildmatch(replace(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', ' '), '*', 'x'), 
-            '*|$|*', '*|1|*', '*|Alt|*', '*|Altx|*') + 1,
-        '', '$', '1', 'Alt', 'Alt *')
+            '*|$|*', '*|1|*', '*|Alt|*', '*|Altx|*', '*|Right|*', '*|Rightx|*') + 1,
+        '', '$', '1', 'Alt', 'Alt *', 'Right', 'Right *')
     );
 
 
@@ -102,11 +105,14 @@ let v_set_identifier = $(=
  * topic_respondents - use this to count # of respondents to a particular topic or subtopic (i.e., do not ignore selected questions, topics, subtopics)
  */ 
 
-//let v_setopt_ignore_construct_question = [Construct]=, [SubConstruct]=, [Essential Construct]=, [Essential SubConstruct]=, [QuestionText]=, [SurveyQuestionCode]=, [Survey|SchoolYear|QuestionCode]=, [Survey|SchoolYear|QuestionCode|Score]=;
+//let v_setopt_ignore_construct_question = [Construct]=, [SubConstruct]=, [Topic]=, [Sub-Topic]=, [QuestionText]=, [SurveyQuestionCode]=, [Survey|SchoolYear|QuestionCode]=, [Survey|SchoolYear|QuestionCode|Score]=;
+
+
 
 set v_setopt_ = [x]={1}; // this is a dummy in case user enters invalid setopt
 set v_setopt_cy = [YearEnd] = {$(v_cy_end)};
 set v_setopt_py = [YearEnd] = {$(v_py_end)};
+set v_setopt_cypy = [YearEnd] = {$(v_cy_end), $(v_py_end)};
 set v_setopt_climate = [Construct]={'School Climate'};
 set v_setopt_instruction = [Construct]={'Instruction'};
 set v_setopt_community = [Construct]={'Parent/Guardian-Community Ties'};
@@ -127,16 +133,19 @@ set v_setopt_district = [Sector]={'District'};
 set v_setopt_charter = [Sector]={'Charter'};
 // note: use the following to ensure that when ignoring selections that current construct selections are taken into account
 set v_setopt_pconstruct = [$(v_field_construct)]=P([$(v_field_construct)]);
-set v_setopt_ignore_construct_question = [$(v_field_surveyquestioncode)]=, [$(v_field_construct)]=, [$(v_field_subconstruct)]=, [Essential Construct]=, [Essential SubConstruct]=;
-set v_setopt_overall = $(v_setopt_ignore_construct_question);
-
+set v_setopt_ignoreconstructquestion = [$(v_field_surveyquestioncode)]=, [$(v_field_construct)]=, [$(v_field_subconstruct)]=, [Topic]=, [Sub-Topic]=;
+set v_setopt_ignoreschool = [School Name]=, [School (abbrev name)]=, [Current Network]=, [Sector]=; [ULCS Code]=;
+set v_setopt_overall = $(v_setopt_ignoreconstructquestion);
+set v_setopt_questiondisplay = [flag_display_question]={1};
+set v_setopt_construct = [flag_construct]={1};
+set v_setopt_subconstruct = [flag_subconstruct]={1};
 // the following are specific to first parameter field references
-set v_setopt_questionresponded = [Responded] = {1};
-set v_setopt_questionmostpositive = [Responded] = {1};
-set v_setopt_questionna = [Responded] = {1};
+set v_setopt_questionresponded = [Responded] = {1}, [flag_display_question]={1};
+set v_setopt_questionmostpositive = [Responded] = {1}, [flag_display_question]={1};
+set v_setopt_questionna = [Responded] = {1}, [flag_display_question]={1};
 
 ////// Invalid setopts are those which, if entered as a parameter to v_setopts will not produce a setopt - they usually are used for a different part of the colculation (e.g. the agg field, or total)
-set v_list_invalid_setopts = '{}', '$', '$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8', '$9', 'nosuppress', 'nototal', 'total*', 'distinct*', '1', 'Alt', 'suppress*', 'ncompleted*', 'respondents_household', 'respondents', 'enrolled_household', 'enrolled', 'sumscaledscore*', 'question_score', 'topic_respondents', 'subtopic_respondents', 'color_offset*', 'STUDENT-Q*', 'PARENT-Q*', 'TEACHER-Q*', 'PRINCIPAL-Q*';
+set v_list_invalid_setopts = '{}', '$', '$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8', '$9', 'nosuppress', 'nototal', 'total*', 'distinct*', '1', 'Alt', 'Right', 'suppress*', 'ncompleted*', 'respondents_household', 'respondents', 'enrolled_household', 'enrolled', 'sumscaledscore*', 'question_score', 'topic_respondents', 'subtopic_respondents', 'color_offset*', 'STUDENT-Q*', 'PARENT-Q*', 'TEACHER-Q*', 'PRINCIPAL-Q*';
 
 ///// the overall invalid lists is a special case where we need to get the overall enrollment even if the specific question, construct, subconstruct is specified
 let v_list_invalid_setopts_overall = $(v_list_invalid_setopts), '*construct*' '*subconstruct*', '*surveyquestioncode*', 'climate', 'instruction', 'community', 'professional', 'leadership', 'parent_relationship', 'parentrelationship';
@@ -146,7 +155,7 @@ let v_list_invalid_setopts_overall = $(v_list_invalid_setopts), '*construct*' '*
 // since we can't pass a subconstruct in directly for setopts we need a wrapper function that turns it into a potential argument
 // additionally, if a specific sub-construct is out of a alignment with the survey or construct, use '*'
 let v_list_subconstructs = $(=chr(39) & concat(distinct [$(v_field_subconstruct)], chr(39) & ',' & chr(39)) & chr(39));
-let v_subconstruct_to_setopt = $(=if(match('$1', $(v_list_subconstructs)), '[$(v_field_subconstruct)]={"$1"}'));
+let v_subconstruct_to_setopt = $(=if(match('$(v_no_amp($1))', $(v_list_subconstructs)), '[$(v_field_subconstruct)]={"$(v_no_amp($1))"}'));
 
 
 let v_setopts = $(v_setopts_$(=if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|overall|*'), 'overall', 'no_overall'))($1, $2, $3, $4, $5, $6, $7, $8, $9));
@@ -403,6 +412,13 @@ let v_subconstruct_to_setopt_selected = $(=if(
       }[$(v_field_subconstruct)]
     ))), '$(v_subconstruct_to_setopt($(v_subconstruct_selected)))', ''));
 
+let v_subconstruct_to_nane_selected = $(=if(
+    Not(IsNull(Only(
+      {$(v_set_identifier($(v_respondent_selected), $(v_construct_to_alias($(v_construct_selected))), $(v_subconstruct_to_setopt($(v_subconstruct_selected))), $2, $3, $4, $5, $6))
+      <$(v_setopts($(v_respondent_selected), $(v_construct_to_alias($(v_construct_selected))), $(v_subconstruct_to_setopt($(v_subconstruct_selected))), $2, $3, $4, $5, $6))>
+      }[$(v_field_subconstruct)]
+    ))), '$(v_no_amp($(v_subconstruct_selected)))', ''));
+
 let v_flag_question_aligned_selected = $(v_flag_question_aligned(
     $(v_surveyquestioncode_selected), $(v_respondent_selected), 
     $(v_construct_to_alias($(v_construct_selected))),
@@ -419,6 +435,13 @@ let v_flag_question_aligned_selected2 = $(v_flag_question_aligned(
     $(v_surveyquestioncode_selected2), $(v_respondent_selected2), 
     $(v_construct_to_alias($(v_construct_selected2))),
     $(v_subconstruct_to_setopt_selected2)));
+
+let v_subconstruct_to_name_selected2 = $(=if(
+    Not(IsNull(Only(
+      {$(v_set_identifier($(v_respondent_selected2), $(v_construct_to_alias($(v_construct_selected2))), $(v_subconstruct_to_setopt($(v_subconstruct_selected2))), $2, $3, $4, $5, $6))
+      <$(v_setopts($(v_respondent_selected2), $(v_construct_to_alias($(v_construct_selected2))), $(v_subconstruct_to_setopt($(v_subconstruct_selected2))), $2, $3, $4, $5, $6))>
+      }[$(v_field_subconstruct)]
+    ))), '$(v_no_amp($(v_subconstruct_selected2)))', ''));
 
 
 //////////////////////////////////////////////////////////////////////// 
@@ -440,6 +463,21 @@ let v_flag_construct_essential_selected2 = =if(Match('$(v_construct_selected2)',
 let v_count_responses_agg = $(v_sum($(=if('$(v_construct_or_subconstruct)'='subconstruct', 'sub', ''))topic_respondents, $1, $2, $3, $4, $5, $6, $7, $8));
 let v_count_responses_agg_all = $(v_sum_all($(=if('$(v_construct_or_subconstruct)'='subconstruct', 'sub', ''))topic_respondents, $1, $2, $3, $4, $5, $6, $7, $8));
 
+// same as question version but ignore respondent
+let v_subconstruct_to_setopt_selected_all = $(=if(
+    Not(IsNull(Only(
+      {$(v_set_identifier($(v_construct_to_alias($(v_construct_selected))), $(v_subconstruct_to_setopt($(v_subconstruct_selected))), $2, $3, $4, $5, $6))
+      <$(v_setopts($(v_construct_to_alias($(v_construct_selected))), $(v_subconstruct_to_setopt($(v_subconstruct_selected))), $2, $3, $4, $5, $6))>
+      }[$(v_field_subconstruct)]
+    ))), '$(v_subconstruct_to_setopt($(v_subconstruct_selected)))', ''));
+
+let v_subconstruct_to_name_selected_all = $(=if(
+    Not(IsNull(Only(
+      {$(v_set_identifier($(v_construct_to_alias($(v_construct_selected))), $(v_subconstruct_to_setopt($(v_subconstruct_selected))), $2, $3, $4, $5, $6))
+      <$(v_setopts($(v_construct_to_alias($(v_construct_selected))), $(v_subconstruct_to_setopt($(v_subconstruct_selected))), $2, $3, $4, $5, $6))>
+      }[$(v_field_subconstruct)]
+    ))), '$(v_no_amp($(v_subconstruct_selected)))', ''));
+
 /** 
  * suppress_all does the same thing as suppress but it check to make sure that if there are at least two respondent groups
  * that are applicable it only checks
@@ -449,7 +487,7 @@ let v_suppress_all_count = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|nosup
     1,    
     Pick(
         RangeSum(
-            if ($(v_sum($1, student, $2, $3, $4, $5, $6, $7, $8, $9))
+            if($(v_sum($1, student, $2, $3, $4, $5, $6, $7, $8, $9))
                 >= $(v_min_respondents(student, $1, $2, $3, $4, $5, $6, $7, $8)), 1, 0),
             if($(v_sum($1, parent, $2, $3, $4, $5, $6, $7, $8, $9))
                 >= $(v_min_respondents(parent, $1, $2, $3, $4, $5, $6, $7, $8)), 1, 0),
@@ -458,8 +496,8 @@ let v_suppress_all_count = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|nosup
         ) + 1,
         Null(), // 0 matches: always a no
         // 1 match, only a match if there is only one respondent groups,
-        if (Count(distinct {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
-            <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>} [$(v_field_survey)]) = 1,
+        if (Count(total<[Construct], [SubConstruct], [Topic], [Sub-Topic]> distinct {$(v_set_identifier(1, $1, $2, $3, $4, $5, $6, $7, $8))
+            <$(v_setopts(noprincipal, $1, $2, $3, $4, $5, $6, $7, $8))>} [$(v_field_survey)]) = 1,
             1, 
             Null()
         ),
@@ -491,7 +529,7 @@ let v_suppress_all_pct = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|nosuppr
         ) + 1,
         Null(), // 0 matches: always a no
         // 1 match, only a match if there is only one respondent groups,
-        if (Count(total<[Construct], [SubConstruct], [Essential Construct], [Essential SubConstruct]> distinct {$(v_set_identifier(1, $1, $2, $3, $4, $5, $6, $7, $8))
+        if (Count(total<[Construct], [SubConstruct], [Topic], [Sub-Topic]> distinct {$(v_set_identifier(1, $1, $2, $3, $4, $5, $6, $7, $8))
             <$(v_setopts(noprincipal, $1, $2, $3, $4, $5, $6, $7, $8))>} [$(v_field_survey)]) = 1,
             1, 
             Null()
@@ -508,35 +546,35 @@ let v_suppress_all_pct = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|nosuppr
  */
 let v_avg_score_agg_construct = if($(v_suppress(topic_respondents, $1, $2, $3, $4, $4, $5, $6, $7, $8)),
     RangeAvg(
-        $(v_sum(SumScaledScore_1, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_1, $1, $2, $3, $4, $5, $6, $7, $8)),
-        $(v_sum(SumScaledScore_2, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_2, $1, $2, $3, $4, $5, $6, $7, $8)),
-        $(v_sum(SumScaledScore_3, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_3, $1, $2, $3, $4, $5, $6, $7, $8)),
-        $(v_sum(SumScaledScore_4, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_4, $1, $2, $3, $4, $5, $6, $7, $8)),
-        $(v_sum(SumScaledScore_5, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_5, $1, $2, $3, $4, $5, $6, $7, $8)),
-        $(v_sum(SumScaledScore_6, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_6, $1, $2, $3, $4, $5, $6, $7, $8)),
-        $(v_sum(SumScaledScore_7, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_7, $1, $2, $3, $4, $5, $6, $7, $8))
+        if($(v_suppress(subtopic_respondents, [SubConstructNum]={1}, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_1, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_1, $1, $2, $3, $4, $5, $6, $7, $8))),
+        if($(v_suppress(subtopic_respondents, [SubConstructNum]={2}, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_2, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_2, $1, $2, $3, $4, $5, $6, $7, $8))),
+        if($(v_suppress(subtopic_respondents, [SubConstructNum]={3}, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_3, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_3, $1, $2, $3, $4, $5, $6, $7, $8))),
+        if($(v_suppress(subtopic_respondents, [SubConstructNum]={4}, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_4, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_4, $1, $2, $3, $4, $5, $6, $7, $8))),
+        if($(v_suppress(subtopic_respondents, [SubConstructNum]={5}, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_5, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_5, $1, $2, $3, $4, $5, $6, $7, $8))),
+        if($(v_suppress(subtopic_respondents, [SubConstructNum]={6}, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_6, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_6, $1, $2, $3, $4, $5, $6, $7, $8))),
+        if($(v_suppress(subtopic_respondents, [SubConstructNum]={7}, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_7, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(NCompleted_7, $1, $2, $3, $4, $5, $6, $7, $8)))
     ),
-    if($(v_sum_all(topic_respondents, 1, $1, $2, $3, $4, $5, $6, $7)) > 0, 'i.s.')
+    if($(v_sum(topic_respondents, 1, $1, $2, $3, $4, $5, $6, $7)) > 0, 'i.s.')
 );
 
 /// same as above but force all respondent groups
 let v_avg_score_agg_construct_all = if($(v_suppress_all(topic_respondents, $1, $2, $3, $4, $5, $6, $7, $8)),
     RangeAvg(
-        if($(v_suppress(topic_respondents, student, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_1, student, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_1, student, $1, $2, $3, $4, $5, $6, $7))),
-        if($(v_suppress(topic_respondents, student, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_2, student, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_2, student, $1, $2, $3, $4, $5, $6, $7))),
-        if($(v_suppress(topic_respondents, student, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_3, student, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_3, student, $1, $2, $3, $4, $5, $6, $7))),
-        if($(v_suppress(topic_respondents, parent, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_1, parent, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_1, parent, $1, $2, $3, $4, $5, $6, $7))),
-        if($(v_suppress(topic_respondents, parent, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_2, parent, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_2, parent, $1, $2, $3, $4, $5, $6, $7))),
-        if($(v_suppress(topic_respondents, parent, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_3, parent, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_3, parent, $1, $2, $3, $4, $5, $6, $7))),
-        if($(v_suppress(topic_respondents, parent, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_4, parent, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_4, parent, $1, $2, $3, $4, $5, $6, $7))),
-        if($(v_suppress(topic_respondents, parent, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_5, parent, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_5, parent, $1, $2, $3, $4, $5, $6, $7))),
-        if($(v_suppress(topic_respondents, teacher, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_1, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_1, teacher, $1, $2, $3, $4, $5, $6, $7))),
-        if($(v_suppress(topic_respondents, teacher, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_2, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_2, teacher, $1, $2, $3, $4, $5, $6, $7))),
-        if($(v_suppress(topic_respondents, teacher, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_3, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_3, teacher, $1, $2, $3, $4, $5, $6, $7))),
-        if($(v_suppress(topic_respondents, teacher, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_4, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_4, teacher, $1, $2, $3, $4, $5, $6, $7))),
-        if($(v_suppress(topic_respondents, teacher, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_5, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_5, teacher, $1, $2, $3, $4, $5, $6, $7))),
-        if($(v_suppress(topic_respondents, teacher, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_6, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_6, teacher, $1, $2, $3, $4, $5, $6, $7))),
-        if($(v_suppress(topic_respondents, teacher, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_7, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_7, teacher, $1, $2, $3, $4, $5, $6, $7)))
+        if($(v_suppress(subtopic_respondents, [SubConstructNum]={1}, student, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_1, student, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_1, student, $1, $2, $3, $4, $5, $6, $7))),
+        if($(v_suppress(subtopic_respondents, [SubConstructNum]={2}, student, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_2, student, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_2, student, $1, $2, $3, $4, $5, $6, $7))),
+        if($(v_suppress(subtopic_respondents, [SubConstructNum]={3}, student, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_3, student, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_3, student, $1, $2, $3, $4, $5, $6, $7))),
+        if($(v_suppress(subtopic_respondents, [SubConstructNum]={1}, parent, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_1, parent, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_1, parent, $1, $2, $3, $4, $5, $6, $7))),
+        if($(v_suppress(subtopic_respondents, [SubConstructNum]={2}, parent, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_2, parent, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_2, parent, $1, $2, $3, $4, $5, $6, $7))),
+        if($(v_suppress(subtopic_respondents, [SubConstructNum]={3}, parent, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_3, parent, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_3, parent, $1, $2, $3, $4, $5, $6, $7))),
+        if($(v_suppress(subtopic_respondents, [SubConstructNum]={4}, parent, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_4, parent, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_4, parent, $1, $2, $3, $4, $5, $6, $7))),
+        if($(v_suppress(subtopic_respondents, [SubConstructNum]={5}, parent, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_5, parent, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_5, parent, $1, $2, $3, $4, $5, $6, $7))),
+        if($(v_suppress(subtopic_respondents, [SubConstructNum]={1}, teacher, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_1, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_1, teacher, $1, $2, $3, $4, $5, $6, $7))),
+        if($(v_suppress(subtopic_respondents, [SubConstructNum]={2}, teacher, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_2, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_2, teacher, $1, $2, $3, $4, $5, $6, $7))),
+        if($(v_suppress(subtopic_respondents, [SubConstructNum]={3}, teacher, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_3, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_3, teacher, $1, $2, $3, $4, $5, $6, $7))),
+        if($(v_suppress(subtopic_respondents, [SubConstructNum]={4}, teacher, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_4, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_4, teacher, $1, $2, $3, $4, $5, $6, $7))),
+        if($(v_suppress(subtopic_respondents, [SubConstructNum]={5}, teacher, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_5, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_5, teacher, $1, $2, $3, $4, $5, $6, $7))),
+        if($(v_suppress(subtopic_respondents, [SubConstructNum]={6}, teacher, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_6, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_6, teacher, $1, $2, $3, $4, $5, $6, $7))),
+        if($(v_suppress(subtopic_respondents, [SubConstructNum]={7}, teacher, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(SumScaledScore_7, teacher, $1, $2, $3, $4, $5, $6, $7)) / $(v_sum(NCompleted_7, teacher, $1, $2, $3, $4, $5, $6, $7)))
     ),
     if($(v_sum_all(topic_respondents, 1, $1, $2, $3, $4, $5, $6, $7)) > 0, 'i.s.')
 );
@@ -602,7 +640,7 @@ let v_construct_or_subconstruct = $(=if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|'
     '*|"$(v_field_subconstruct)"={"all"}|*', '*|[$(v_field_subconstruct)]={"all"}|*', '*|$(v_field_subconstruct)={"all"}',
     '*|subconstruct|*', '*|"$(v_field_subconstruct)"={*', '*|[$(v_field_subconstruct)]={*', '*|$(v_field_subconstruct)={*') > 3 
     or 
-    GetSelectedCount([SubConstruct]) = 1 or GetSelectedCount([Essential SubConstruct]) = 1, 'subconstruct', 'construct'));
+    GetSelectedCount([SubConstruct]) = 1 or GetSelectedCount([Sub-Topic]) = 1, 'subconstruct', 'construct'));
 let v_avg_score_agg = $(v_avg_score_agg_$(v_construct_or_subconstruct($1, $2, $3, $4, $5, $6, $7, $8))($1, $2, $3, $4, $5, $6, $7, $8));
 let v_avg_score_agg_all = $(v_avg_score_agg_$(v_construct_or_subconstruct($1, $2, $3, $4, $5, $6, $7, $8))_all($1, $2, $3, $4, $5, $6, $7, $8));
 

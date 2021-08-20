@@ -15,9 +15,15 @@
 
 //////////////////////////////////////////////////////////////////////// 
 /// General variables
+/// crp: current response period
+/// prp: previous response period
 ////////////////////////////////////////////////////////////////////////
-let cy = =MaxString([SchoolYear])
-
+let v_cy = =MaxString([SchoolYear]);
+let v_py = =MaxString([SchoolYear]-={$(v_cy)}>}[SchoolYear]);
+let v_crp_num = =Max([Response Period Number])
+let v_crp = =Only({<[Response Period Number]={$(v_crp_num)}>}[Response Period]);
+let v_prp_num = =Max({<[Response Period Number]-={$(v_crp_num)}>}[Response Period Number]);
+let v_prp = =Only({<[Response Period Number]={$(v_prp_num)}>}[Response Period]);
 
 //////////////////////////////////////////////////////////////////////// 
 /// General Expression Building: requires the following elements
@@ -55,8 +61,8 @@ let v_set_identifier = $(=
         '', '$', '1', 'Alt', 'Alt *')
     );
 
-set v_list_fields_nosetopt = 'flag_responded', 'flag_student';
-set v_list_fields_alias_nosetopt = 'respondents', 'enrolled';
+set v_list_fields_nosetopt = 'flag_responded', 'flag_student', 'flag_response', 'flag_positive';
+set v_list_fields_alias_nosetopt = 'respondents', 'enrolled', 'responses', 'positive';
 
 let v_map_agg_field = $(=pick(match(trim(lower('$1')), $(v_list_fields_alias_nosetopt)) + 1,
         '$1', $(v_list_fields_nosetopt))
@@ -70,10 +76,14 @@ set v_list_invalid_setopts = '{}', '$', '$1', '$2', '$3', '$4', '$5', '$6', '$7'
 
 
 set v_setopt_ = x={1}; // this is a dummy in case user enters invalid setopt
-set v_setopt_crp = [flag_crp]={1};
-set v_setopt_cytd = [School Year]={'$(v_cy)'};
+set v_setopt_crp = [Response Period Number]={$(v_crp_num)};
+set v_setopt_prp = [Response Period Number]={$(v_prp_num)};
+set v_setopt_cy = [School Year]={'$(v_cy)'};
+set v_setopt_py = [School Year]={'$(v_py)'};
 set v_setopt_blackhispanic = [Race/Ethnicity]={'Black/African American','Hispanic/Latino'};
 set v_setopt_econ = [Economic Disadvantage]={'Economically Disadvantaged'};
+// note for this app a set of question level setops has been created in back-end, e.g. v_setopt_q1a = [QuestionCode]={'Q1a'}
+
 /**
  * v_setopts is used to populate the space within <> to denote set options.
  * The first parameter value $1 will assumed to be a field name and will get special consideration
@@ -121,3 +131,16 @@ let v_avg = Avg($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
 
 let v_count_responded = $(v_sum(respondents, $1, $2, $3, $4, $5, $6, $7, $8));
 let v_count_enrolled = $(v_sum(enrolled, $1, $2, $3, $4, $5, $6, $7, $8));
+
+//////////////////////////////////////////////////////////////////////// 
+/// Individual Questions
+////////////////////////////////////////////////////////////////////////
+
+let v_count_responses = $(v_sum(responses, $1, $2, $3, $4, $5, $6, $7, $8));
+let v_count_positive = $(v_sum(positive, $1, $2, $3, $4, $5, $6, $7, $8));
+
+let v_pct_positive = $(v_sum(positive, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(responses, $1, $2, $3, $4, $5, $6, $7, $8));
+
+///////// Selected Question
+set v_questioncode_selected = Q1a;
+let v_questiontext_selected = =Only({<[QuestionCode]={'$(v_questioncode_selected)'}>} [Question Text]);

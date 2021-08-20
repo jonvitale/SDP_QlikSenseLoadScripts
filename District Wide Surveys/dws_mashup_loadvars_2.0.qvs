@@ -45,6 +45,7 @@ set v_surveys_no_demos = Students, Parents;
 set v_field_surveyquestioncode = SurveyQuestionCode;
 set v_field_survey = Survey;
 set v_field_construct = Construct;
+set v_field_construct_alias = ConstructAlias;
 set v_field_subconstruct = SubConstruct;
 
 set v_label_parentrelationship = Parent-School Relationship;
@@ -139,6 +140,9 @@ set v_setopt_climate = [$(v_field_construct)]={'School Climate'};
 set v_setopt_instruction = [$(v_field_construct)]={'Instruction'};
 set v_setopt_parentrelationship = [$(v_field_construct)]={'Parent/Guardian-Community Ties'}, [$(v_field_subconstruct)]={'School Relationship'};
 set v_setopt_community = [$(v_field_construct)]={'Parent/Guardian-Community Ties'};
+set v_setopt_professional = [Construct]={'Professional Capacity'};
+set v_setopt_leadership = [Construct]={'School Leadership'};
+set v_setopt_other = [Construct]={'Other'};
 set v_setopt_essential = [_Essential_Flag]={1};
 
 ////// Invalid setopts are those which, if entered as a parameter to v_setopts will not produce a setopt - they usually are used for a different part of the colculation (e.g. the agg field, or total)
@@ -282,7 +286,10 @@ let v_perc_mostpositive = if($(v_suppress_pct(count_responses_answered, $1, $2, 
 
 let v_survey_selected = $(=Only($(v_field_survey)));
 let v_construct_selected = $(=if(GetPossibleCount($(v_field_construct))=1,Only($(v_field_construct)), 'School Climate'));
+let v_construct_alias_selected = $(=if(GetPossibleCount($(v_field_construct))=1,Only($(v_field_construct_alias)), 'climate'));
 let v_subconstruct_selected = $(=Only($(v_field_subconstruct)));
+let v_subconstruct_selected_map = 'all';
+let v_field_topic_or_subtopic_selected_drill = =if(GetPossibleCount([$(v_field_construct)])=1, 'Sub-Topic', 'Topic');
 /** outputs a survey, first checking the parameter, then defaulting to selected */
 let v_survey = Coalesce(
 	$(=pick(
@@ -332,6 +339,8 @@ let v_score_agg_construct =  if(
 );
 
 let v_score_agg = $(v_score_agg_$(=if(GetPossibleCount($(v_field_construct)) = 1, 'subconstruct', 'construct'))($1, $2, $3, $4, $5, $6, $7, $8));
+
+let v_score_agg_selected_subconstruct = 
 
 /**
 *	Color based on the avg scaled score.
@@ -400,15 +409,21 @@ let v_suppress_all_pct = if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppres
 let v_score_agg_subconstruct_all = if(
 	$(v_suppress_all_pct(count_responses_answered, subconstruct, $1, $2, $3, $4, $5, $6, $7)),
 	RangeAvg(
-		$(v_sum(SubConstruct_SumScaledScore, student, subconstruct, $1, $2, $3, $4, $5, $6))
-		/
-		$(v_sum(SubConstruct_NCompleted, student, subconstruct, $1, $2, $3, $4, $5, $6)),
-		$(v_sum(SubConstruct_SumScaledScore, parent, subconstruct, $1, $2, $3, $4, $5, $6))
-		/
-		$(v_sum(SubConstruct_NCompleted, parent,subconstruct, $1,  $2, $3, $4, $5, $6)),
-		$(v_sum(SubConstruct_SumScaledScore, teacher, subconstruct, $1, $2, $3, $4, $5, $6))
-		/
-		$(v_sum(SubConstruct_NCompleted, teacher, subconstruct, $1, $2, $3, $4, $5, $6))	
+		if($(v_suppress_pct(count_responses_answered, subconstruct, student, $1, $2, $3, $4, $5, $6)), 
+          $(v_sum(SubConstruct_SumScaledScore, student, subconstruct, $1, $2, $3, $4, $5, $6))
+		  /
+		  $(v_sum(SubConstruct_NCompleted, student, subconstruct, $1, $2, $3, $4, $5, $6))
+        ),
+    	if($(v_suppress_pct(count_responses_answered, subconstruct, parent, $1, $2, $3, $4, $5, $6)), 
+        	$(v_sum(SubConstruct_SumScaledScore, parent, subconstruct, $1, $2, $3, $4, $5, $6))
+    		/
+    		$(v_sum(SubConstruct_NCompleted, parent,subconstruct, $1,  $2, $3, $4, $5, $6))
+        ),
+		if($(v_suppress_pct(count_responses_answered, subconstruct, teacher, $1, $2, $3, $4, $5, $6)),
+          $(v_sum(SubConstruct_SumScaledScore, teacher, subconstruct, $1, $2, $3, $4, $5, $6))
+    	  /
+    	  $(v_sum(SubConstruct_NCompleted, teacher, subconstruct, $1, $2, $3, $4, $5, $6))	
+        )
 	),
 	if($(v_sum_all(count_responses_answered, subconstruct, [$(v_field_construct)]=P([$(v_field_construct)]), 1, $1, $2, $3, $4, $5)) > 0, 'i.s.')
 );
@@ -416,21 +431,21 @@ let v_score_agg_subconstruct_all = if(
 let v_score_agg_construct_all = if(
 		$(v_suppress_all_pct(count_responses_answered, construct, $1, $2, $3, $4, $5, $6, $7)),
 	RangeAvg(
-		$(v_sum(SumScaledScore_1, student, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_1, student, construct, $1, $2, $3, $4, $5, $6)),
-		$(v_sum(SumScaledScore_2, student, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_2, student, construct, $1, $2, $3, $4, $5, $6)),
-		$(v_sum(SumScaledScore_3, student, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_3, student, construct, $1, $2, $3, $4, $5, $6)),
-		$(v_sum(SumScaledScore_1, parent, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_1, parent, construct, $1, $2, $3, $4, $5, $6)),
-		$(v_sum(SumScaledScore_2, parent, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_2, parent, construct, $1, $2, $3, $4, $5, $6)),
-		$(v_sum(SumScaledScore_3, parent, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_3, parent, construct, $1, $2, $3, $4, $5, $6)),
-		$(v_sum(SumScaledScore_4, parent, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_4, parent, construct, $1, $2, $3, $4, $5, $6)),
-		$(v_sum(SumScaledScore_5, parent, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_5, parent, construct, $1, $2, $3, $4, $5, $6)),
-		$(v_sum(SumScaledScore_1, teacher, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_1, teacher, construct, $1, $2, $3, $4, $5, $6)),
-		$(v_sum(SumScaledScore_2, teacher, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_2, teacher, construct, $1, $2, $3, $4, $5, $6)),
-		$(v_sum(SumScaledScore_3, teacher, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_3, teacher, construct, $1, $2, $3, $4, $5, $6)),
-		$(v_sum(SumScaledScore_4, teacher, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_4, teacher, construct, $1, $2, $3, $4, $5, $6)),
-		$(v_sum(SumScaledScore_5, teacher, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_5, teacher, construct, $1, $2, $3, $4, $5, $6)),
-		$(v_sum(SumScaledScore_6, teacher, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_6, teacher, construct, $1, $2, $3, $4, $5, $6)),
-		$(v_sum(SumScaledScore_7, teacher, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_7, teacher, construct, $1, $2, $3, $4, $5, $6))
+		if($(v_suppress_pct(count_responses_answered, construct, student, $1, $2, $3, $4, $5, $6)), $(v_sum(SumScaledScore_1, student, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_1, student, construct, $1, $2, $3, $4, $5, $6))),
+		if($(v_suppress_pct(count_responses_answered, construct, student, $1, $2, $3, $4, $5, $6)), $(v_sum(SumScaledScore_2, student, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_2, student, construct, $1, $2, $3, $4, $5, $6))),
+		if($(v_suppress_pct(count_responses_answered, construct, student, $1, $2, $3, $4, $5, $6)), $(v_sum(SumScaledScore_3, student, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_3, student, construct, $1, $2, $3, $4, $5, $6))),
+		if($(v_suppress_pct(count_responses_answered, construct, parent, $1, $2, $3, $4, $5, $6)), $(v_sum(SumScaledScore_1, parent, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_1, parent, construct, $1, $2, $3, $4, $5, $6))),
+		if($(v_suppress_pct(count_responses_answered, construct, parent, $1, $2, $3, $4, $5, $6)), $(v_sum(SumScaledScore_2, parent, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_2, parent, construct, $1, $2, $3, $4, $5, $6))),
+		if($(v_suppress_pct(count_responses_answered, construct, parent, $1, $2, $3, $4, $5, $6)), $(v_sum(SumScaledScore_3, parent, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_3, parent, construct, $1, $2, $3, $4, $5, $6))),
+		if($(v_suppress_pct(count_responses_answered, construct, parent, $1, $2, $3, $4, $5, $6)), $(v_sum(SumScaledScore_4, parent, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_4, parent, construct, $1, $2, $3, $4, $5, $6))),
+		if($(v_suppress_pct(count_responses_answered, construct, parent, $1, $2, $3, $4, $5, $6)), $(v_sum(SumScaledScore_5, parent, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_5, parent, construct, $1, $2, $3, $4, $5, $6))),
+		if($(v_suppress_pct(count_responses_answered, construct, teacher, $1, $2, $3, $4, $5, $6)), $(v_sum(SumScaledScore_1, teacher, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_1, teacher, construct, $1, $2, $3, $4, $5, $6))),
+		if($(v_suppress_pct(count_responses_answered, construct, teacher, $1, $2, $3, $4, $5, $6)), $(v_sum(SumScaledScore_2, teacher, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_2, teacher, construct, $1, $2, $3, $4, $5, $6))),
+		if($(v_suppress_pct(count_responses_answered, construct, teacher, $1, $2, $3, $4, $5, $6)), $(v_sum(SumScaledScore_3, teacher, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_3, teacher, construct, $1, $2, $3, $4, $5, $6))),
+		if($(v_suppress_pct(count_responses_answered, construct, teacher, $1, $2, $3, $4, $5, $6)), $(v_sum(SumScaledScore_4, teacher, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_4, teacher, construct, $1, $2, $3, $4, $5, $6))),
+		if($(v_suppress_pct(count_responses_answered, construct, teacher, $1, $2, $3, $4, $5, $6)), $(v_sum(SumScaledScore_5, teacher, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_5, teacher, construct, $1, $2, $3, $4, $5, $6))),
+		if($(v_suppress_pct(count_responses_answered, construct, teacher, $1, $2, $3, $4, $5, $6)), $(v_sum(SumScaledScore_6, teacher, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_6, teacher, construct, $1, $2, $3, $4, $5, $6))),
+		if($(v_suppress_pct(count_responses_answered, construct, teacher, $1, $2, $3, $4, $5, $6)), $(v_sum(SumScaledScore_7, teacher, construct, $1, $2, $3, $4, $5, $6)) / $(v_sum(NCompleted_7, teacher, construct, $1, $2, $3, $4, $5, $6)))
 	),
 	if($(v_sum_all(count_responses_answered, construct, 1, $1, $2, $3, $4, $5, $6)) > 0, 'i.s.')
 );
