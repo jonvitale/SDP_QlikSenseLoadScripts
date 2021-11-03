@@ -18,12 +18,15 @@
 /// crp: current response period
 /// prp: previous response period
 ////////////////////////////////////////////////////////////////////////
-let v_cy = =MaxString([SchoolYear]);
-let v_py = =MaxString([SchoolYear]-={$(v_cy)}>}[SchoolYear]);
-let v_crp_num = =Max([Response Period Number])
-let v_crp = =Only({<[Response Period Number]={$(v_crp_num)}>}[Response Period]);
-let v_prp_num = =Max({<[Response Period Number]-={$(v_crp_num)}>}[Response Period Number]);
-let v_prp = =Only({<[Response Period Number]={$(v_prp_num)}>}[Response Period]);
+let v_cy = =MaxString({<[flag_student]={1}>}[SchoolYear]);
+let v_crp_num = =Max({<[flag_student]={1}>}[Response Period Number]);
+let v_crp = =Only({<[flag_student]={1},[Response Period Number]={$(v_crp_num)}>}[Response Period]);
+let v_py = =MaxString({<[flag_student]={1},[SchoolYear]-={$(v_cy)}>}[SchoolYear]);
+let v_prp_num = =Max({<[flag_student]={1},[Response Period Number]-={$(v_crp_num)}>}[Response Period Number]);
+let v_prp = =Only({<[flag_student]={1},[Response Period Number]={$(v_prp_num)}>}[Response Period]);
+let v_ty = =MaxString({<[flag_student_tracker]={1}>}[SchoolYear]);
+let v_trp_num = =Max({<[flag_student_tracker]={1}>}[Response Period Number]);
+let v_trp = =Only({<[flag_student_tracker]={1},[Response Period Number]={$(v_trp_num)}>}[Response Period (Tracker)]);
 
 //////////////////////////////////////////////////////////////////////// 
 /// General Expression Building: requires the following elements
@@ -39,9 +42,11 @@ let v_prp = =Only({<[Response Period Number]={$(v_prp_num)}>}[Response Period]);
  * @type {[type]}
  */
 let v_agg_qualifier = $(=
-    if(not(index('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '|nototal')) and index('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '|total'), 
-         replace(textbetween(mid('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', index('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '|total')), '|', '|'), ':', ',')
-        ,'')
+    if(index(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', ' _'), '|totalquestion'), 
+        $(total_question),
+        if(not(index(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', ' _'), '|nototal')) and index('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '|total'), 
+             replace(textbetween(mid('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', index('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '|total')), '|', '|'), ':', ',')
+            ,''), '')
     & ' ' &
     pick(
         wildmatch('distinct', '$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8', '$9') + 1,
@@ -61,13 +66,13 @@ let v_set_identifier = $(=
         '', '$', '1', 'Alt', 'Alt *')
     );
 
-set v_list_fields_nosetopt = 'flag_responded', 'flag_student', 'flag_response', 'flag_positive';
-set v_list_fields_alias_nosetopt = 'respondents', 'enrolled', 'responses', 'positive';
+set v_list_fields_alias_nosetopt = 'respondents',    'enrolled',     'respondents_tracker',    'enrolled_tracker',     'responses',     'positive',	   'construct_score';
+set v_list_fields_nosetopt =       'flag_responded', 'flag_student', 'flag_responded_tracker', 'flag_student_tracker', 'flag_response_scored', 'flag_positive', 'construct_score';
 
 let v_map_agg_field = $(=pick(match(trim(lower('$1')), $(v_list_fields_alias_nosetopt)) + 1,
         '$1', $(v_list_fields_nosetopt))
 	);
-set v_list_invalid_setopts = '{}', '$', '$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8', '$9', 'total*', 'distinct*', '1', $(v_list_fields_alias_nosetopt);
+set v_list_invalid_setopts = '{}', '$', '$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8', '$9', 'nosuppress', 'total*', 'distinct*', '1', $(v_list_fields_alias_nosetopt);
 
 //////////////////////////////////////////////////////////////////////// 
 /// setopts: the text after v_setopt_* can be entered as a parameter
@@ -78,10 +83,16 @@ set v_list_invalid_setopts = '{}', '$', '$1', '$2', '$3', '$4', '$5', '$6', '$7'
 set v_setopt_ = x={1}; // this is a dummy in case user enters invalid setopt
 set v_setopt_crp = [Response Period Number]={$(v_crp_num)};
 set v_setopt_prp = [Response Period Number]={$(v_prp_num)};
+set v_setopt_trp = [Response Period Number]={$(v_trp_num)};
 set v_setopt_cy = [School Year]={'$(v_cy)'};
 set v_setopt_py = [School Year]={'$(v_py)'};
 set v_setopt_blackhispanic = [Race/Ethnicity]={'Black/African American','Hispanic/Latino'};
 set v_setopt_econ = [Economic Disadvantage]={'Economically Disadvantaged'};
+set v_setopt_adult = [id_relationship]={'Adult'};
+set v_setopt_peer = [id_relationship]={'Peer'};
+set v_setopt_self = [id_relationship]={'Self'};
+set v_setopt_responsescored = [flag_response_scored]={1};
+
 // note for this app a set of question level setops has been created in back-end, e.g. v_setopt_q1a = [QuestionCode]={'Q1a'}
 
 /**
@@ -123,24 +134,49 @@ let v_avg = Avg($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
         {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
         <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
         $(v_map_agg_field($1)));
-
+let v_suppress = $(=if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_none|*', '*|nosuppress|*'),
+    1,
+    'if(' & chr(36) & '(v_sum($1, $2, $3, $4, $5, $6, $7, $8, $9)) >= 5, 1, Null())'
+));
 
 //////////////////////////////////////////////////////////////////////// 
 /// Response Rate
 ////////////////////////////////////////////////////////////////////////
 
-let v_count_responded = $(v_sum(respondents, $1, $2, $3, $4, $5, $6, $7, $8));
-let v_count_enrolled = $(v_sum(enrolled, $1, $2, $3, $4, $5, $6, $7, $8));
+let v_count_responded = $(v_sum(respondents$(=if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|trp|*'), '_tracker', '')), $1, $2, $3, $4, $5, $6, $7, $8));
+let v_count_enrolled = $(v_sum(enrolled$(=if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|trp|*'), '_tracker', '')), $1, $2, $3, $4, $5, $6, $7, $8));
 
 //////////////////////////////////////////////////////////////////////// 
 /// Individual Questions
 ////////////////////////////////////////////////////////////////////////
 
-let v_count_responses = $(v_sum(responses, $1, $2, $3, $4, $5, $6, $7, $8));
-let v_count_positive = $(v_sum(positive, $1, $2, $3, $4, $5, $6, $7, $8));
+let v_count_responses = if($(v_suppress(responses, total_question, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(responses, $1, $2, $3, $4, $5, $6, $7, $8)));
+let v_count_positive = if($(v_suppress(responses, total_question, $1, $2, $3, $4, $5, $6, $7)), $(v_sum(positive, $1, $2, $3, $4, $5, $6, $7, $8)));
 
-let v_pct_positive = $(v_sum(positive, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(responses, $1, $2, $3, $4, $5, $6, $7, $8));
+let v_pct_positive = if($(v_suppress(responses, total_question, $1, $2, $3, $4, $5, $6, $7, $8)), 
+	$(v_sum(positive, $1, $2, $3, $4, $5, $6, $7, $8)) / $(v_sum(responses, $1, $2, $3, $4, $5, $6, $7, $8))
+);
+
+let v_perc_of_total = if($(v_suppress(responses, total_question, response_scored, $1, $2, $3, $4, $5, $6, $7)), 
+	$(v_sum(responses, response_scored, $1, $2, $3, $4, $5, $6, $7, $8))
+	/
+	$(v_sum(responses, total_question, response_scored, $1, $2, $3, $4, $5, $6, $7, $8))
+);
 
 ///////// Selected Question
+set total_question = total<$(='['&concat(distinct {<$Field-={'IsForwardScoring','ResponseCode','ResponseText','ResponseType','Score'}>} $Field,'],[')&']')>;
 set v_questioncode_selected = Q1a;
 let v_questiontext_selected = =Only({<[QuestionCode]={'$(v_questioncode_selected)'}>} [Question Text]);
+let v_color_question_selected = Pick(Match(Round(Only({1<[QuestionCode]={'$(v_questioncode_selected)'}>}ScaledScore)), 
+    0, 1, 2, 3) + 1, '#a0a0a0', 
+    '#AE1C3E', '#ED875E', '#5EA4D9', '#3C52A1'
+);
+
+//////////////////////////////////////////////////////////////////////// 
+/// Construct
+////////////////////////////////////////////////////////////////////////
+set v_relationship_selected = Adults;
+
+let v_avg_construct_score = if($(v_suppress(respondents, $1, $2, $3, $4, $5, $6, $7, $8)), 
+	$(v_avg(construct_score, $1, $2, $3, $4, $5, $6, $7, $8))
+);

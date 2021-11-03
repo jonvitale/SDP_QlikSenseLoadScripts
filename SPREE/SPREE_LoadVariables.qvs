@@ -30,17 +30,210 @@ let v_cy = =MaxString([year_academic]);
 let v_py = =MaxString({<[year_academic]=-{'$(v_cy)'}>}[year_academic]);
 let v_py2 = =MaxString({<[year_academic]=-{'$(v_cy)', '$(v_py)'}>}[year_academic]);
 
+
+//////////////////////////////////////////////////////////////////////// 
+/// General Expression Building: requires the following elements
+/// 1. aggregation qualifier - such as total or distinct
+/// 2. set identifier - such as 1 or Alt1 or $
+/// 3. set options - such as [X]={1}, [Year]={1}
+////////////////////////////////////////////////////////////////////////
+
+/**
+ * v_agg_qualifier is used to populate the space after the aggregation function name
+ * first five letters should be total or distinct, but beyond that, anything goes,
+ * e.g., total<[School Year]>
+ * @type {[type]}
+ */
+let v_agg_qualifier = $(=
+    if(not(index(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', ' _'), '|nototal')) and index('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '|total'), 
+    	replace(textbetween(mid('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', index('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '|total')), '|', '|'), ':', ',')
+            ,'')
+    & ' ' &
+    pick(
+        wildmatch('distinct', '$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8', '$9') + 1,
+        '', '$1', '$2', '$3', '$4','$5', '$6', '$7', '$8', '$9')
+    );
+
+/**
+ * v_set_identifier is used to populate the space between opening curly bracket and angled bracket
+ *  {*here*< ... >}
+ *  can be a 1 (for ignore selections) or an alternative set, e.g., Alt, also can multiply by set
+ * @type {[type]}
+ */
+let v_set_identifier = $(=
+    pick(
+        wildmatch(replace(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', ' '), '*', 'x'), 
+            '*|$|*', '*|1|*', '*|Alt|*') + 1,
+        '', '$', '1', 'Alt')
+    );
+
+set v_list_fields_alias_nosetopt = 'count_reports',  'score',    'score_format',  'yoy_change', 'score_format_yoy', 'tier_label', 'tier_level', 'numer',     'denom',    'score_min',     'score_max',     'target_at',	  'exception_code', 'exception_label', 'eligible', 				 'meeting', 				 	 'not_meeting', 			     'improving', 'eligible_improving';
+set v_list_fields_nosetopt =       'key_report_year', 'score',    'score_format',  'yoy_change', 'score_format_yoy', 'tier_label', 'tier_level', 'numer',     'denom',    'score_min',     'score_max',     'target_at',	  'exception_code', 'exception_label', 'count_metrics_eligible', 'count_metrics_meeting_target', 'count_metrics_not_meeting_target', 'count_metrics_improving', 'count_metrics_eligible_improving';
+
+
+
+
+let v_map_agg_field = $(=pick(match(trim(lower('$1')), $(v_list_fields_alias_nosetopt)) + 1,
+        '$1', $(v_list_fields_nosetopt))
+	);
+set v_list_invalid_setopts = '{}', '$', '$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8', '$9', 'nosuppress', 'total*', 'distinct*', '1', $(v_list_fields_alias_nosetopt);
+
+//////////////////////////////////////////////////////////////////////// 
+/// setopts: the text after v_setopt_* can be entered as a parameter
+/// to v_setops and will use the "Set Option" in the set analysis
+////////////////////////////////////////////////////////////////////////
+
+
+set v_setopt_ = x={1}; // this is a dummy in case user enters invalid setopt
+set v_setopt_cy = [School Year]={'$(v_cy)'};
+set v_setopt_py = [School Year]={'$(v_py)'};
+set v_setopt_cover = [domain_code]={'COVER'};
+set v_setopt_climate = [domain_code]={'CLIMATE'};
+set v_setopt_ela = [domain_code]={'ELA'};
+set v_setopt_math = [domain_code]={'MATH'};
+set v_setopt_cc = [domain_code]={'CC'};
+set v_setopt_overall = [flag_agg_all]={1}; // ignore demographic subgroup
+set v_list_domain_codes = 'COVER', 'CLIMATE', 'ELA', 'MATH', 'CC';
+set v_setopt_leveloverall = [level]={'overall'};
+set v_setopt_leveldomain = [level]={'domain'};
+set v_setopt_levelmetric = [level]={'metric'};
+
+
+// note for this app a set of metric level setops has been created in back-end, e.g. v_setopt_enr = [metric_code]={'ENR'}
+// as well as subgroup setops, e.g., v_setopt_black = [subgroup_agg]={'BLACK'}
+
+/**
+ * v_setopts is used to populate the space within <> to denote set options.
+ * All parameter values should be one of the list above: v_setopt_*these*
+ **/
+set v_setopts = $(=
+    // substitute any fully specified set options, e.g., [x]={1}
+    concat(distinct
+        valuelist(
+            if(wildmatch('$1', $(v_list_invalid_setopts)), 'x={1}', chr(36) & '(v_setopt_' & lower(purgechar('$1', '_ /-')) & ')'),
+            if(wildmatch('$2', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$2', '_ /-')) & ')'),
+            if(wildmatch('$3', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$3', '_ /-')) & ')'),
+            if(wildmatch('$4', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$4', '_ /-')) & ')'),
+            if(wildmatch('$5', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$5', '_ /-')) & ')'),
+            if(wildmatch('$6', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$6', '_ /-')) & ')'),
+            if(wildmatch('$7', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$7', '_ /-')) & ')'),
+            if(wildmatch('$8', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$8', '_ /-')) & ')'),
+            if(wildmatch('$9', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$9', '_ /-')) & ')')
+        )
+        , ',')
+    ) &
+    // if there is no explicit assignment to a  
+	if()
+;
+
+
+
+//////////////////////////////////////////////////////////////////////// 
+/// General Calculations - for individual question or subtopic
+////////////////////////////////////////////////////////////////////////
+
+
+let v_sum = if($(=if(Wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9', '|overall|'), 0, 1)) and (Len(Only([subgroup_agg])) or $(=if(Wildmatch('$1',$(v_list_subgroups)) or Wildmatch('$2',$(v_list_subgroups)) or Wildmatch('$3',$(v_list_subgroups)) or Wildmatch('$4',$(v_list_subgroups)) or Wildmatch('$5',$(v_list_subgroups)) or Wildmatch('$6',$(v_list_subgroups)) or Wildmatch('$7',$(v_list_subgroups)) or Wildmatch('$8',$(v_list_subgroups)) or Wildmatch('$9',$(v_list_subgroups)), 1, 0))), 
+	Sum($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
+        $(v_map_agg_field($1))),
+	Sum($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, overall, $2, $3, $4, $5, $6, $7, $8))>}
+        $(v_map_agg_field($1)))
+	);
+
+let v_avg = if($(=if(Wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9', '|overall|'), 0, 1)) and (Len(Only([subgroup_agg])) or $(=if(Wildmatch('$1',$(v_list_subgroups)) or Wildmatch('$2',$(v_list_subgroups)) or Wildmatch('$3',$(v_list_subgroups)) or Wildmatch('$4',$(v_list_subgroups)) or Wildmatch('$5',$(v_list_subgroups)) or Wildmatch('$6',$(v_list_subgroups)) or Wildmatch('$7',$(v_list_subgroups)) or Wildmatch('$8',$(v_list_subgroups)) or Wildmatch('$9',$(v_list_subgroups)), 1, 0))), 
+	Avg($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
+        $(v_map_agg_field($1))),
+	Avg($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, overall, $2, $3, $4, $5, $6, $7, $8))>}
+        $(v_map_agg_field($1)))
+	);
+
+let v_only = if($(=if(Wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9', '|overall|'), 0, 1)) and (Len(Only([subgroup_agg])) or $(=if(Wildmatch('$1',$(v_list_subgroups)) or Wildmatch('$2',$(v_list_subgroups)) or Wildmatch('$3',$(v_list_subgroups)) or Wildmatch('$4',$(v_list_subgroups)) or Wildmatch('$5',$(v_list_subgroups)) or Wildmatch('$6',$(v_list_subgroups)) or Wildmatch('$7',$(v_list_subgroups)) or Wildmatch('$8',$(v_list_subgroups)) or Wildmatch('$9',$(v_list_subgroups)), 1, 0))), 
+	Only($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
+        $(v_map_agg_field($1))),
+	Only($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, overall, $2, $3, $4, $5, $6, $7, $8))>}
+        $(v_map_agg_field($1)))
+	);
+
+let v_mode = if($(=if(Wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9', '|overall|'), 0, 1)) and (Len(Only([subgroup_agg])) or $(=if(Wildmatch('$1',$(v_list_subgroups)) or Wildmatch('$2',$(v_list_subgroups)) or Wildmatch('$3',$(v_list_subgroups)) or Wildmatch('$4',$(v_list_subgroups)) or Wildmatch('$5',$(v_list_subgroups)) or Wildmatch('$6',$(v_list_subgroups)) or Wildmatch('$7',$(v_list_subgroups)) or Wildmatch('$8',$(v_list_subgroups)) or Wildmatch('$9',$(v_list_subgroups)), 1, 0))), 
+	Mode($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
+        $(v_map_agg_field($1))),
+	Mode($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, overall, $2, $3, $4, $5, $6, $7, $8))>}
+        $(v_map_agg_field($1)))
+	);
+
+
+//////////////////////////////////////////////////////////////////////// 
+/// Metric Level Scores
+////////////////////////////////////////////////////////////////////////
+
+
+
+/// This score will calculate the avg of all available metrics, defaulting to the overall (non-breakout level)
+/// however, if, at a dimensional level there is a single subgroup, will display that
+let v_score_metric = if(len($(v_only(exception_code, $1, $2, $3, $4, $5, $6, $7, $8))) = 0,
+		Num(
+			$(v_avg(score, $1, $2, $3, $4, $5, $6, $7, $8)),
+			$(v_only(score_format, $1, $2, $3, $4, $5, $6, $7, $8))
+		)
+	);
+let v_score_yoy_metric = Num(
+	$(v_avg(yoy_change, $1, $2, $3, $4, $5, $6, $7, $8))
+	,
+	$(v_only(score_format_yoy, $1, $2, $3, $4, $5, $6, $7, $8))
+);
+
+let v_tier_label_metric = if(len($(v_only(exception_code, $1, $2, $3, $4, $5, $6, $7, $8))) = 0,
+	$(v_mode(tier_label, $1, $2, $3, $4, $5, $6, $7, $8)));
+
+let v_enrollment = $(v_score_metric(enr, $1, $2, $3, $4, $5, $6, $7));
+
+
+/// parameters:
+/// $1: sy
+/// $2: metric
+/// $3: calculate for a specific subgroup demographic ($3 should be 1 or 2)
+let v_color_metric = if(Round($(v_avg(tier_level, $1, $2, $3, $4, $5, $6, $7, $8))) <= 1,
+	'#c0504d',
+	if(Round($(v_avg(tier_level, $1, $2, $3, $4, $5, $6, $7, $8))) = 2,
+		'#f79646',
+		if(Round($(v_avg(tier_level, $1, $2, $3, $4, $5, $6, $7, $8))) = 3,
+			'#00b050',
+			if(Round($(v_avg(tier_level, $1, $2, $3, $4, $5, $6, $7, $8))) >= 4,
+				'#0070c0',
+				'#808080'
+			)
+		)
+	)
+);
+
+
 //////////////////////////////////////////////////////////////////////// 
 /// Universal expressions: evaluate in context
 ////////////////////////////////////////////////////////////////////////
-let v_overall_domain_metric = If(GetPossibleCount([metric_code]) = 1 or Count(distinct [metric_code]) = 1, 
+let v_overall_domain_metric = If(GetPossibleCount([metric_code]) = 1 or Count(distinct [metric_code]) = 1 or $(=if(Wildmatch(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9', '_ /-'), '|levelmetric|'), 1, 0)) or $(=if(Wildmatch('$1',$(v_list_metric_codes)) or Wildmatch('$2',$(v_list_metric_codes)) or Wildmatch('$3',$(v_list_metric_codes)) or Wildmatch('$4',$(v_list_metric_codes)) or Wildmatch('$5',$(v_list_metric_codes)) or Wildmatch('$6',$(v_list_metric_codes)) or Wildmatch('$7',$(v_list_metric_codes)) or Wildmatch('$8',$(v_list_metric_codes)) or Wildmatch('$9',$(v_list_metric_codes)), 1, 0)), 
 	'metric',
-	If(GetPossibleCount([domain]) = 1 or Count(distinct [domain]) = 1, 
+	If(GetPossibleCount([domain]) = 1 or Count(distinct [domain]) = 1 or $(=if(Wildmatch(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9', '_ /-'), '|leveldomain|'), 1, 0)) or $(=if(Wildmatch('$1',$(v_list_domain_codes)) or Wildmatch('$2',$(v_list_domain_codes)) or Wildmatch('$3',$(v_list_domain_codes)) or Wildmatch('$4',$(v_list_domain_codes)) or Wildmatch('$5',$(v_list_domain_codes)) or Wildmatch('$6',$(v_list_domain_codes)) or Wildmatch('$7',$(v_list_domain_codes)) or Wildmatch('$8',$(v_list_domain_codes)) or Wildmatch('$9',$(v_list_domain_codes)), 1, 0)), 
 		'domain',
-    'overall'
+    	'overall'
     )
-	);
-let v_domain_metric = If(GetPossibleCount([domain]) = 1 or Count(distinct [domain]) = 1, 
+);
+let v_domain_metric = If(GetPossibleCount([domain]) = 1 or Count(distinct [domain]) = 1 or $(=if(Wildmatch(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9', '_ /-'), '|levelmetric|'), 1, 0)) or $(=if(Wildmatch('$1',$(v_list_metric_codes)) or Wildmatch('$2',$(v_list_metric_codes)) or Wildmatch('$3',$(v_list_metric_codes)) or Wildmatch('$4',$(v_list_metric_codes)) or Wildmatch('$5',$(v_list_metric_codes)) or Wildmatch('$6',$(v_list_metric_codes)) or Wildmatch('$7',$(v_list_metric_codes)) or Wildmatch('$8',$(v_list_metric_codes)) or Wildmatch('$9',$(v_list_metric_codes)), 1, 0)), 
 	'metric',
 	'domain'
 	);
@@ -62,16 +255,6 @@ let v_label_domain_metric = If($(v_domain_metric) = 'domain', 'By Domain',
 			If($(v_domain_metric) = 'metric', Only([domain]) & ' Domain', '')
 	);
 
-// In set expression {<>} use this to add a year_academic set option, will return with a comma in
-// front, so make sure there is something ahead of this like: {<x={1} $(=$(v_pset_year(cy)))>}
-// parameters
-// $1: cy, py, <blank> (i.e., all years)
-let v_pset_year = if(len(trim(purgechar('$1', '$')))>1, ',[year_academic]={"$(v_$1)"}', '');
-
-let v_pset_domain_code = If(Match('$1', 'CC', 'CLIMATE', 'ELA', 'MATH'), ',[domain_code]={"$1"}', '');
-let v_pset_metric = if(len(trim(purgechar('$1', '$')))>1, ',[metric_code]={"$1"}', '');
-let v_pset_metric_group = if(len(trim(purgechar('$1', '$')))>1, ',[metric_code_group]={"$1"}', '');
-
 // this variable takes a domain and a metric order number and provides the code
 // parameters:
 // $1 domain
@@ -82,78 +265,82 @@ let v_map_metric_order_domain_to_metric_code = Only({<[domain]={'$1'}, [metric_o
 // parameters:
 // $1 metric_code
 let v_map_metric_code_to_metric_label = Only({<[metric_code]={'$1'}>}[metric_label]);
-//////////////////////////////////////////////////////////////////////// 
-/// School-related
-////////////////////////////////////////////////////////////////////////
-let v_enrollment = Num(
-	Sum({<[metric_code]={'ENR'} $(=$(v_pset_year($1)))>}score)
-    , '#,##0');
 
 //////////////////////////////////////////////////////////////////////// 
 /// Score-related
 ////////////////////////////////////////////////////////////////////////
 
-// counts metrics
-// parameters:
-// $1 year: cy, py, py2 (blank is all years)
-// $2 metric type: atabove_target (blank), eligible, improving, eligible_improving, improving_equitable, eligible_improving_equitable 
-// $3 level: overall (blank), domain, metric
-let v_count_metrics = Sum({<x={1} $(=$(v_pset_year($1)))>}
-	[count_metrics_$(=if(len(trim(purgechar('$2', '$')))>1, '$2', 'atabove_target'))_$(=if(len(trim(purgechar('$3', '$')))>1, '$3', 'overall'))]);
+let v_count_reports = Num(
+	if($(=if(Wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9', '|overall|'), 0, 1)) and (Len(Only([subgroup_agg])) or $(=if(Wildmatch('$1',$(v_list_subgroups)) or Wildmatch('$2',$(v_list_subgroups)) or Wildmatch('$3',$(v_list_subgroups)) or Wildmatch('$4',$(v_list_subgroups)) or Wildmatch('$5',$(v_list_subgroups)) or Wildmatch('$6',$(v_list_subgroups)) or Wildmatch('$7',$(v_list_subgroups)) or Wildmatch('$8',$(v_list_subgroups)) or Wildmatch('$9',$(v_list_subgroups)), 1, 0))), 
+		Count(distinct $(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+	        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+	        <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
+	        $(v_map_agg_field(count_reports))),
+		Count (distinct $(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+	        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+	        <$(v_setopts($1, overall, $2, $3, $4, $5, $6, $7, $8))>}
+	        $(v_map_agg_field(count_reports)))
+		)
+	, '#,##0');
+
+
+// counts metrics meeting criteria, 
+// the first parameter can be an alternative to meeting
+// if no such parameter is given, count_metrics_meeting is default
+let v_count_metrics = Num($(v_sum(
+	$(=if(Wildmatch('$1', $(v_list_fields_alias_nosetopt)), '$1', 'meeting')), 
+		$(=if(Wildmatch('$1', $(v_list_fields_alias_nosetopt)), '', '$1')), $2, $3, $4, $5, $6, $7, $8)), '#,##0');
 	
-let v_count_metrics_overall_to_metric = if($(v_overall_domain_metric) = 'overall', $(v_count_metrics($1, $2, overall)),
-	if($(v_overall_domain_metric) = 'domain', $(v_count_metrics($1, $2, domain)),
-		if($(v_overall_domain_metric) = 'metric', $(v_count_metrics($1, $2, metric)))));
+let v_count_metrics_overall_to_metric = if($(v_overall_domain_metric($1,$2,$3,$4,$5,$6,$7,$8,$9)) = 'overall', $(v_count_metrics($1, level_overall, $2, $3, $4, $5, $6, $7, $8)),
+	if($(v_overall_domain_metric($1,$2,$3,$4,$5,$6,$7,$8,$9)) = 'domain', $(v_count_metrics($1, level_domain, $2, $3, $4, $5, $6, $7, $8)),
+		if($(v_overall_domain_metric($1,$2,$3,$4,$5,$6,$7,$8,$9)) = 'metric', $(v_count_metrics($1, level_metric, $2, $3, $4, $5, $6, $7, $8)))));
 
 // counts metrics
 // parameters:
 // $1 year: cy, py, py2 (blank is all years)
-// $2 metric type: atabove_target (blank), eligible, improving, eligible_improving, improving_equitable, eligible_improving_equitable 
+// $2 metric type: meeting (blank), eligible, improving, eligible_improving, improving_equitable, eligible_improving_equitable 
 // $3 domain_code
-let v_count_metrics_domain_selected_to_metric = Sum({<x={1} $(=$(v_pset_year($1))) $(=$(v_pset_domain_code($3)))>}
-	[count_metrics_$(=if(len(trim(purgechar('$2', '$')))>1, '$2', 'atabove_target'))_$(=if($(v_overall_domain_metric)='metric', 'metric', 'domain'))]);
+// let v_count_metrics_domain_selected_to_metric = Sum({<x={1} $(=$(v_pset_year($1))) $(=$(v_pset_domain_code($3)))>}
+// 	[count_metrics_$(=if(len(trim(purgechar('$2', '$')))>1, '$2', 'meeting'))_$(=if($(v_overall_domain_metric)='metric', 'metric', 'domain'))]);
 
 /// denominator
 
-// how many metrics are we at target or above?
-// parameters:
-// $1 year: cy, py, py2 (blank is all years)
-// $2 metric type: atabove_target (default), improving, improving_equitable
+// how many metrics meet a threshold (default meeting)
+// the first parameter can be an alternative to meeting, one of (improving)
+// if no such parameter is given, meeting is default
 let v_pct_metrics_overall_to_metric = Num(
-		if($(v_count_metrics_overall_to_metric($1, eligible$(=if(len(trim(purgechar('$2', '$')))>1 and '$2' <> 'atabove_target', '_$2', '')))) > 0,
+		if($(v_count_metrics_overall_to_metric(eligible$(=if(Wildmatch('$1', 'improving'), '_improving', '')), $(=if(Wildmatch('$1', 'meeting', 'improving'), '$', '$1')), $2, $3, $4, $5, $6, $7, $8)) > 0,
 			RangeMin(1, 
-				$(v_count_metrics_overall_to_metric($1, $(=if(len(trim(purgechar('$2', '$')))>1, '$2', 'atabove_target'))))
+				$(v_count_metrics_overall_to_metric($1, $2, $3, $4, $5, $6, $7, $8))
 				/
-				$(v_count_metrics_overall_to_metric($1, eligible$(=if(len(trim(purgechar('$2', '$')))>1 and '$2' <> 'atabove_target', '_$2', ''))))
+				$(v_count_metrics_overall_to_metric(eligible$(=if(Wildmatch('$1', 'improving'), '_improving', '')), $(=if(Wildmatch('$1', 'meeting', 'improving'), '$', '$1')), $2, $3, $4, $5, $6, $7, $8))
 			  + 0.0000000001
 			)
 		),
     '#0.#%'
 );
 
-// counts metrics
-// parameters:
-// $1 year: cy, py, py2 (blank is all years)
-// $2 metric type: atabove_target (blank), eligible, improving, eligible_improving, improving_equitable, eligible_improving_equitable 
-// $3 domain_code: ELA, MATH, CLIMATE, CC
-let v_pct_metrics_domain_selected_to_metric = Num(
-		if($(v_count_metrics_domain_selected_to_metric($1, eligible$(=if(len(trim(purgechar('$2', '$')))>1 and '$2' <> 'atabove_target', '_$2', '')), $3)) > 0,
-			RangeMin(1, 
-				$(v_count_metrics_domain_selected_to_metric($1, $(=if(len(trim(purgechar('$2', '$')))>1, '$2', 'atabove_target')), $3))
-				/
-				$(v_count_metrics_domain_selected_to_metric($1, eligible$(=if(len(trim(purgechar('$2', '$')))>1 and '$2' <> 'atabove_target', '_$2', '')), $3))
-			  + 0.0000000001
-			)
-		),
-    '#0.#%'
+// color by tier
+/// parameters:
+/// $1: sy
+/// $2: calculate for a specific subgroup demographic (e.g. ASIAN)
+let v_tier_overall = if(len(trim(purgechar('$3', '$')))>1 or Not(IsNull(Only([subgroup_agg]))),
+	MaxString({<[x]={1} $(=$(v_pset_year($1))) $(=$(v_pset_metric(GOALS))) $(=$(v_pset_subgroup($2))) >}
+		[$(=if(len(trim(purgechar('$3', '$')))>1, '$3', 'score'))]	
+	)
+	,
+	// else for overall
+	MaxString({<[flag_agg_all]={1} $(=$(v_pset_metric(GOALS))) $(=$(v_pset_year($1))) $(=$(v_pset_subgroup($2))) >}
+		[$(=if(len(trim(purgechar('$3', '$')))>1, '$3', 'score'))]
+	)
 );
 
 
 // color by tier
 // parameters:
 // $1 year: cy, py, py2 (blank is all years)
-// $2 metric type: atabove_target (default), improving, improving_equitable
-let v_tier_pct_metric = if(len(trim(purgechar('$2', '$'))) <= 1 or '$2' = 'atabove_target' or '$2' = 'equitable',
+// $2 metric type: meeting (default), improving, improving_equitable
+let v_tier_pct_metric = if(len(trim(purgechar('$2', '$'))) <= 1 or '$2' = 'meeting',
 		if($(v_pct_metrics_overall_to_metric($1, $2)) > 0.8, 'high',
 			if($(v_pct_metrics_overall_to_metric($1, $2)) >= 0.5, 'medium',
 				if($(v_pct_metrics_overall_to_metric($1, $2)) >= 0, 'low')))
@@ -169,7 +356,7 @@ let v_tier_pct_metric = if(len(trim(purgechar('$2', '$'))) <= 1 or '$2' = 'atabo
 // color by tier
 // parameters:
 // $1 year: cy, py, py2 (blank is all years)
-// $2 metric type: atabove_target (default), improving, improving_equitable
+// $2 metric type: meeting (default), improving, improving_equitable
 // $3 show blanks for notimproving and notequitable (1 yes, blank no)
 let v_tier_label_pct_metric = If(WildMatch($(v_tier_pct_metric($1, $2)), 'not*'), 
 		if('$3' = '1', '', 'Not ' & Capitalize(Mid($(v_tier_pct_metric($1, $2)), 4))), 
@@ -199,42 +386,3 @@ let v_pset_metric_agglevel = if(Match('$1', '1', '2'),
 	if($1 = 1, ',[flag_agg_all]={0}', '')
 	, ',[flag_agg_all]={1}');
 
-let v_pset_subgroup = if(len(trim(purgechar('$1', '$')))>1, ',[subgroup_agg]={"$1"}', '');
-
-/// This score will calculate the avg of all available metrics, defaulting to the overall (non-breakout level)
-/// however, if, at a dimensional level there is a single subgroup, will display that
-/// parameters:
-/// $1: sy
-/// $2: metric
-/// $3: calculate for a specific subgroup demographic (e.g. ASIAN)
-/// $4: alternatives to score: score_min, score_max, target_at, target_approaching, target_above
-let v_score_metric = if(len(trim(purgechar('$3', '$')))>1 or Not(IsNull(Only([subgroup_agg]))),
-		Num(
-			Avg({<[x]={1} $(=$(v_pset_year($1))) $(=$(v_pset_metric($2))) $(=$(v_pset_subgroup($3))) >}
-				[$(=if(len(trim(purgechar('$4', '$')))>1, '$4', 'score'))]
-			)
-			,
-		  MaxString({<[x]={1} $(=$(v_pset_year($1))) $(=$(v_pset_metric($2)))>}[score_format])
-		)
-	  ,
-	  Num(
-	  // else for overall
-		  Avg({<[flag_agg_all]={1} $(=$(v_pset_year($1))) $(=$(v_pset_metric($2))) $(=$(v_pset_subgroup($3))) >}
-				[$(=if(len(trim(purgechar('$4', '$')))>1, '$4', 'score'))]
-			)
-			,
-		  MaxString({<[flag_agg_all]={1} $(=$(v_pset_year($1))) $(=$(v_pset_metric($2)))>}[score_format])
-		)
-);
-
-/// parameters:
-/// $1: sy
-/// $2: metric
-/// $3: calculate for a specific subgroup demographic ($3 should be 1 or 2)
-let v_color_metric = Pick(
-		Round($(v_score_metric($1, $2, $3, tier_level))),
-		'#c0504d',
-		'#f79646',
-		'#00b050',
-		'#0070c0'
-	);

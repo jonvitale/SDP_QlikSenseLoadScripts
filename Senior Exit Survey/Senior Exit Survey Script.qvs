@@ -356,6 +356,7 @@ let vText_QuestionCode_Support = Q10_combine;
 let vText_QuestionCode_Stack = Q10_stack;
 let vText_QuestionCode_Prepare = Q11_combine;
 let vText_QuestionCode_Participate = Q7c_combine;
+let vText_QuestionCode_Attend = Q13_combine;
 
 let vNum_CountTotal_Responses_QuestionCode_Current = Num(
 		If($(vNum_CountTotal_Respondents_Current) >= $(vMinStudents), Sum(Total {<[School Year] = {'$(vSchoolYear_Current)'}, [question_code] = {"$1"}>}ONE_responded_to_question))
@@ -559,4 +560,35 @@ let vSort_ReceivedSupportFrom = IF([response_text_clean] = 'Family', 1,
 	IF([response_text_clean] = 'School Administrators', 9, 
 		10
 	)))))))));
+
+let vSort_Attend = IF([response_text_clean] = 'None of the above', 1,
+	IF([response_text_clean] = 'A college fair at my school (virtually)', 2,
+	IF([response_text_clean] = 'A college fair at my school (in person)', 3,
+	IF([response_text_clean] = 'A college fair outside of my school (virtually)', 4,
+	IF([response_text_clean] = 'A college fair outside of my school (in person)', 5,
+	IF([response_text_clean] = 'A college visit or shadowing experience (virtually)', 6,
+	IF([response_text_clean] = 'A college visit or shadowing experience (in person)', 7, 
+	IF([response_text_clean] = 'A workshop or training to help me get ready for college (ex. financial aid workshop)', 8, 
+	IF([response_text_clean] = 'A career or job fair (virtually)', 9, 
+	IF([response_text_clean] = 'A career or job fair (in person)', 10, 
+	IF([response_text_clean] = 'A career-related visit or shadowing experience (virtually)', 11, 
+	IF([response_text_clean] = 'A career-related visit or shadowing experience (in person)', 12, 
+	IF([response_text_clean] = 'A workshop or training to help me get ready for the workforce (ex. resume building)', 13, 
+	IF([response_text_clean] = 'SSome other event ', 14, 
+		15
+	))))))))))))));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
