@@ -66,8 +66,8 @@ let v_set_identifier = $(=
         '', '$', '1', 'Alt', 'Alt *')
     );
 
-set v_list_fields_alias_nosetopt = 'respondents',    'enrolled',     'respondents_tracker',    'enrolled_tracker',     'responses',     'positive',	   'construct_score';
-set v_list_fields_nosetopt =       'flag_responded', 'flag_student', 'flag_responded_tracker', 'flag_student_tracker', 'flag_response_scored', 'flag_positive', 'construct_score';
+set v_list_fields_alias_nosetopt = 'student',       'count_respondents_ytd',       'count_enrolled_ytd',     'count_respondents',    'count_enrolled',     'count_respondents_tracker',    'count_enrolled_tracker',     'responses',     'positive',	   'construct_score';
+set v_list_fields_nosetopt =       'id_student',    'flag_responded_latest',        'flag_student_latest', 'flag_responded', 'flag_student', 'flag_responded_tracker', 'flag_student_tracker', 'flag_response_scored', 'flag_positive', 'construct_score';
 
 let v_map_agg_field = $(=pick(match(trim(lower('$1')), $(v_list_fields_alias_nosetopt)) + 1,
         '$1', $(v_list_fields_nosetopt))
@@ -92,6 +92,16 @@ set v_setopt_adult = [id_relationship]={'Adult'};
 set v_setopt_peer = [id_relationship]={'Peer'};
 set v_setopt_self = [id_relationship]={'Self'};
 set v_setopt_responsescored = [flag_response_scored]={1};
+set v_setopt_cytd = [School Year]={'$(v_cy)'}, [Response Period]=, [Response Period Number]=;
+set v_setopt_pytd = [School Year]={'$(v_py)'}, [Response Period]=, [Response Period Number]=;
+set v_setopt_ytd = [Response Period]=, [Response Period Number]=;
+// these flags should be used when counting enrolled and respndents
+set v_setopt_respondents = [flag_responded]={1};
+set v_setopt_enrolled = [flag_student]={1};
+set v_setopt_respondentsytd = [flag_responded_latest]={1};
+set v_setopt_enrolledytd = [flag_student_latest]={1};
+set v_setopt_respondentstracker = [flag_responded_tracker]={1};
+set v_setopt_enrolledtracker = [flag_student_tracker]={1};
 
 // note for this app a set of question level setops has been created in back-end, e.g. v_setopt_q1a = [QuestionCode]={'Q1a'}
 
@@ -130,21 +140,25 @@ let v_sum = Sum($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
         {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
         <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
         $(v_map_agg_field($1)));
+let v_count = Count($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
+        $(v_map_agg_field($1)));
 let v_avg = Avg($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
         {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
         <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
         $(v_map_agg_field($1)));
-let v_suppress = $(=if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_none|*', '*|nosuppress|*'),
-    1,
-    'if(' & chr(36) & '(v_sum($1, $2, $3, $4, $5, $6, $7, $8, $9)) >= 5, 1, Null())'
-));
 
 //////////////////////////////////////////////////////////////////////// 
 /// Response Rate
 ////////////////////////////////////////////////////////////////////////
 
-let v_count_responded = $(v_sum(respondents$(=if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|trp|*'), '_tracker', '')), $1, $2, $3, $4, $5, $6, $7, $8));
-let v_count_enrolled = $(v_sum(enrolled$(=if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|trp|*'), '_tracker', '')), $1, $2, $3, $4, $5, $6, $7, $8));
+let v_count_responded = $(v_count(student, respondents$(=pick(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|trp|*', '*|*ytd|*')+1, '', '_tracker', '_ytd')), distinct, $1, $2, $3, $4, $5, $6, $7));
+let v_count_enrolled = $(v_count(student, enrolled$(=pick(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|trp|*', '*|*ytd|*')+1, '', '_tracker', '_ytd')), distinct, $1, $2, $3, $4, $5, $6, $7));
+let v_suppress = $(=if(wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '*|suppress_none|*', '*|nosuppress|*'),
+    1,
+    'if(' & chr(36) & '(v_count_responded($1, $2, $3, $4, $5, $6, $7, $8, $9)) >= 5, 1, Null())'
+));
 
 //////////////////////////////////////////////////////////////////////// 
 /// Individual Questions

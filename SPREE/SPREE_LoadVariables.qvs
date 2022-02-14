@@ -30,6 +30,11 @@ let v_cy = =MaxString([year_academic]);
 let v_py = =MaxString({<[year_academic]=-{'$(v_cy)'}>}[year_academic]);
 let v_py2 = =MaxString({<[year_academic]=-{'$(v_cy)', '$(v_py)'}>}[year_academic]);
 
+let v_calc_dim_school_level = If(
+	Wildmatch(
+		GetObjectDimension(0)&GetObjectDimension(1)&GetObjectDimension(2)&GetObjectDimension(3)&GetObjectDimension(4)&GetObjectDimension(5)&GetObjectDimension(6)&GetObjectDimension(7)&GetObjectDimension(8)&GetObjectDimension(9),
+		'*School Name*', '*ULCS*', '*abbrev name*', 'key_report*', 'Latitude_Longitude', 'School (Reporting Category)'
+	) > 0, 1, 0);
 
 //////////////////////////////////////////////////////////////////////// 
 /// General Expression Building: requires the following elements
@@ -67,8 +72,8 @@ let v_set_identifier = $(=
         '', '$', '1', 'Alt')
     );
 
-set v_list_fields_alias_nosetopt = 'count_reports',  'score',    'score_format',  'yoy_change', 'score_format_yoy', 'tier_label', 'tier_level', 'numer',     'denom',    'score_min',     'score_max',     'target_at',	  'exception_code', 'exception_label', 'eligible', 				 'meeting', 				 	 'not_meeting', 			     'improving', 'eligible_improving';
-set v_list_fields_nosetopt =       'key_report_year', 'score',    'score_format',  'yoy_change', 'score_format_yoy', 'tier_label', 'tier_level', 'numer',     'denom',    'score_min',     'score_max',     'target_at',	  'exception_code', 'exception_label', 'count_metrics_eligible', 'count_metrics_meeting_target', 'count_metrics_not_meeting_target', 'count_metrics_improving', 'count_metrics_eligible_improving';
+set v_list_fields_alias_nosetopt = 'lat_long', 'informational',	 	'scored',      'count_reports',   'score',    'score_format',  'yoy_change', 'score_format_yoy', 'tier_label', 'tier_level', 'numer',     'denom',    'score_min',     'score_max',		'score_min_display',     'score_max_display',     'target_at',	  'target_final',  'exception_code', 'exception_label', 'eligible', 				 'meeting', 			  'improving',               'eligible_improving',               'pct_meeting',         'pct_improving',		 'enrollment';
+set v_list_fields_nosetopt =       'Latitude_Longitude', 'flag_informational','flag_scored', 'key_report_year', 'score',    'score_format',  'score_change', 'score_format_yoy', 'tier_label', 'tier_level', 'numer',     'denom',    'score_min',     'score_max',		'score_min_display',     'score_max_display',     'target_at',	  'target_final',  'exception_code', 'exception_label', 'count_metrics_eligible', 'count_metrics_meeting', 'count_metrics_improving', 'count_metrics_eligible_improving', 'pct_metrics_meeting', 'pct_metrics_improving', 'enrollment';
 
 
 
@@ -92,12 +97,23 @@ set v_setopt_climate = [domain_code]={'CLIMATE'};
 set v_setopt_ela = [domain_code]={'ELA'};
 set v_setopt_math = [domain_code]={'MATH'};
 set v_setopt_cc = [domain_code]={'CC'};
+set v_setopt_domainall = [domain_code]={"*"};
 set v_setopt_overall = [flag_agg_all]={1}; // ignore demographic subgroup
 set v_list_domain_codes = 'COVER', 'CLIMATE', 'ELA', 'MATH', 'CC';
 set v_setopt_leveloverall = [level]={'overall'};
 set v_setopt_leveldomain = [level]={'domain'};
 set v_setopt_levelmetric = [level]={'metric'};
+set v_setopt_scorelevelhigh = [overall_level]={"Level 1*", "Level 2*"};
+set v_setopt_scorelevelany = [overall_level]={"Level *"};
+set v_setopt_metriceligiblereport = [flag_metric_eligible_for_report]={1};
 
+// for metric level
+set v_setopt_metricmeeting = [tier_level]={">=3"};
+set v_setopt_metricimproving = [tier_level]={2, 4};
+set v_setopt_metriceligible = [level]={'metric'}, [count_metrics_eligible]={1};
+set v_setopt_metriceligibleimproving = [level]={'metric'}, [count_metrics_eligible_improving]={1};
+set v_setopt_metricscored = [flag_scored]={1};
+set v_setopt_hasdata = [flag_has_data]={1};
 
 // note for this app a set of metric level setops has been created in back-end, e.g. v_setopt_enr = [metric_code]={'ENR'}
 // as well as subgroup setops, e.g., v_setopt_black = [subgroup_agg]={'BLACK'}
@@ -121,10 +137,7 @@ set v_setopts = $(=
             if(wildmatch('$9', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$9', '_ /-')) & ')')
         )
         , ',')
-    ) &
-    // if there is no explicit assignment to a  
-	if()
-;
+    );
 
 
 
@@ -177,6 +190,23 @@ let v_mode = if($(=if(Wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9', '|overall|'), 0, 
         $(v_map_agg_field($1)))
 	);
 
+let v_maxstring = if($(=if(Wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9', '|overall|'), 0, 1)) and (Len(Only([subgroup_agg])) or $(=if(Wildmatch('$1',$(v_list_subgroups)) or Wildmatch('$2',$(v_list_subgroups)) or Wildmatch('$3',$(v_list_subgroups)) or Wildmatch('$4',$(v_list_subgroups)) or Wildmatch('$5',$(v_list_subgroups)) or Wildmatch('$6',$(v_list_subgroups)) or Wildmatch('$7',$(v_list_subgroups)) or Wildmatch('$8',$(v_list_subgroups)) or Wildmatch('$9',$(v_list_subgroups)), 1, 0))), 
+	MaxString($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
+        $(v_map_agg_field($1))),
+	MaxString($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, overall, $2, $3, $4, $5, $6, $7, $8))>}
+        $(v_map_agg_field($1)))
+	);
+
+// not using overall
+let v_maxstring_simple = MaxString($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
+        $(v_map_agg_field($1)));
+
 
 //////////////////////////////////////////////////////////////////////// 
 /// Metric Level Scores
@@ -186,43 +216,71 @@ let v_mode = if($(=if(Wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9', '|overall|'), 0, 
 
 /// This score will calculate the avg of all available metrics, defaulting to the overall (non-breakout level)
 /// however, if, at a dimensional level there is a single subgroup, will display that
-let v_score_metric = if(len($(v_only(exception_code, $1, $2, $3, $4, $5, $6, $7, $8))) = 0,
+let v_score_metric = //if(len($(v_only(exception_code, $1, $2, $3, $4, $5, $6, $7, $8))) = 0,
 		Num(
-			$(v_avg(score, $1, $2, $3, $4, $5, $6, $7, $8)),
-			$(v_only(score_format, $1, $2, $3, $4, $5, $6, $7, $8))
-		)
-	);
+			$(v_avg(score, $1, $2, $3, $4, $5, $6, $7, $8)), 
+			'$(=$(v_only(score_format, $1, $2, $3, $4, $5, $6, $7, $8)))'
+		);
+	//);
+let v_target_metric = Num(
+			$(v_avg(target_at, $1, $2, $3, $4, $5, $6, $7, $8)), 
+			'$(=$(v_only(score_format, $1, $2, $3, $4, $5, $6, $7, $8)))'
+		);
+let v_final_metric = Num(
+			$(v_avg(target_final, $1, $2, $3, $4, $5, $6, $7, $8)),
+			'$(=$(v_only(score_format, $1, $2, $3, $4, $5, $6, $7, $8)))'
+		);
+
 let v_score_yoy_metric = Num(
 	$(v_avg(yoy_change, $1, $2, $3, $4, $5, $6, $7, $8))
 	,
-	$(v_only(score_format_yoy, $1, $2, $3, $4, $5, $6, $7, $8))
+	'$(=$(v_only(score_format_yoy, $1, $2, $3, $4, $5, $6, $7, $8)))'
 );
 
 let v_tier_label_metric = if(len($(v_only(exception_code, $1, $2, $3, $4, $5, $6, $7, $8))) = 0,
 	$(v_mode(tier_label, $1, $2, $3, $4, $5, $6, $7, $8)));
 
-let v_enrollment = $(v_score_metric(enr, $1, $2, $3, $4, $5, $6, $7));
+let v_enrollment = $(v_sum(enrollment, $1, $2, $3, $4, $5, $6, $7));
 
+let v_tier_level_metric = if($(v_only(informational, $1, $2, $3, $4, $5, $6, $7, $8)) <> 1 and
+	IsNum($(v_score_metric($1, $2, $3, $4, $5, $6, $7, $8)))
+	,
+	if($(v_score_metric($1, $2, $3, $4, $5, $6, $7, $8)) >=
+	   $(v_target_metric($1, $2, $3, $4, $5, $6, $7, $8)),
+		4, 2
+	)
+);
 
-/// parameters:
-/// $1: sy
-/// $2: metric
-/// $3: calculate for a specific subgroup demographic ($3 should be 1 or 2)
-let v_color_metric = if(Round($(v_avg(tier_level, $1, $2, $3, $4, $5, $6, $7, $8))) <= 1,
-	'#c0504d',
-	if(Round($(v_avg(tier_level, $1, $2, $3, $4, $5, $6, $7, $8))) = 2,
-		'#f79646',
-		if(Round($(v_avg(tier_level, $1, $2, $3, $4, $5, $6, $7, $8))) = 3,
-			'#00b050',
-			if(Round($(v_avg(tier_level, $1, $2, $3, $4, $5, $6, $7, $8))) >= 4,
-				'#0070c0',
-				'#808080'
+/// The metric is currently colored based solely on meeting target or not.
+/// in future years the improvement score
+let v_color_metric = Pick(Alt($(v_tier_level_metric($1, $2, $3, $4, $5, $6, $7, $8)) + 1, 1), 
+	'#bdbdbd', '#c0504d', '#f79646', '#f79646', '#0070c0');
+
+/*
+// the following version is not in use, but averages the metric tiers of schools
+let v_tier_level_metric = if($(v_only(informational, $1, $2, $3, $4, $5, $6, $7, $8)) <> 1,
+	Round($(v_avg(tier_level, $1, $2, $3, $4, $5, $6, $7, $8)))
+);
+
+/// The metric is currently colored based solely on meeting target or not.
+/// in future years the improvement score
+let v_color_metric = if($(v_only(informational, $1, $2, $3, $4, $5, $6, $7, $8)) <> 1,
+	if(Round($(v_avg(tier_level, $1, $2, $3, $4, $5, $6, $7, $8))) = 1,
+		if($(full_version), '#c0504d', '#f79646'),
+		if(Round($(v_avg(tier_level, $1, $2, $3, $4, $5, $6, $7, $8))) = 2,
+			'#f79646',
+			if(Round($(v_avg(tier_level, $1, $2, $3, $4, $5, $6, $7, $8))) = 3,
+				if($(full_version), '#00b050', '#0070c0'),
+				if(Round($(v_avg(tier_level, $1, $2, $3, $4, $5, $6, $7, $8))) = 4,
+					'#0070c0',
+					'#bdbdbd'
+				)
 			)
 		)
 	)
 );
 
-
+*/
 //////////////////////////////////////////////////////////////////////// 
 /// Universal expressions: evaluate in context
 ////////////////////////////////////////////////////////////////////////
@@ -259,7 +317,7 @@ let v_label_domain_metric = If($(v_domain_metric) = 'domain', 'By Domain',
 // parameters:
 // $1 domain
 // $2 metric_order_domain
-let v_map_metric_order_domain_to_metric_code = Only({<[domain]={'$1'}, [metric_order_domain]={$2}>}[metric_code]);
+let v_map_metric_order_domain_to_metric_code = Only({<[domain_code]={'$1'}, [metric_order_domain_scored]={$2}>}[metric_code]);
 
 // this variable takes a metric code and provides a label
 // parameters:
@@ -269,6 +327,8 @@ let v_map_metric_code_to_metric_label = Only({<[metric_code]={'$1'}>}[metric_lab
 //////////////////////////////////////////////////////////////////////// 
 /// Score-related
 ////////////////////////////////////////////////////////////////////////
+
+// overall % meeting
 
 let v_count_reports = Num(
 	if($(=if(Wildmatch('|$1|$2|$3|$4|$5|$6|$7|$8|$9', '|overall|'), 0, 1)) and (Len(Only([subgroup_agg])) or $(=if(Wildmatch('$1',$(v_list_subgroups)) or Wildmatch('$2',$(v_list_subgroups)) or Wildmatch('$3',$(v_list_subgroups)) or Wildmatch('$4',$(v_list_subgroups)) or Wildmatch('$5',$(v_list_subgroups)) or Wildmatch('$6',$(v_list_subgroups)) or Wildmatch('$7',$(v_list_subgroups)) or Wildmatch('$8',$(v_list_subgroups)) or Wildmatch('$9',$(v_list_subgroups)), 1, 0))), 
@@ -287,38 +347,118 @@ let v_count_reports = Num(
 // counts metrics meeting criteria, 
 // the first parameter can be an alternative to meeting
 // if no such parameter is given, count_metrics_meeting is default
-let v_count_metrics = Num($(v_sum(
-	$(=if(Wildmatch('$1', $(v_list_fields_alias_nosetopt)), '$1', 'meeting')), 
-		$(=if(Wildmatch('$1', $(v_list_fields_alias_nosetopt)), '', '$1')), $2, $3, $4, $5, $6, $7, $8)), '#,##0');
+let v_count_metrics = Num(
+	If(
+		IsNum($(v_avg(
+			$(=if(Wildmatch('$1', $(v_list_fields_alias_nosetopt)), '$1', 'meeting')), 
+			$(=if(Wildmatch('$1', $(v_list_fields_alias_nosetopt)), '$9', '$1')), $2, $3, $4, $5, $6, $7, $8))),
+		$(v_sum(
+			$(=if(Wildmatch('$1', $(v_list_fields_alias_nosetopt)), '$1', 'meeting')), 
+			$(=if(Wildmatch('$1', $(v_list_fields_alias_nosetopt)), '$9', '$1')), $2, $3, $4, $5, $6, $7, $8))
+	), '#,##0');
+
+let v_avg_metrics = Num(
+	If(
+		IsNum($(v_avg(
+			$(=if(Wildmatch('$1', $(v_list_fields_alias_nosetopt)), '$1', 'meeting')), 
+			$(=if(Wildmatch('$1', $(v_list_fields_alias_nosetopt)), '$9', '$1')), $2, $3, $4, $5, $6, $7, $8))),
+		$(v_avg(
+			$(=if(Wildmatch('$1', $(v_list_fields_alias_nosetopt)), '$1', 'meeting')), 
+			$(=if(Wildmatch('$1', $(v_list_fields_alias_nosetopt)), '$9', '$1')), $2, $3, $4, $5, $6, $7, $8))
+	), '#,##0.#');
+//
+// examples $(v_pct_metric(pct_meeting))
+let v_pct_metrics = Num($(v_avg(
+	$(=if(Wildmatch('$1', $(v_list_fields_alias_nosetopt)), '$1', 'pct_meeting')), 
+		$(=if(Wildmatch('$1', $(v_list_fields_alias_nosetopt)), '$9', '$1')), $2, $3, $4, $5, $6, $7, $8)), '#0.#%');
 	
 let v_count_metrics_overall_to_metric = if($(v_overall_domain_metric($1,$2,$3,$4,$5,$6,$7,$8,$9)) = 'overall', $(v_count_metrics($1, level_overall, $2, $3, $4, $5, $6, $7, $8)),
 	if($(v_overall_domain_metric($1,$2,$3,$4,$5,$6,$7,$8,$9)) = 'domain', $(v_count_metrics($1, level_domain, $2, $3, $4, $5, $6, $7, $8)),
 		if($(v_overall_domain_metric($1,$2,$3,$4,$5,$6,$7,$8,$9)) = 'metric', $(v_count_metrics($1, level_metric, $2, $3, $4, $5, $6, $7, $8)))));
 
-// counts metrics
-// parameters:
-// $1 year: cy, py, py2 (blank is all years)
-// $2 metric type: meeting (blank), eligible, improving, eligible_improving, improving_equitable, eligible_improving_equitable 
-// $3 domain_code
-// let v_count_metrics_domain_selected_to_metric = Sum({<x={1} $(=$(v_pset_year($1))) $(=$(v_pset_domain_code($3)))>}
-// 	[count_metrics_$(=if(len(trim(purgechar('$2', '$')))>1, '$2', 'meeting'))_$(=if($(v_overall_domain_metric)='metric', 'metric', 'domain'))]);
+let v_avg_metrics_overall_to_metric = if($(v_overall_domain_metric($1,$2,$3,$4,$5,$6,$7,$8,$9)) = 'overall', $(v_avg_metrics($1, level_overall, $2, $3, $4, $5, $6, $7, $8)),
+	if($(v_overall_domain_metric($1,$2,$3,$4,$5,$6,$7,$8,$9)) = 'domain', $(v_avg_metrics($1, level_domain, $2, $3, $4, $5, $6, $7, $8)),
+		if($(v_overall_domain_metric($1,$2,$3,$4,$5,$6,$7,$8,$9)) = 'metric', $(v_avg_metrics($1, level_metric, $2, $3, $4, $5, $6, $7, $8)))));
 
-/// denominator
 
-// how many metrics meet a threshold (default meeting)
-// the first parameter can be an alternative to meeting, one of (improving)
-// if no such parameter is given, meeting is default
-let v_pct_metrics_overall_to_metric = Num(
-		if($(v_count_metrics_overall_to_metric(eligible$(=if(Wildmatch('$1', 'improving'), '_improving', '')), $(=if(Wildmatch('$1', 'meeting', 'improving'), '$', '$1')), $2, $3, $4, $5, $6, $7, $8)) > 0,
-			RangeMin(1, 
-				$(v_count_metrics_overall_to_metric($1, $2, $3, $4, $5, $6, $7, $8))
-				/
-				$(v_count_metrics_overall_to_metric(eligible$(=if(Wildmatch('$1', 'improving'), '_improving', '')), $(=if(Wildmatch('$1', 'meeting', 'improving'), '$', '$1')), $2, $3, $4, $5, $6, $7, $8))
-			  + 0.0000000001
-			)
-		),
-    '#0.#%'
-);
+let v_pct_metrics_overall_to_metric = if($(v_overall_domain_metric($1,$2,$3,$4,$5,$6,$7,$8,$9)) = 'overall', $(v_pct_metrics($1, level_overall, $2, $3, $4, $5, $6, $7, $8)),
+	if($(v_overall_domain_metric($1,$2,$3,$4,$5,$6,$7,$8,$9)) = 'domain', $(v_pct_metrics($1, level_domain, $2, $3, $4, $5, $6, $7, $8)),
+		if($(v_overall_domain_metric($1,$2,$3,$4,$5,$6,$7,$8,$9)) = 'metric', $(v_pct_metrics($1, level_metric, $2, $3, $4, $5, $6, $7, $8)))));
+
+
+//////////////////////////////////////////////////////////////////////// 
+/// Overall Score Level
+////////////////////////////////////////////////////////////////////////
+
+/**
+*	Overall Score Level is calculated according to the following rules
+*	percent_targets_met is greater than or equal to 67% and percent_targets_improving is greater than or equal to 50%: Level 1
+*	percent_targets_met is greater than or equal to 67% and percent_targets_improving is less than 50%: Level 2
+*	percent_targets_met is between 34% and 66% (inclusive) and percent_targets_improving is greater than or equal to 50%: Level 3
+*	percent_targets_met is between 34% and 66% (inclusive) and percent_targets_improving is less than 50%: Level 4
+*	percent_targets_met is between 0% and 33% (inclusive) and percent_targets_improving is greater than or equal to 50%: Level 5
+*	percent_targets_met is between 0% and 33% (inclusive) and percent_targets_improving is less than 50%: Level 6
+*	Formula is (generally, but not exactly implemented as) 6 - ( 2*[% meeting (max of 2)] + [% Improving] )
+*/
+
+
+// note: the following is for when we have actual score levels - SAVE THIS
+let v_scorelevel = 6 - (
+		Pick(
+        	RangeMax(1, Ceil($(v_pct_metrics(pct_meeting, level_overall, $1, $2, $3, $4, $5, $6, $7)) * 3 + 0.00000001) + 1),
+        	Null(), 0, 2, 4, 4) +
+		RangeMin(Floor($(v_pct_metrics(pct_improving, level_overall, $1, $2, $3, $4, $5, $6, $7)) * 2), 1)
+	);
+
+let v_color_scorelevel = Pick($(v_scorelevel($1, $2, $3, $4, $5, $6, $7)) + 1, '#808080',
+	'#3c52a1', '#5ea4d9', '#d1ebfb', '#f2d2ae', '#ed875e', '#ae1c3e');
+
+let v_color_pct_meeting = IF($(v_pct_metrics(pct_meeting, level_overall, $1, $2, $3, $4, $5, $6, $7))<0.5,
+	IF($(v_pct_metrics(pct_meeting, level_overall, $1, $2, $3, $4, $5, $6, $7))<0,
+	'#AE1C3E',
+	COLORMIX2((($(v_pct_metrics(pct_meeting, level_overall, $1, $2, $3, $4, $5, $6, $7))-(1-((1-0)/2)))/((1-0)/4))+1,
+	RGB(
+	$(=NUM(NUM#(UPPER(MID('#AE1C3E',2,2)),'(HEX)'))),
+	$(=NUM(NUM#(UPPER(MID('#AE1C3E',4,2)),'(HEX)'))),
+	$(=NUM(NUM#(UPPER(MID('#AE1C3E',6,2)),'(HEX)')))
+	)
+	,
+	RGB(
+	$(=NUM(NUM#(UPPER(MID('#E6F5FE',2,2)),'(HEX)'))),
+	$(=NUM(NUM#(UPPER(MID('#E6F5FE',4,2)),'(HEX)'))),
+	$(=NUM(NUM#(UPPER(MID('#E6F5FE',6,2)),'(HEX)')))
+	)
+	,
+	RGB(
+	$(=NUM(NUM#(UPPER(MID('#ED875E',2,2)),'(HEX)'))),
+	$(=NUM(NUM#(UPPER(MID('#ED875E',4,2)),'(HEX)'))),
+	$(=NUM(NUM#(UPPER(MID('#ED875E',6,2)),'(HEX)')))
+	)
+	))
+	,
+	IF($(v_pct_metrics(pct_meeting, level_overall, $1, $2, $3, $4, $5, $6, $7))>1,
+	'#3C52A1',
+	COLORMIX2((($(v_pct_metrics(pct_meeting, level_overall, $1, $2, $3, $4, $5, $6, $7))-(1-((1-0)/2)))/((1-0)/4))-1,
+	RGB(
+	$(=NUM(NUM#(UPPER(MID('#E6F5FE',2,2)),'(HEX)'))),
+	$(=NUM(NUM#(UPPER(MID('#E6F5FE',4,2)),'(HEX)'))),
+	$(=NUM(NUM#(UPPER(MID('#E6F5FE',6,2)),'(HEX)')))
+	)
+	,
+	RGB(
+	$(=NUM(NUM#(UPPER(MID('#3C52A1',2,2)),'(HEX)'))),
+	$(=NUM(NUM#(UPPER(MID('#3C52A1',4,2)),'(HEX)'))),
+	$(=NUM(NUM#(UPPER(MID('#3C52A1',6,2)),'(HEX)')))
+	)
+	,
+	RGB(
+	$(=NUM(NUM#(UPPER(MID('#5EA4D9',2,2)),'(HEX)'))),
+	$(=NUM(NUM#(UPPER(MID('#5EA4D9',4,2)),'(HEX)'))),
+	$(=NUM(NUM#(UPPER(MID('#5EA4D9',6,2)),'(HEX)')))
+	)
+	))
+	);
+
 
 // color by tier
 /// parameters:
@@ -353,11 +493,6 @@ let v_tier_pct_metric = if(len(trim(purgechar('$2', '$'))) <= 1 or '$2' = 'meeti
 			if($(v_pct_metrics_overall_to_metric($1, $2)) >= 0, 'notequitable'))
 	)));
 
-// color by tier
-// parameters:
-// $1 year: cy, py, py2 (blank is all years)
-// $2 metric type: meeting (default), improving, improving_equitable
-// $3 show blanks for notimproving and notequitable (1 yes, blank no)
 let v_tier_label_pct_metric = If(WildMatch($(v_tier_pct_metric($1, $2)), 'not*'), 
 		if('$3' = '1', '', 'Not ' & Capitalize(Mid($(v_tier_pct_metric($1, $2)), 4))), 
 		Capitalize($(v_tier_pct_metric($1, $2))));

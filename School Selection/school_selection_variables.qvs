@@ -1,0 +1,138 @@
+/**
+*	Loading Variables: School Selection
+*	Jonathan Vitale
+*	Changes:
+*
+*	This is a complete revision of the selection mechanism, utilizing
+*	parameterized variables.
+**/
+
+//////////////////////////////////////////////////////////////////////// 
+/// Universal values: evaluate immediately
+////////////////////////////////////////////////////////////////////////
+
+set v_cy = =MaxString([School Year]);
+set v_py = =MaxString({<[School Year]=-{'$(v_cy)'}>}[School Year]);
+set v_py2 = =MaxString({<[School Year]=-{'$(v_cy)', '$(v_py)'}>}[School Year]);
+set v_sector_default = District;
+set v_grade_sending_default = 8;
+set v_grade_receiving_default = 9;
+set v_quallevel_default = 2; // 1: low, 2: medium, 3: high, 4: high+writing17, 5: high+writing22, 6: high+algebra+writing22
+set v_label_quallevel_default = Medium;
+set v_label_minquallevel_default = Medium+;
+
+//////////////////////////////////////////////////////////////////////// 
+/// General Expression Building: requires the following elements
+/// 1. aggregation qualifier - such as total or distinct
+/// 2. set identifier - such as 1 or Alt1 or $
+/// 3. set options - such as [X]={1}, [Year]={1}
+////////////////////////////////////////////////////////////////////////
+
+/**
+ * v_agg_qualifier is used to populate the space after the aggregation function name
+ * first five letters should be total or distinct, but beyond that, anything goes,
+ * e.g., total<[School Year]>
+ * @type {[type]}
+ */
+let v_agg_qualifier = $(=
+    if(not(index(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', ' _'), '|nototal')) and index('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '|total'), 
+    	replace(textbetween(mid('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', index('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', '|total')), '|', '|'), ':', ',')
+            ,'')
+    & ' ' &
+    pick(
+        wildmatch('distinct', '$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8', '$9') + 1,
+        '', '$1', '$2', '$3', '$4','$5', '$6', '$7', '$8', '$9')
+    );
+
+/**
+ * v_set_identifier is used to populate the space between opening curly bracket and angled bracket
+ *  {*here*< ... >} can be a 1 (for ignore selections) or an alternative set, e.g., Alt, also can multiply by set
+ */
+let v_set_identifier = $(=
+    pick(
+        wildmatch(replace(purgechar('|$1|$2|$3|$4|$5|$6|$7|$8|$9|', ' '), '*', 'x'), 
+            '*|$|*', '*|1|*', '*|Alt|*', '*|Altx|*') + 1,
+        '', '$', '1', 'Alt', 'Alt *')
+    );
+
+// the following two sets of strings are used to map from an alias to a field name,
+// anything in the alias variable will not be included as a potential setopt
+set v_list_fields_alias_nosetopt = 'student', 'application';
+set v_list_fields_nosetopt =       'id_student', 'flag_application';
+
+let v_map_agg_field = $(=pick(match(trim(lower('$1')), $(v_list_fields_alias_nosetopt)) + 1,
+        '$1', $(v_list_fields_nosetopt))
+	);
+set v_list_invalid_setopts = '{}', '$', '$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8', '$9', 'nosuppress', 'total*', 'distinct*', '1', $(v_list_fields_alias_nosetopt);
+
+//////////////////////////////////////////////////////////////////////// 
+/// setopts: the text after v_setopt_* can be entered as a parameter
+/// to v_setops and will use the "Set Option" in the set analysis
+////////////////////////////////////////////////////////////////////////
+
+set v_setopt_ = x={1}; // this is a dummy in case user enters invalid setopt
+set v_setopt_cy = [School Year]={'$(v_cy)'};
+set v_setopt_py = [School Year]={'$(v_py)'};
+
+set v_setopt_applied = [flag_applied]={1};
+set v_setopt_defaultsendinggrade = [Sending Grade]={'$(v_grade_sending_default)'};
+set v_setopt_defaultreceivinggrade = [Receiving Grade]={'$(v_grade_receiving_default)'};
+set v_setopt_defaultsector = [Sector]={'$(v_sector_default)'};
+set v_setopt_defaultquallevel = [Program Qualification Level]={$(v_quallevel_default)};
+set v_setopt_ignoreapplications = "flag_applied"=, "Receiving Program Name"=, "Receiving Program Type"=, "Receiving School ID"=, "Receiving Program ID"=;
+set v_setopt_waitofferany = [flag_waitoffer_qual0plus] = {1};
+set v_setopt_offerany =  [flag_offer_qual0plus] = {1};
+set v_setopt_offerqualleveldefault = [flag_offer_qual$(v_quallevel_default)plus] = {1};
+set v_setopt_studentminqualleveldefault = [Student Qualification Level]={">=$(v_quallevel_default)"};
+
+// use the following when referring to applications, not students
+set v_setopt_wait = [flag_wait]={1};
+set v_setopt_waitoffer = [flag_waitoffer]={1};
+set v_setopt_offer = [flag_waitoffer]={1};
+
+/**
+ * v_setopts is used to populate the space within <> to denote set options.
+ * All parameter values should be one of the list above: v_setopt_*these*
+ **/
+set v_setopts = $(=
+    // substitute any fully specified set options, e.g., [x]={1}
+    concat(distinct
+        valuelist(
+            if(wildmatch('$1', $(v_list_invalid_setopts)), 'x={1}', chr(36) & '(v_setopt_' & lower(purgechar('$1', '_ /-')) & ')'),
+            if(wildmatch('$2', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$2', '_ /-')) & ')'),
+            if(wildmatch('$3', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$3', '_ /-')) & ')'),
+            if(wildmatch('$4', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$4', '_ /-')) & ')'),
+            if(wildmatch('$5', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$5', '_ /-')) & ')'),
+            if(wildmatch('$6', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$6', '_ /-')) & ')'),
+            if(wildmatch('$7', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$7', '_ /-')) & ')'),
+            if(wildmatch('$8', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$8', '_ /-')) & ')'),
+            if(wildmatch('$9', $(v_list_invalid_setopts)), null(), chr(36) & '(v_setopt_' & lower(purgechar('$9', '_ /-')) & ')')
+        )
+        , ',')
+    );
+
+
+//////////////////////////////////////////////////////////////////////// 
+/// General Calculations - for individual question or subtopic
+////////////////////////////////////////////////////////////////////////
+
+let v_sum = Sum($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
+        $(v_map_agg_field($1)));
+let v_count = Count($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
+        $(v_map_agg_field($1)));
+let v_avg = Avg($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
+        $(v_map_agg_field($1)));
+
+
+
+//////////////////////////////////////////////////////////////////////// 
+/// Selection participation rate
+////////////////////////////////////////////////////////////////////////
+let v_count_students =  $(v_count(student, distinct, $1, $2, $3, $4, $5, $6, $7));
+let v_count_applications = $(v_sum(application, $1, $2, $3, $4, $5, $6, $7, $8));
