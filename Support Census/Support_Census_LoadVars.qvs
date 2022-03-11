@@ -63,7 +63,10 @@
 		let vmmCount_Students_Current = Num(Sum({<[School Year]={'$(vSchoolYear_Current)'}>} Enrollment), '#,##0'); 
 		let vmmCount_Students_Previous = Num(Sum({<[School Year]={'$(vSchoolYear_Previous)'}>} Enrollment), '#,##0'); 
 		let vmmCount_Students_YOY = Num(Sum({<[School Year]={'$(vSchoolYear_Current)'}>} Enrollment), '$(numformat_yoy_count)'); 
-	
+
+	// enrollment for selected need level and need rank, for scatter plot
+		let vmmCount_Students_Selected_Level_Rank_Current = Num(Sum({<[Need Value]={">=$(vSelectedMinNeedValue)"}, [Critical Need Rank]={"<=$(vSelectedMinNeedRank)"}, [School Year]={'$(vSchoolYear_Current)'}>} Enrollment), '#,##0'); 
+			
 
 
 	//// Number of Programs at a school
@@ -71,17 +74,31 @@
 		let vmmCount_Programs_Current = Num(If(Count(distinct {<[School Year]={'$(vSchoolYear_Current)'}>} [ProgramName])>0,Count(distinct {<[School Year]={'$(vSchoolYear_Current)'}>} [ProgramName])), '#,##0'); 
 		let vmmCount_Programs_Previous = Num(If(Count(distinct {<[School Year]={'$(vSchoolYear_Previous)'}>} [ProgramName])>0,Count(distinct {<[School Year]={'$(vSchoolYear_Previous)'}>} [ProgramName])), '#,##0'); 
 		let vmmCount_Programs_YOY = Num($(vmmCount_Programs_Current) - $(vmmCount_Programs_Previous), '$(numformat_yoy_count)'); 
+		let vmmCount_Programs_SPR_Current = Num(If(Count(distinct {<[School Year]={'$(vSchoolYear_SPR_Current)'}>} [ProgramName])>0,Count(distinct {<[School Year]={'$(vSchoolYear_SPR_Current)'}>} [ProgramName])), '#,##0'); 
+		let vmmCount_Programs_SPR_Previous = Num(If(Count(distinct {<[School Year]={'$(vSchoolYear_SPR_Previous)'}>} [ProgramName])>0,Count(distinct {<[School Year]={'$(vSchoolYear_SPR_Previous)'}>} [ProgramName])), '#,##0'); 	
+		let vmmCount_Programs_SPR_YOY = Num($(vmmCount_Programs_SPR_Current) - $(vmmCount_Programs_SPR_Previous), '$(numformat_yoy_count)'); 
+		
 		let vmmCount_Programs_PerStudent_Current = Num(100 * $(vmmCount_Programs_Current) / $(vmmCount_Students_Current), '#,##0.#'); 
 		let vmmCount_Programs_PerStudent_Previous = Num(100 * $(vmmCount_Programs_Previous) / $(vmmCount_Students_Previous), '#,##0.#'); 
 		let vmmCount_Programs_PerStudent_YOY = Num($(vmmCount_Programs_PerStudent_Current ) - $(vmmCount_Programs_PerStudent_Previous), '$(numformat_yoy_avg)'); 
+		let vmmCount_Programs_PerStudent_SPR_Current = Num(100 * $(vmmCount_Programs_SPR_Current) / $(vmmCount_Students_Current), '#,##0.#'); 
+		let vmmCount_Programs_PerStudent_SPR_Previous = Num(100 * $(vmmCount_Programs_SPR_Previous) / $(vmmCount_Students_Previous), '#,##0.#'); 
+		let vmmCount_Programs_PerStudent_SPR_YOY = Num($(vmmCount_Programs_PerStudent_SPR_Current ) - $(vmmCount_Programs_PerStudent_SPR_Previous), '$(numformat_yoy_avg)'); 
 		
 		let vmmCount_Orgs = Num(If(Count(distinct [OrganizationName])>0,Count(distinct [OrganizationName])), '#,##0'); 
 		let vmmCount_Orgs_Current = Num(If(Count(distinct {<[School Year]={'$(vSchoolYear_Current)'}>} [OrganizationName])>0,Count(distinct {<[School Year]={'$(vSchoolYear_Current)'}>} [OrganizationName])), '#,##0'); 
 		let vmmCount_Orgs_Previous = Num(If(Count(distinct {<[School Year]={'$(vSchoolYear_Previous)'}>} [OrganizationName])>0,Count(distinct {<[School Year]={'$(vSchoolYear_Previous)'}>} [OrganizationName])), '#,##0'); 
 		let vmmCount_Orgs_YOY = Num($(vmmCount_Orgs_Current) - $(vmmCount_Orgs_Previous), '$(numformat_yoy_count)'); 
+		let vmmCount_Orgs_SPR_Current = Num(If(Count(distinct {<[School Year]={'$(vSchoolYear_SPR_Current)'}>} [OrganizationName])>0,Count(distinct {<[School Year]={'$(vSchoolYear_SPR_Current)'}>} [OrganizationName])), '#,##0'); 
+		let vmmCount_Orgs_SPR_Previous = Num(If(Count(distinct {<[School Year]={'$(vSchoolYear_SPR_Previous)'}>} [OrganizationName])>0,Count(distinct {<[School Year]={'$(vSchoolYear_SPR_Previous)'}>} [OrganizationName])), '#,##0'); 
+		let vmmCount_Orgs_SPR_YOY = Num($(vmmCount_Orgs_SPR_Current) - $(vmmCount_Orgs_SPR_Previous), '$(numformat_yoy_count)'); 
+		
 		let vmmCount_Orgs_PerStudent_Current = Num(100 * $(vmmCount_Orgs_Current) / $(vmmCount_Students_Current), '#,##0.#'); 
 		let vmmCount_Orgs_PerStudent_Previous = Num(100 * $(vmmCount_Orgs_Previous) / $(vmmCount_Students_Previous), '#,##0.#'); 
 		let vmmCount_Orgs_PerStudent_YOY = Num($(vmmCount_Orgs_PerStudent_Current ) - $(vmmCount_Orgs_PerStudent_Previous), '$(numformat_yoy_avg)'); 
+		let vmmCount_Orgs_PerStudent_SPR_Current = Num(100 * $(vmmCount_Orgs_SPR_Current) / $(vmmCount_Students_Current), '#,##0.#'); 
+		let vmmCount_Orgs_PerStudent_SPR_Previous = Num(100 * $(vmmCount_Orgs_SPR_Previous) / $(vmmCount_Students_Previous), '#,##0.#'); 
+		let vmmCount_Orgs_PerStudent_SPR_YOY = Num($(vmmCount_Orgs_PerStudent_SPR_Current ) - $(vmmCount_Orgs_PerStudent_SPR_Previous), '$(numformat_yoy_avg)'); 
 		
 		let vmmAvg_Programs_AggSchool_Current = Num(Avg(Aggr(Count(distinct {<[School Year]={'$(vSchoolYear_Current)'}>} [ProgramName]), [School Name])), '#,##0.#'); 
 		let vmmAvg_Programs_AggSchool_Previous = Num(Avg(Aggr(Count(distinct {<[School Year]={'$(vSchoolYear_Previous)'}>} [ProgramName]), [School Name])), '#,##0.#'); 
@@ -136,6 +153,10 @@
 		let vmmCount_Needs_Selected_PerStudent_Current = Num(100 * $(vmmCount_Needs_Critical_Current) / $(vmmCount_Students_Current), '#,##0.#'); 
 		let vCount_Needs_Selected_Current_Color = If(Count( {<[School Year]={'$(vSchoolYear_Current)'}>} [Need Value]) > 0, 100 - Count({<[Need Value]={">=$(vSelectedMinNeedValue)"}, [School Year]={'$(vSchoolYear_Current)'}>}[Need Area])); 
 		
+		// for selected minimum rank
+		let vmmCount_Needs_Selected_Rank_Current = Num(If(Count( {<[School Year]={'$(vSchoolYear_Current)'}>} [Critical Need Rank]) > 0, Count({<[Critical Need Rank]={"<=$(vSelectedMinNeedRank)"}, [School Year]={'$(vSchoolYear_Current)'}>}[Need Area])), '#,##0'); 
+		
+
 	//// Needs areas - avg perc at level
 		let vCount1_DistinctNeeds = Count(distinct {1}[Need Area]);
 		let vCount1_DistinctNeeds_Current = Count(distinct {1<[School Year]={'$(vSchoolYear_Current)'}>}[Need Area]);
@@ -203,7 +224,7 @@
 		let vmmCount_ImpactsAcrossYears = Num(Count([Impact Area (Across Years)]), '#,##0'); 
 		let vmmCount_ImpactsAcrossYears_Current = Num(Count({<[School Year]={'$(vSchoolYear_Current)'}>} [Impact Area (Across Years)]), '#,##0'); 
 		let vmmCount_ImpactsAcrossYears_Previous = Num(Count({<[School Year]={'$(vSchoolYear_Previous)'}>} [Impact Area (Across Years)]), '#,##0'); 
-		let vmmCount_ImpactsAcrossYears_YOY = Num($(vmmCount_ImpactsAcrossYears_Current) - $(vmmCount_ImpactsAcrossYears_Previous), '$(numformat_yoy_count'); 
+		let vmmCount_ImpactsAcrossYears_YOY = Num($(vmmCount_ImpactsAcrossYears_Current) - $(vmmCount_ImpactsAcrossYears_Previous), '$(numformat_yoy_count)'); 
 	
 
 	//// SPR stats for schools served by this partner/Program - Overall

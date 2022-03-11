@@ -11,15 +11,22 @@
 /// Universal values: evaluate immediately
 ////////////////////////////////////////////////////////////////////////
 
+set v_ny = =MaxString([Next School Year]);
 set v_cy = =MaxString([School Year]);
-set v_py = =MaxString({<[School Year]=-{'$(v_cy)'}>}[School Year]);
-set v_py2 = =MaxString({<[School Year]=-{'$(v_cy)', '$(v_py)'}>}[School Year]);
+set v_py = =MaxString({<[School Year]-={'$(v_cy)'}>}[School Year]);
+set v_py2 = =MaxString({<[School Year]-={'$(v_cy)', '$(v_py)'}>}[School Year]);
 set v_sector_default = District;
 set v_grade_sending_default = 8;
-set v_grade_receiving_default = 9;
-set v_quallevel_default = 2; // 1: low, 2: medium, 3: high, 4: high+writing17, 5: high+writing22, 6: high+algebra+writing22
-set v_label_quallevel_default = Medium;
-set v_label_minquallevel_default = Medium+;
+set v_grade_receiving_default = =$(v_grade_sending_default) + 1;
+
+// the quallevel's new and old refer to the criterion levels before and after 2021-22 when the lottery system was introduced
+// they can be set by variable setters, but should not be used directly in measures because, based on user selections,
+// the current year could be old quals, or the py could be new levels (in upcoming years)
+set v_quallevel_default_new = 1; // 0: none, 1: low, 2: medium, 3: high, 4: high+writing17, 5: high+writing22, 6: high+algebra+writing22
+set v_quallevel_default_old = 0.5;
+// use these, the first can be used for measures where school year will be specified as a dimension
+set v_quallevel_default = $(=if(Num(Right('$(v_cy)', 4)) >= 2022 or Num(Right(Only([School Year]), 4)) >= 2022, $(v_quallevel_default_new), $(v_quallevel_default_old))); 
+set v_quallevel_default_py = $(=if(Num(Right('$(v_py)', 4)) >= 2022, $(v_quallevel_default_new), $(v_quallevel_default_old)));
 
 //////////////////////////////////////////////////////////////////////// 
 /// General Expression Building: requires the following elements
@@ -57,8 +64,8 @@ let v_set_identifier = $(=
 
 // the following two sets of strings are used to map from an alias to a field name,
 // anything in the alias variable will not be included as a potential setopt
-set v_list_fields_alias_nosetopt = 'student', 'application';
-set v_list_fields_nosetopt =       'id_student', 'flag_application';
+set v_list_fields_alias_nosetopt = 'student', 'application', 'student_next', 'student_qual_descr';
+set v_list_fields_nosetopt =       'id_student', 'flag_application', 'id_student_next', '[Student Qualification Description]';
 
 let v_map_agg_field = $(=pick(match(trim(lower('$1')), $(v_list_fields_alias_nosetopt)) + 1,
         '$1', $(v_list_fields_nosetopt))
@@ -77,19 +84,39 @@ set v_setopt_py = [School Year]={'$(v_py)'};
 set v_setopt_applied = [flag_applied]={1};
 set v_setopt_defaultsendinggrade = [Sending Grade]={'$(v_grade_sending_default)'};
 set v_setopt_defaultreceivinggrade = [Receiving Grade]={'$(v_grade_receiving_default)'};
-set v_setopt_defaultsector = [Sector]={'$(v_sector_default)'};
+set v_setopt_defaultreceivingassendinggrade = [Sending Grade]={'$(v_grade_receiving_default)'}; // for looking at next year enrollment
+set v_setopt_defaultsector = [Sending Sector]={'$(v_sector_default)'};
 set v_setopt_defaultquallevel = [Program Qualification Level]={$(v_quallevel_default)};
 set v_setopt_ignoreapplications = "flag_applied"=, "Receiving Program Name"=, "Receiving Program Type"=, "Receiving School ID"=, "Receiving Program ID"=;
+set v_setopt_ignoresending = "Sending School Name"=,"Sending School ID"=;
+
 set v_setopt_waitofferany = [flag_waitoffer_qual0plus] = {1};
 set v_setopt_offerany =  [flag_offer_qual0plus] = {1};
 set v_setopt_offerqualleveldefault = [flag_offer_qual$(v_quallevel_default)plus] = {1};
+set v_setopt_offerqualleveldefaultpy = [flag_offer_qual$(v_quallevel_default_py)plus] = {1};
+set v_setopt_appliedminqualleveldefault = [flag_applied_qual$(v_quallevel_default)plus] = {1};
+set v_setopt_appliedminqualleveldefaultpy = [flag_applied_qual$(v_quallevel_default_py)plus] = {1};
+set v_setopt_studentqualleveldefault = [Student Qualification Level]={$(v_quallevel_default)};
+set v_setopt_studentqualleveldefaultpy = [Student Qualification Level]={$(v_quallevel_default_py)};
 set v_setopt_studentminqualleveldefault = [Student Qualification Level]={">=$(v_quallevel_default)"};
+set v_setopt_studentminqualleveldefaultpy = [Student Qualification Level]={">=$(v_quallevel_default_py)"};
+set v_setopt_iep = [Special Education]={'Has IEP'};
+set v_setopt_el = [EL Indicator]={'Y'};
+set v_setopt_504 = [504 Indicator]={'Y'};
+set v_setopt_blackhispanic = [Race/Ethnicity]={'Black/African American', 'Hispanic/Latino'};
 
 // use the following when referring to applications, not students
+set v_setopt_qualified = [flag_program_qualified]={1};
 set v_setopt_wait = [flag_wait]={1};
 set v_setopt_waitoffer = [flag_waitoffer]={1};
-set v_setopt_offer = [flag_waitoffer]={1};
-
+set v_setopt_offerimmediate = [Program Response]={'Offer (immediate)'}; // offered during initial Lottery phase
+set v_setopt_offerfromwait = [Program Response]={'Offer (from waitlist)'}; // offered after being on waitlist
+set v_setopt_waitfinal = [Program Response]={'Wait (final)'}; // never made it off the waitlist
+set v_setopt_offer = [flag_offer]={1}; // offered at any phase
+set v_setopt_nooffer = [flag_offer]=-{1};
+set v_setopt_ineligible = [Program Response]={'Ineligible'}; // ineligible, based on criteria
+set v_setopt_studentaccepted = [flag_student_accepted]={1};
+set v_setopt_studentdeclined = [flag_student_accepted]={0};
 /**
  * v_setopts is used to populate the space within <> to denote set options.
  * All parameter values should be one of the list above: v_setopt_*these*
@@ -112,6 +139,7 @@ set v_setopts = $(=
     );
 
 
+
 //////////////////////////////////////////////////////////////////////// 
 /// General Calculations - for individual question or subtopic
 ////////////////////////////////////////////////////////////////////////
@@ -128,6 +156,36 @@ let v_avg = Avg($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
         {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
         <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
         $(v_map_agg_field($1)));
+let v_only = Only($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        {$(v_set_identifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
+        <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8, $9))>}
+        $(v_map_agg_field($1)));
+
+//////////////////////////////////////////////////////////////////////// 
+/// Labels and text
+////////////////////////////////////////////////////////////////////////
+
+// a label map for Program Response from program response codes
+// $1: one of the values in the Match function below
+set v_label_program_response = $(=Pick(Match('$1',
+	'offer', 'offer_immediate', 	'wait_offer', 		'offer_from_wait', 		 'wait_final', 		 'ineligible') + 1, 'NOT A VALID VALUE',
+	'Offer', 'Offer (immediate)',	'Offer or Waitlist','Offer (from waitlist)', 'Waitlist (final)', 'Ineligible'
+	));
+
+set v_label_quallevel_default = =if(Num(Right('$(v_cy)', 4)) >= 2022 or Num(Right(Only([School Year]), 4)) >= 2022, 
+	Pick(Round($(v_quallevel_default)) + 1, 'None', 'Low', 'Medium', 'High', 'High (writing 17)', 'High (writing 22)', 'High (writing 22 + Algebra)'),
+	Pick(Round($(v_quallevel_default)) + 1, 'None', 'CW', 'SA', 'SA-Max')
+	);
+set v_label_minquallevel_default = ='$(v_label_quallevel_default)+';
+set v_text_quallevel_descr_default = =$(v_only(student_qual_descr, student_quallevel_default, cy, 1));
+
+// the following are specifically for years prior to 2021-22, when different standards were in place
+set v_label_quallevel_default_py = =if(Num(Right('$(v_py)', 4)) >= 2022,
+	Pick(Round($(v_quallevel_default_py)) + 1, 'None', 'Low', 'Medium', 'High', 'High (writing 17)', 'High (writing 22)', 'High (writing 22 + Algebra)'),
+	Pick(Round($(v_quallevel_default_py)) + 1, 'None', 'CW', 'SA', 'SA-Max')
+	);
+set v_label_minquallevel_default_py = ='$(v_label_quallevel_default_py)+';
+set v_text_quallevel_descr_default_py = =$(v_only(student_qual_descr, student_quallevel_default_py, py, 1));
 
 
 
@@ -136,3 +194,23 @@ let v_avg = Avg($(v_agg_qualifier($1, $2, $3, $4, $5, $6, $7, $8, $9))
 ////////////////////////////////////////////////////////////////////////
 let v_count_students =  $(v_count(student, distinct, $1, $2, $3, $4, $5, $6, $7));
 let v_count_applications = $(v_sum(application, $1, $2, $3, $4, $5, $6, $7, $8));
+
+
+
+//////////////////////////////////////////////////////////////////////// 
+/// Colors
+////////////////////////////////////////////////////////////////////////
+let v_color_program_response = Pick(Alt(Match($1, 
+	'Ineligible', 'Waitlist (final)', 'Offer (other)', 'Offer (from waitlist)', 'Offer (immediate)') + 1, 1), '#808080',
+	'#AE1C3E', '#F2D2AE', '#D1EBFB', '#5EA4D9', '#3C52A1'
+);
+
+let v_color_student_response = Pick(Alt(Match($1, 
+	'Declined', 'Pending', 'Accepted') + 1, 1), '#808080',
+	'#AE1C3E', '#F2D2AE', '#3C52A1'
+);
+
+let v_color_qualification_level = Pick(Alt($1 + 2, 1), '#808080', '#AE1C3E', '#F2D2AE', '#D1EBFB', '#A7D5F3', '#5EA4D9', '#3B72B9', '#3C52A1');
+
+let v_color_qualification_level = Pick(Alt($1 + 2, 1), '#808080', '#AE1C3E', '#F2D2AE', '#D1EBFB', '#A7D5F3', '#5EA4D9', '#3B72B9', '#3C52A1');
+

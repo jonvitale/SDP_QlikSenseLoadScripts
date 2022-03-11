@@ -113,6 +113,7 @@ set v_setopt_professional = [Construct]={'Professional Capacity'};
 set v_setopt_leadership = [Construct]={'School Leadership'};
 set v_setopt_parentrelationship = [$(v_field_construct)]={'Parent/Guardian-Community Ties'}, [$(v_field_subconstruct)]={'School Relationship'};
 set v_setopt_other = [Construct]={'Other'};
+set v_setopt_collegeandcareer = [SubConstruct]={'College and Career'};
 
 set v_setopt_student = [Survey]={'STUDENT'}, [Grade]-={"00", "01", "02"};
 set v_setopt_parent = [Survey]={'PARENT'};
@@ -560,6 +561,8 @@ let v_avg_score_agg_construct = if($(v_suppress(topic_respondents, $1, $2, $3, $
         Count(total<[Construct],[Topic],[Respondents],[Respondent Group]> distinct {$(v_set_identifier(1, $1, $2, $3, $4, $5, $6, $7, $8))
             <$(v_setopts($1, $2, $3, $4, $5, $6, $7, $8))>} [$(v_field_survey)])) > 0, 'i.s.')
 );
+
+
 
 /// same as above but force all respondent groups
 let v_avg_score_agg_construct_all = if($(v_suppress_all(topic_respondents, $1, $2, $3, $4, $5, $6, $7, $8)),
